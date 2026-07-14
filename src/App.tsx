@@ -22,6 +22,18 @@ import FilaPeticoesPage from './pages/FilaPeticoesPage';
 import CorrecaoPage from './pages/CorrecaoPage';
 import GerenciarAlunosPage from './pages/GerenciarAlunosPage';
 import PeticaoReferenciaPage from './pages/PeticaoReferenciaPage';
+import ConsultaProcessualPage from './pages/ConsultaProcessualPage';
+import AcessibilidadePage from './pages/AcessibilidadePage';
+import CadastreSePage from './pages/CadastreSePage';
+import ConsultaAutenticidadePage from './pages/ConsultaAutenticidadePage';
+import GuiaCustasPage from './pages/GuiaCustasPage';
+import AudienciasPage from './pages/AudienciasPage';
+import ConsultaDocumentoChavePage from './pages/ConsultaDocumentoChavePage';
+import FaleConoscoPage from './pages/FaleConoscoPage';
+import ForumConciliacaoPage from './pages/ForumConciliacaoPage';
+import LegislacaoPage from './pages/LegislacaoPage';
+import SessoesJulgamentoPage from './pages/SessoesJulgamentoPage';
+import TutoriaisPage from './pages/TutoriaisPage';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -86,6 +98,22 @@ function AppRoutes() {
       <Route path="/prof/correcao/:id" element={<RequireProfessor><CorrecaoPage /></RequireProfessor>} />
       <Route path="/prof/alunos" element={<RequireProfessor><GerenciarAlunosPage /></RequireProfessor>} />
       <Route path="/prof/processos" element={<RequireProfessor><FilaPeticoesPage /></RequireProfessor>} />
+
+      {/* Acesso Público — rotas acessíveis a qualquer usuário logado */}
+      <Route path="/consulta-processual" element={<RequireAuth><ConsultaProcessualPage /></RequireAuth>} />
+      <Route path="/acessibilidade" element={<RequireAuth><AcessibilidadePage /></RequireAuth>} />
+      <Route path="/cadastre-se" element={<RequireAuth><CadastreSePage /></RequireAuth>} />
+      <Route path="/cadastre-se/:tipo" element={<RequireAuth><CadastreSePage /></RequireAuth>} />
+      <Route path="/consulta-autenticidade" element={<RequireAuth><ConsultaAutenticidadePage /></RequireAuth>} />
+      <Route path="/consulta-autenticidade/:modo" element={<RequireAuth><ConsultaAutenticidadePage /></RequireAuth>} />
+      <Route path="/guia-custas" element={<RequireAuth><GuiaCustasPage /></RequireAuth>} />
+      <Route path="/audiencias" element={<RequireAuth><AudienciasPage /></RequireAuth>} />
+      <Route path="/consulta-documento-chave" element={<RequireAuth><ConsultaDocumentoChavePage /></RequireAuth>} />
+      <Route path="/fale-conosco" element={<RequireAuth><FaleConoscoPage /></RequireAuth>} />
+      <Route path="/forum-conciliacao" element={<RequireAuth><ForumConciliacaoPage /></RequireAuth>} />
+      <Route path="/legislacao" element={<RequireAuth><LegislacaoPage /></RequireAuth>} />
+      <Route path="/sessoes-julgamento" element={<RequireAuth><SessoesJulgamentoPage /></RequireAuth>} />
+      <Route path="/tutoriais" element={<RequireAuth><TutoriaisPage /></RequireAuth>} />
 
       {/* Legacy redirects */}
       <Route path="/home" element={<Navigate to="/dashboard" replace />} />

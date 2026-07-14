@@ -149,6 +149,12 @@
     color: hsl(var(--eproc-header));
     font-weight: 700;
   }
+  .pje-sidebar-section-label {
+    @apply px-3 py-1 text-[10px] font-bold uppercase tracking-wider border-b;
+    color: hsl(var(--muted-foreground));
+    background-color: hsl(var(--sidebar-hover));
+    border-color: hsl(var(--sidebar-border));
+  }
 
   /* ===== PROCESS DATA BAR ===== */
   .pje-process-bar {
