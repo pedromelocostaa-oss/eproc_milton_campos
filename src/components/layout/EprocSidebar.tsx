@@ -1,11 +1,19 @@
 import {
   LayoutDashboard, FolderOpen,
   Settings, Users, BookOpen, ClipboardList,
-  List, Globe,
+  List, Globe, Search,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { ReactNode, useState } from 'react';
+
+function SoonTag() {
+  return (
+    <span className="text-[8px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full text-white/70 bg-white/10 border border-white/15 whitespace-nowrap">
+      em breve
+    </span>
+  );
+}
 
 interface SidebarItemProps {
   icon?: ReactNode;
@@ -15,23 +23,26 @@ interface SidebarItemProps {
   active?: boolean;
   disabled?: boolean;
   badge?: number;
+  soon?: boolean;
 }
 
-function SidebarItem({ icon, label, path, onClick, active, disabled, badge }: SidebarItemProps) {
+function SidebarItem({ icon, label, path, onClick, active, disabled, badge, soon }: SidebarItemProps) {
   const navigate = useNavigate();
   const handleClick = disabled ? undefined : (onClick ?? (path ? () => navigate(path) : undefined));
   return (
     <button
-      className={`pje-sidebar-item w-full ${disabled ? 'opacity-40 cursor-not-allowed' : ''} ${active ? 'pje-sidebar-item-active' : ''}`}
+      className={`pje-sidebar-item w-full ${disabled ? 'opacity-40 cursor-not-allowed' : ''} ${soon ? 'pje-sidebar-item-soon' : ''} ${active ? 'pje-sidebar-item-active' : ''}`}
       onClick={handleClick}
       disabled={disabled}
+      title={soon ? 'Página ainda não disponível' : undefined}
     >
       {icon ?? <span className="text-[10px] opacity-60">▸</span>}
       <span className="flex-1 text-left">{label}</span>
       {badge != null && badge > 0 && (
         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white bg-red-500">{badge}</span>
       )}
-      {!badge && <span className="text-[11px] opacity-30">›</span>}
+      {soon && <SoonTag />}
+      {!badge && !soon && <span className="text-[11px] opacity-30">›</span>}
     </button>
   );
 }
@@ -42,18 +53,21 @@ interface ExpandableProps {
   children: ReactNode;
   defaultOpen?: boolean;
   active?: boolean;
+  soon?: boolean;
 }
 
-function ExpandableItem({ icon, label, children, defaultOpen = false, active }: ExpandableProps) {
+function ExpandableItem({ icon, label, children, defaultOpen = false, active, soon }: ExpandableProps) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div>
       <button
-        className={`pje-sidebar-item w-full ${active ? 'pje-sidebar-item-active' : ''}`}
+        className={`pje-sidebar-item w-full ${soon ? 'pje-sidebar-item-soon' : ''} ${active ? 'pje-sidebar-item-active' : ''}`}
         onClick={() => setOpen(!open)}
+        title={soon ? 'Página ainda não disponível' : undefined}
       >
         {icon ?? <span className="text-[10px] opacity-60">▸</span>}
         <span className="flex-1 text-left font-semibold">{label}</span>
+        {soon && <SoonTag />}
         {open ? <span className="text-[11px]">▾</span> : <span className="text-[11px]">›</span>}
       </button>
       {open && <div className="pje-sidebar-submenu">{children}</div>}
@@ -61,15 +75,17 @@ function ExpandableItem({ icon, label, children, defaultOpen = false, active }: 
   );
 }
 
-function SubItem({ label, path, active, disabled }: { label: string; path?: string; active?: boolean; disabled?: boolean }) {
+function SubItem({ label, path, active, disabled, soon }: { label: string; path?: string; active?: boolean; disabled?: boolean; soon?: boolean }) {
   const navigate = useNavigate();
   return (
     <button
-      className={`pje-sidebar-subitem w-full ${active ? 'pje-sidebar-subitem-active' : ''} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+      className={`pje-sidebar-subitem w-full flex items-center gap-2 ${active ? 'pje-sidebar-subitem-active' : ''} ${soon ? 'pje-sidebar-item-soon' : ''} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
       onClick={disabled ? undefined : (path ? () => navigate(path) : undefined)}
       disabled={disabled}
+      title={soon ? 'Página ainda não disponível' : undefined}
     >
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {soon && <SoonTag />}
     </button>
   );
 }
@@ -92,6 +108,18 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
 
   return (
     <aside className="pje-sidebar overflow-y-auto">
+      {/* Busca no menu */}
+      <div className="p-2 border-b" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+        <div className="relative">
+          <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-white/50" />
+          <input
+            className="w-full text-[12px] pl-7 pr-2 py-1.5 bg-white text-foreground border-none outline-none"
+            placeholder="Pesquisar no Menu (Alt + m)"
+            aria-label="Pesquisar no menu"
+          />
+        </div>
+      </div>
+
       {/* --- ALUNO --- */}
       {isAluno && (
         <>
@@ -124,36 +152,38 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
 
           <div className="pje-sidebar-section-label">ACESSO PÚBLICO</div>
 
-          <SidebarItem label="Acessibilidade" path="/acessibilidade" active={at('/acessibilidade')} />
+          <SidebarItem label="Acessibilidade" path="/acessibilidade" active={at('/acessibilidade')} soon />
 
           <ExpandableItem
             label="Cadastre-se AQUI!"
             defaultOpen={startsWith('/cadastre-se')}
             active={startsWith('/cadastre-se')}
+            soon
           >
-            <SubItem label="Advogado / Procurador" path="/cadastre-se/advogado" active={at('/cadastre-se/advogado')} />
-            <SubItem label="Pessoa Física sem OAB" path="/cadastre-se/pessoa-fisica" active={at('/cadastre-se/pessoa-fisica')} />
-            <SubItem label="Pessoa Jurídica / Ente Gov." path="/cadastre-se/pessoa-juridica" active={at('/cadastre-se/pessoa-juridica')} />
+            <SubItem label="Advogado / Procurador" path="/cadastre-se/advogado" active={at('/cadastre-se/advogado')} soon />
+            <SubItem label="Pessoa Física sem OAB" path="/cadastre-se/pessoa-fisica" active={at('/cadastre-se/pessoa-fisica')} soon />
+            <SubItem label="Pessoa Jurídica / Ente Gov." path="/cadastre-se/pessoa-juridica" active={at('/cadastre-se/pessoa-juridica')} soon />
           </ExpandableItem>
 
           <ExpandableItem
             label="Consulta Autenticidade"
             defaultOpen={startsWith('/consulta-autenticidade')}
             active={startsWith('/consulta-autenticidade')}
+            soon
           >
-            <SubItem label="Por Código de Verificação" path="/consulta-autenticidade/codigo" active={at('/consulta-autenticidade/codigo')} />
-            <SubItem label="Por Hash do Documento" path="/consulta-autenticidade/hash" active={at('/consulta-autenticidade/hash')} />
+            <SubItem label="Por Código de Verificação" path="/consulta-autenticidade/codigo" active={at('/consulta-autenticidade/codigo')} soon />
+            <SubItem label="Por Hash do Documento" path="/consulta-autenticidade/hash" active={at('/consulta-autenticidade/hash')} soon />
           </ExpandableItem>
 
-          <SidebarItem label="Consulta Guia de Custas" path="/guia-custas" active={at('/guia-custas')} />
-          <SidebarItem label="Audiências" path="/audiencias" active={at('/audiencias')} />
+          <SidebarItem label="Consulta Guia de Custas" path="/guia-custas" active={at('/guia-custas')} soon />
+          <SidebarItem label="Audiências" path="/audiencias" active={at('/audiencias')} soon />
           <SidebarItem label="Consulta Pública de Processos" path="/consulta-processual" active={at('/consulta-processual')} />
-          <SidebarItem label="Consulta de Documento por Chave" path="/consulta-documento-chave" active={at('/consulta-documento-chave')} />
-          <SidebarItem label="Fale Conosco" path="/fale-conosco" active={at('/fale-conosco')} />
-          <SidebarItem label="Fórum de Conciliação" path="/forum-conciliacao" active={at('/forum-conciliacao')} />
-          <SidebarItem label="Legislação" path="/legislacao" active={at('/legislacao')} />
+          <SidebarItem label="Consulta de Documento por Chave" path="/consulta-documento-chave" active={at('/consulta-documento-chave')} soon />
+          <SidebarItem label="Fale Conosco" path="/fale-conosco" active={at('/fale-conosco')} soon />
+          <SidebarItem label="Fórum de Conciliação" path="/forum-conciliacao" active={at('/forum-conciliacao')} soon />
+          <SidebarItem label="Legislação" path="/legislacao" active={at('/legislacao')} soon />
           <SidebarItem label="Sessões de Julgamento" path="/sessoes-julgamento" active={at('/sessoes-julgamento')} />
-          <SidebarItem label="Tutoriais" path="/tutoriais" active={at('/tutoriais')} />
+          <SidebarItem label="Tutoriais" path="/tutoriais" active={at('/tutoriais')} soon />
 
         </>
       )}

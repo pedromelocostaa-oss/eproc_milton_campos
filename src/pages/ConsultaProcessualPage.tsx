@@ -141,15 +141,15 @@ export default function ConsultaProcessualPage() {
     <EprocLayout>
       <div className="p-4">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-[22px] font-bold text-foreground">
+          <h1 className="text-[26px] font-bold" style={{ color: '#333' }}>
             Consulta Processual - Busca de Processo
           </h1>
           <div className="flex gap-2">
-            <button className="btn-primary" onClick={consultar}>Consultar</button>
+            <button className="tjmg-btn-primary" onClick={consultar}>Consultar</button>
             {view !== 'form' && (
-              <button className="btn-secondary" onClick={() => window.print()}>Imprimir</button>
+              <button className="tjmg-btn-link" onClick={() => window.print()}>Imprimir</button>
             )}
-            <button className="btn-secondary" onClick={voltar}>Voltar</button>
+            <button className="tjmg-btn-link" onClick={voltar}>Voltar</button>
           </div>
         </div>
 

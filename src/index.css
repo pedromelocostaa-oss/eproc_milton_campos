@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -33,12 +33,25 @@
     --eproc-header-avatar: 205 60% 45%;
     --eproc-header-sub: 205 55% 22%;
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 210 20% 25%;
-    --sidebar-border: 210 12% 85%;
-    --sidebar-hover: 213 40% 95%;
-    --sidebar-active: 213 55% 90%;
+    /* ===== TJMG portal chrome ===== */
+    /* Barra de acessibilidade (topo escuro) */
+    --tjmg-access-bar: 210 34% 16%;      /* navy escuro #1b2836 */
+    --tjmg-access-fg: 0 0% 100%;
+    /* Header teal com degradê (esq -> dir) */
+    --tjmg-header-from: 194 50% 33%;      /* teal escuro #2b6f80 */
+    --tjmg-header-to: 192 62% 55%;        /* cyan claro #49b8d6 */
+    --tjmg-header-fg: 0 0% 100%;
+    /* Botão primário azul (padrão gov.br/PJe) */
+    --btn-primary: 208 62% 45%;           /* #2d78bd */
+    --btn-primary-hover: 208 62% 38%;
+    --btn-link: 208 68% 42%;              /* azul de link */
+
+    /* Sidebar (escuro, igual ao portal TJMG) */
+    --sidebar-background: 210 26% 22%;    /* #2a3746 */
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-border: 210 22% 28%;
+    --sidebar-hover: 210 26% 30%;
+    --sidebar-active: 210 30% 34%;
 
     --success: 120 40% 36%;
     --success-foreground: 0 0% 100%;
@@ -65,13 +78,13 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: Arial, Verdana, 'Segoe UI', Tahoma, Geneva, sans-serif;
+    font-family: 'Open Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 13px;
     line-height: 1.4;
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: Arial, Verdana, 'Segoe UI', sans-serif;
+    font-family: 'Open Sans', 'Segoe UI', sans-serif;
   }
   select, input, textarea {
     font-size: 13px;
@@ -131,11 +144,12 @@
   .pje-sidebar-item-active {
     background-color: hsl(var(--sidebar-active));
     font-weight: 700;
-    color: hsl(var(--eproc-header));
+    color: #fff;
+    box-shadow: inset 3px 0 0 hsl(var(--tjmg-header-to));
   }
   .pje-sidebar-submenu {
     border-bottom: 1px solid hsl(var(--sidebar-border));
-    background-color: hsl(213 20% 98%);
+    background-color: hsl(210 26% 18%);
   }
   .pje-sidebar-subitem {
     @apply block w-full text-left px-7 py-1.5 text-[12px] cursor-pointer transition-colors;
@@ -143,18 +157,70 @@
   }
   .pje-sidebar-subitem:hover:not(:disabled) {
     background-color: hsl(var(--sidebar-hover));
-    color: hsl(var(--eproc-header));
+    color: #fff;
   }
   .pje-sidebar-subitem-active {
-    color: hsl(var(--eproc-header));
+    color: #fff;
     font-weight: 700;
   }
   .pje-sidebar-section-label {
     @apply px-3 py-1 text-[10px] font-bold uppercase tracking-wider border-b;
-    color: hsl(var(--muted-foreground));
-    background-color: hsl(var(--sidebar-hover));
+    color: hsl(192 40% 72%);
+    background-color: hsl(210 26% 18%);
     border-color: hsl(var(--sidebar-border));
   }
+  /* Item cuja página ainda não tem conteúdo: levemente apagado */
+  .pje-sidebar-item-soon {
+    opacity: 0.5;
+  }
+  .pje-sidebar-item-soon:hover:not(:disabled) {
+    opacity: 0.75;
+  }
+
+  /* ===== TJMG PORTAL HEADER ===== */
+  .tjmg-access-bar {
+    @apply flex items-center justify-end gap-4 px-4 text-[12px];
+    background-color: hsl(var(--tjmg-access-bar));
+    color: hsl(var(--tjmg-access-fg));
+    min-height: 30px;
+  }
+  .tjmg-access-bar button {
+    @apply bg-transparent border-none cursor-pointer hover:underline;
+    color: hsl(var(--tjmg-access-fg));
+  }
+  .tjmg-header {
+    @apply flex items-center gap-3 px-4;
+    background: linear-gradient(90deg, hsl(var(--tjmg-header-from)) 0%, hsl(var(--tjmg-header-to)) 100%);
+    color: hsl(var(--tjmg-header-fg));
+    min-height: 54px;
+  }
+  .tjmg-header-btn {
+    @apply p-1 hover:opacity-80 cursor-pointer bg-transparent border-none flex items-center;
+    color: hsl(var(--tjmg-header-fg));
+  }
+  .tjmg-header-title {
+    @apply text-[19px] font-semibold leading-none;
+  }
+  .tjmg-header-avatar {
+    @apply w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-[12px] font-bold;
+    background-color: rgba(255,255,255,0.22);
+    color: #fff;
+  }
+
+  /* ===== TJMG BUTTONS (azul, sem uppercase) ===== */
+  .tjmg-btn-primary {
+    @apply text-[14px] font-semibold px-4 py-1.5 text-white border-transparent cursor-pointer;
+    background-color: hsl(var(--btn-primary));
+    border-radius: 4px;
+  }
+  .tjmg-btn-primary:hover { background-color: hsl(var(--btn-primary-hover)); }
+  .tjmg-btn-link {
+    @apply text-[14px] font-semibold px-4 py-1.5 bg-white cursor-pointer;
+    color: hsl(var(--btn-link));
+    border: 1px solid hsl(210 15% 82%);
+    border-radius: 4px;
+  }
+  .tjmg-btn-link:hover { background-color: hsl(210 30% 96%); text-decoration: underline; }
 
   /* ===== PROCESS DATA BAR ===== */
   .pje-process-bar {
@@ -212,8 +278,9 @@
     border-radius: 0;
   }
   .form-field:focus {
-    outline: 2px solid hsl(var(--eproc-header));
-    border-color: hsl(var(--eproc-header));
+    outline: none;
+    border-color: hsl(var(--btn-primary));
+    box-shadow: 0 0 0 2px hsla(208, 62%, 55%, 0.35), 0 0 6px hsla(208, 62%, 55%, 0.45);
   }
   .form-field:disabled {
     background-color: hsl(var(--muted));
