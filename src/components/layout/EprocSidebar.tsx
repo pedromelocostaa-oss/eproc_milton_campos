@@ -152,38 +152,36 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
 
           <div className="pje-sidebar-section-label">ACESSO PÚBLICO</div>
 
-          <SidebarItem label="Acessibilidade" path="/acessibilidade" active={at('/acessibilidade')} soon />
+          <SidebarItem label="Acessibilidade" path="/acessibilidade" active={at('/acessibilidade')} />
 
           <ExpandableItem
             label="Cadastre-se AQUI!"
             defaultOpen={startsWith('/cadastre-se')}
             active={startsWith('/cadastre-se')}
-            soon
           >
-            <SubItem label="Advogado / Procurador" path="/cadastre-se/advogado" active={at('/cadastre-se/advogado')} soon />
-            <SubItem label="Pessoa Física sem OAB" path="/cadastre-se/pessoa-fisica" active={at('/cadastre-se/pessoa-fisica')} soon />
-            <SubItem label="Pessoa Jurídica / Ente Gov." path="/cadastre-se/pessoa-juridica" active={at('/cadastre-se/pessoa-juridica')} soon />
+            <SubItem label="Advogado / Procurador" path="/cadastre-se/advogado" active={at('/cadastre-se/advogado')} />
+            <SubItem label="Pessoa Física sem OAB" path="/cadastre-se/pessoa-fisica" active={at('/cadastre-se/pessoa-fisica')} />
+            <SubItem label="Pessoa Jurídica / Ente Gov." path="/cadastre-se/pessoa-juridica" active={at('/cadastre-se/pessoa-juridica')} />
           </ExpandableItem>
 
           <ExpandableItem
             label="Consulta Autenticidade"
             defaultOpen={startsWith('/consulta-autenticidade')}
             active={startsWith('/consulta-autenticidade')}
-            soon
           >
-            <SubItem label="Por Código de Verificação" path="/consulta-autenticidade/codigo" active={at('/consulta-autenticidade/codigo')} soon />
-            <SubItem label="Por Hash do Documento" path="/consulta-autenticidade/hash" active={at('/consulta-autenticidade/hash')} soon />
+            <SubItem label="Por Código de Verificação" path="/consulta-autenticidade/codigo" active={at('/consulta-autenticidade/codigo')} />
+            <SubItem label="Por Hash do Documento" path="/consulta-autenticidade/hash" active={at('/consulta-autenticidade/hash')} />
           </ExpandableItem>
 
-          <SidebarItem label="Consulta Guia de Custas" path="/guia-custas" active={at('/guia-custas')} soon />
-          <SidebarItem label="Audiências" path="/audiencias" active={at('/audiencias')} soon />
+          <SidebarItem label="Consulta Guia de Custas" path="/guia-custas" active={at('/guia-custas')} />
+          <SidebarItem label="Audiências" path="/audiencias" active={at('/audiencias')} />
           <SidebarItem label="Consulta Pública de Processos" path="/consulta-processual" active={at('/consulta-processual')} />
-          <SidebarItem label="Consulta de Documento por Chave" path="/consulta-documento-chave" active={at('/consulta-documento-chave')} soon />
-          <SidebarItem label="Fale Conosco" path="/fale-conosco" active={at('/fale-conosco')} soon />
-          <SidebarItem label="Fórum de Conciliação" path="/forum-conciliacao" active={at('/forum-conciliacao')} soon />
-          <SidebarItem label="Legislação" path="/legislacao" active={at('/legislacao')} soon />
+          <SidebarItem label="Consulta de Documento por Chave" path="/consulta-documento-chave" active={at('/consulta-documento-chave')} />
+          <SidebarItem label="Fale Conosco" path="/fale-conosco" active={at('/fale-conosco')} />
+          <SidebarItem label="Fórum de Conciliação" path="/forum-conciliacao" active={at('/forum-conciliacao')} />
+          <SidebarItem label="Legislação" path="/legislacao" active={at('/legislacao')} />
           <SidebarItem label="Sessões de Julgamento" path="/sessoes-julgamento" active={at('/sessoes-julgamento')} />
-          <SidebarItem label="Tutoriais" path="/tutoriais" active={at('/tutoriais')} soon />
+          <SidebarItem label="Tutoriais" path="/tutoriais" active={at('/tutoriais')} />
 
         </>
       )}
