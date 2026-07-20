@@ -6,6 +6,7 @@ import {
   Users,
   ClipboardList,
   FileText,
+  FolderPlus,
   LogOut,
 } from 'lucide-react';
 
@@ -14,10 +15,11 @@ interface ProfLayoutProps {
 }
 
 const NAV = [
-  { label: 'Painel',              path: '/prof/dashboard',  Icon: LayoutDashboard },
-  { label: 'Alunos e Turmas',     path: '/prof/alunos',     Icon: Users           },
-  { label: 'Atividades',          path: '/prof/tarefas',    Icon: ClipboardList   },
-  { label: 'Petições Recebidas',  path: '/prof/peticoes',   Icon: FileText        },
+  { label: 'Painel',                path: '/prof/dashboard',  Icon: LayoutDashboard },
+  { label: 'Alunos e Turmas',       path: '/prof/alunos',     Icon: Users           },
+  { label: 'Atividades',            path: '/prof/tarefas',    Icon: ClipboardList   },
+  { label: 'Petições Recebidas',    path: '/prof/peticoes',   Icon: FileText        },
+  { label: 'Banco de Processos',    path: '/prof/acervo',     Icon: FolderPlus      },
 ];
 
 export default function ProfLayout({ children }: ProfLayoutProps) {

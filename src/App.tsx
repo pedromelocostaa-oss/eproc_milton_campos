@@ -23,6 +23,7 @@ import CorrecaoPage from './pages/CorrecaoPage';
 import GerenciarAlunosPage from './pages/GerenciarAlunosPage';
 import PeticaoReferenciaPage from './pages/PeticaoReferenciaPage';
 import ConsultaProcessualPage from './pages/ConsultaProcessualPage';
+import DisponibilizarProcessosPage from './pages/DisponibilizarProcessosPage';
 import AcessibilidadePage from './pages/AcessibilidadePage';
 import CadastreSePage from './pages/CadastreSePage';
 import ConsultaAutenticidadePage from './pages/ConsultaAutenticidadePage';
@@ -97,6 +98,7 @@ function AppRoutes() {
       <Route path="/prof/peticoes" element={<RequireProfessor><FilaPeticoesPage /></RequireProfessor>} />
       <Route path="/prof/correcao/:id" element={<RequireProfessor><CorrecaoPage /></RequireProfessor>} />
       <Route path="/prof/alunos" element={<RequireProfessor><GerenciarAlunosPage /></RequireProfessor>} />
+      <Route path="/prof/acervo" element={<RequireProfessor><DisponibilizarProcessosPage /></RequireProfessor>} />
       <Route path="/prof/processos" element={<RequireProfessor><FilaPeticoesPage /></RequireProfessor>} />
 
       {/* Acesso Público — rotas acessíveis a qualquer usuário logado */}
