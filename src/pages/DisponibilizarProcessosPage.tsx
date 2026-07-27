@@ -3,10 +3,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProfLayout from '@/components/layout/ProfLayout';
 import {
   UploadCloud, Info, Plus, Trash2, FileText, Users, Paperclip,
-  CheckCircle2, GraduationCap, Search, FolderPlus,
+  CheckCircle2, GraduationCap, Search, FolderPlus, Loader2, AlertTriangle, Pencil,
 } from 'lucide-react';
 import { formatCpf, formatCnpj } from '@/lib/masks';
 import { saveArquivo, deleteArquivo } from '@/lib/fileStore';
+import { extrairProcessoDoPdf } from '@/lib/pdfExtract';
 import {
   getAcervoDoProfessor, saveAcervoProcesso, deleteAcervoProcesso,
   type AcervoProcesso, type AcervoParte, type AcervoDocumento,
@@ -17,12 +18,20 @@ const uid = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
 
-type ParteForm = AcervoParte;
-interface DocForm { id: string; nome: string; tipoPeca: string; file: File; }
+type CardParte = AcervoParte;
 
-const TIPOS_PECA = ['Petição Inicial', 'Procuração', 'Documento pessoal', 'Contestação', 'Decisão / Despacho', 'Sentença', 'Recurso', 'Laudo / Perícia', 'Outro'];
+interface CardProcesso {
+  id: string;
+  file: File;
+  status: 'processando' | 'lido' | 'nao_lido';
+  numero: string;
+  classe: string;
+  assunto: string;
+  vara: string;
+  partes: CardParte[];
+}
 
-function novaParte(polo: 'ativo' | 'passivo'): ParteForm {
+function novaParte(polo: 'ativo' | 'passivo'): CardParte {
   return { id: uid(), nome: '', polo, tipoPessoa: 'fisica', cpfCnpj: '' };
 }
 
@@ -31,62 +40,95 @@ export default function DisponibilizarProcessosPage() {
   const professorId = user?.id ?? '';
 
   const [lista, setLista] = useState<AcervoProcesso[]>([]);
-  const [mostrarForm, setMostrarForm] = useState(false);
+  const [cards, setCards] = useState<CardProcesso[]>([]);
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState('');
-
-  const [numero, setNumero] = useState('');
-  const [classe, setClasse] = useState('');
-  const [assunto, setAssunto] = useState('');
-  const [vara, setVara] = useState('');
-  const [partes, setPartes] = useState<ParteForm[]>([novaParte('ativo'), novaParte('passivo')]);
-  const [docs, setDocs] = useState<DocForm[]>([]);
   const [erro, setErro] = useState('');
 
   const recarregar = () => setLista(getAcervoDoProfessor(professorId));
   useEffect(() => { if (professorId) recarregar(); }, [professorId]);
 
-  const limparForm = () => {
-    setNumero(''); setClasse(''); setAssunto(''); setVara('');
-    setPartes([novaParte('ativo'), novaParte('passivo')]); setDocs([]); setErro('');
-  };
-
-  const addParte = () => setPartes([...partes, novaParte('passivo')]);
-  const removeParte = (id: string) => setPartes(partes.filter(p => p.id !== id));
-  const updateParte = (id: string, patch: Partial<ParteForm>) =>
-    setPartes(partes.map(p => p.id === id ? { ...p, ...patch } : p));
-
-  const onFiles = (files: FileList | null) => {
-    if (!files) return;
-    const novos: DocForm[] = Array.from(files).map(f => ({ id: uid(), nome: f.name, tipoPeca: 'Petição Inicial', file: f }));
-    setDocs(d => [...d, ...novos]);
-  };
-  const removeDoc = (id: string) => setDocs(docs.filter(d => d.id !== id));
-
-  const salvar = async () => {
+  // ---- Anexar PDFs e extrair automaticamente ----
+  const onFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
     setErro('');
-    if (!numero.trim()) { setErro('Informe o número do processo.'); return; }
-    const partesValidas = partes.filter(p => p.nome.trim());
-    if (partesValidas.length === 0) { setErro('Cadastre ao menos uma parte (autor ou réu) com nome.'); return; }
+    const novos: CardProcesso[] = Array.from(files).map(f => ({
+      id: uid(), file: f, status: 'processando',
+      numero: '', classe: '', assunto: '', vara: '',
+      partes: [novaParte('ativo'), novaParte('passivo')],
+    }));
+    setCards(prev => [...prev, ...novos]);
 
+    for (const card of novos) {
+      const dados = await extrairProcessoDoPdf(card.file);
+      setCards(prev => prev.map(c => {
+        if (c.id !== card.id) return c;
+        const partesExtraidas = dados.partes.length
+          ? dados.partes.map(p => ({ id: uid(), ...p }))
+          : [novaParte('ativo'), novaParte('passivo')];
+        // garante pelo menos um autor e um réu visíveis
+        if (!partesExtraidas.some(p => p.polo === 'ativo')) partesExtraidas.unshift(novaParte('ativo'));
+        if (!partesExtraidas.some(p => p.polo === 'passivo')) partesExtraidas.push(novaParte('passivo'));
+        return {
+          ...c,
+          status: dados.textoLido ? 'lido' : 'nao_lido',
+          numero: dados.numero,
+          classe: dados.classe,
+          assunto: dados.assunto,
+          vara: dados.vara,
+          partes: partesExtraidas,
+        };
+      }));
+    }
+  };
+
+  const updateCard = (id: string, patch: Partial<CardProcesso>) =>
+    setCards(cards.map(c => c.id === id ? { ...c, ...patch } : c));
+  const removeCard = (id: string) => setCards(cards.filter(c => c.id !== id));
+
+  const updateParte = (cardId: string, parteId: string, patch: Partial<CardParte>) =>
+    setCards(cards.map(c => c.id === cardId
+      ? { ...c, partes: c.partes.map(p => p.id === parteId ? { ...p, ...patch } : p) }
+      : c));
+  const addParte = (cardId: string) =>
+    setCards(cards.map(c => c.id === cardId ? { ...c, partes: [...c.partes, novaParte('passivo')] } : c));
+  const removeParte = (cardId: string, parteId: string) =>
+    setCards(cards.map(c => c.id === cardId ? { ...c, partes: c.partes.filter(p => p.id !== parteId) } : c));
+
+  const cardValido = (c: CardProcesso) => c.numero.trim() && c.partes.some(p => p.nome.trim());
+
+  const salvarTodos = async () => {
+    setErro('');
+    const validos = cards.filter(cardValido);
+    if (validos.length === 0) {
+      setErro('Cada processo precisa ter ao menos o número e uma parte com nome. Complete os campos em vermelho.');
+      return;
+    }
     setSalvando(true);
     try {
-      const documentos: AcervoDocumento[] = [];
-      for (const d of docs) {
-        await saveArquivo(d.id, d.file);
-        documentos.push({ id: d.id, nome: d.nome, tipoPeca: d.tipoPeca, mime: d.file.type || 'application/octet-stream', tamanho: d.file.size });
+      for (const c of validos) {
+        const docId = uid();
+        await saveArquivo(docId, c.file);
+        const documentos: AcervoDocumento[] = [{
+          id: docId, nome: c.file.name, tipoPeca: 'Processo (PDF)',
+          mime: c.file.type || 'application/pdf', tamanho: c.file.size,
+        }];
+        const proc: AcervoProcesso = {
+          id: uid(), professorId, numeroProcesso: c.numero.trim(),
+          classe: c.classe.trim(), assunto: c.assunto.trim(), vara: c.vara.trim(),
+          valorCausa: null, segredoJustica: false,
+          partes: c.partes.filter(p => p.nome.trim()).map(p => ({
+            id: p.id, nome: p.nome.trim().toUpperCase(), polo: p.polo,
+            tipoPessoa: p.tipoPessoa, cpfCnpj: p.cpfCnpj.replace(/\D/g, ''),
+          })),
+          documentos, createdAt: new Date().toISOString(),
+        };
+        saveAcervoProcesso(proc);
       }
-      const proc: AcervoProcesso = {
-        id: uid(), professorId, numeroProcesso: numero.trim(),
-        classe: classe.trim(), assunto: assunto.trim(), vara: vara.trim(),
-        valorCausa: null, segredoJustica: false,
-        partes: partesValidas.map(({ ...p }) => p), documentos,
-        createdAt: new Date().toISOString(),
-      };
-      saveAcervoProcesso(proc);
-      recarregar(); limparForm(); setMostrarForm(false);
-      setSucesso(`Processo ${proc.numeroProcesso} disponibilizado para seus alunos!`);
-      setTimeout(() => setSucesso(''), 6000);
+      recarregar();
+      setCards([]);
+      setSucesso(`${validos.length} processo(s) disponibilizado(s) para seus alunos!`);
+      setTimeout(() => setSucesso(''), 7000);
     } finally {
       setSalvando(false);
     }
@@ -98,6 +140,9 @@ export default function DisponibilizarProcessosPage() {
     deleteAcervoProcesso(proc.id); recarregar();
   };
 
+  const processando = cards.some(c => c.status === 'processando');
+  const qtdValidos = cards.filter(cardValido).length;
+
   return (
     <ProfLayout>
       <div style={{ padding: 24, maxWidth: 1100 }}>
@@ -105,7 +150,7 @@ export default function DisponibilizarProcessosPage() {
           <FolderPlus size={24} color="#1e40af" /> Banco de Processos
         </div>
         <div style={{ fontSize: 15, color: '#6b7280', marginBottom: 20 }}>
-          Cadastre processos e anexe seus documentos para que seus alunos possam consultá-los.
+          Anexe os PDFs dos processos — o sistema lê e preenche os dados sozinho. Você só confere e salva.
         </div>
 
         {/* Explicação */}
@@ -113,19 +158,19 @@ export default function DisponibilizarProcessosPage() {
           <div style={{ display: 'flex', gap: 12 }}>
             <Info size={22} color="#1e40af" style={{ flexShrink: 0, marginTop: 2 }} />
             <div style={{ fontSize: 14, color: '#334155', lineHeight: 1.6 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#1e3a5f', marginBottom: 6 }}>Para que serve esta página?</div>
+              <div style={{ fontWeight: 700, fontSize: 15, color: '#1e3a5f', marginBottom: 6 }}>Como funciona</div>
               <p style={{ marginBottom: 10 }}>
-                Aqui você cadastra processos e anexa os documentos deles. Esses processos ficam disponíveis
-                para os seus alunos <strong>pesquisarem na tela "Consulta Processual"</strong>, exatamente
-                como um advogado pesquisa processos no sistema real.
+                Anexe os arquivos PDF dos processos (pode ser vários de uma vez). O sistema lê cada PDF e
+                preenche automaticamente o número, as partes, o assunto e a vara. Confira o que foi lido,
+                ajuste se precisar, e clique em salvar.
               </p>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
                 <GraduationCap size={17} color="#1e40af" style={{ flexShrink: 0, marginTop: 1 }} />
-                <span><strong>Quem vê:</strong> apenas os <strong>seus alunos</strong> (matriculados nas suas turmas). Alunos de outros professores não têm acesso.</span>
+                <span><strong>Quem vê:</strong> apenas os <strong>seus alunos</strong> (das suas turmas). Alunos de outros professores não têm acesso.</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <Search size={17} color="#1e40af" style={{ flexShrink: 0, marginTop: 1 }} />
-                <span><strong>Como o aluno encontra:</strong> pesquisando pelo número do processo, nome da parte, CPF/CNPJ ou OAB. Por isso, preencha bem esses dados.</span>
+                <span><strong>Como o aluno encontra:</strong> pesquisando por número, nome da parte, CPF/CNPJ ou OAB, e abre o PDF do processo.</span>
               </div>
             </div>
           </div>
@@ -138,145 +183,54 @@ export default function DisponibilizarProcessosPage() {
           </div>
         )}
 
-        {!mostrarForm && (
-          <button className="prof-btn-primary" style={{ marginBottom: 20 }} onClick={() => { limparForm(); setMostrarForm(true); }}>
-            <Plus size={18} /> Adicionar processo
-          </button>
+        {/* Dropzone principal */}
+        <label style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 10, border: '2px dashed #93c5fd', borderRadius: 10, padding: 36,
+          background: '#f0f7ff', cursor: 'pointer', marginBottom: 20,
+        }}>
+          <UploadCloud size={44} color="#3b82f6" />
+          <span style={{ fontSize: 17, fontWeight: 700, color: '#1e3a5f' }}>Anexe os PDFs dos processos</span>
+          <span style={{ fontSize: 13, color: '#6b7280' }}>Clique aqui e selecione um ou vários arquivos PDF de uma vez</span>
+          <input type="file" accept="application/pdf,.pdf" multiple style={{ display: 'none' }} onChange={e => { onFiles(e.target.files); e.currentTarget.value = ''; }} />
+        </label>
+
+        {erro && (
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 6, padding: '10px 14px', fontSize: 14, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={16} /> {erro}
+          </div>
         )}
 
-        {/* Formulário */}
-        {mostrarForm && (
-          <div className="prof-card" style={{ marginBottom: 20, padding: 0 }}>
-            <div className="prof-card-header"><FolderPlus size={18} color="#1e40af" /> Novo processo</div>
-            <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 28 }}>
-
-              {/* Passo 1 */}
-              <section>
-                <StepTitle n={1} icon={FileText} titulo="Dados do processo" />
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 14 }}>
-                  <div style={{ gridColumn: '1 / -1', maxWidth: 460 }}>
-                    <label className="prof-label">Número do processo: *</label>
-                    <input className="prof-input" value={numero} onChange={e => setNumero(e.target.value)} placeholder="0000000-00.0000.8.13.0000" />
-                  </div>
-                  <div>
-                    <label className="prof-label">Classe processual:</label>
-                    <input className="prof-input" value={classe} onChange={e => setClasse(e.target.value)} placeholder="Ex.: Procedimento Comum Cível" />
-                  </div>
-                  <div>
-                    <label className="prof-label">Assunto:</label>
-                    <input className="prof-input" value={assunto} onChange={e => setAssunto(e.target.value)} placeholder="Ex.: Indenização por Dano Moral" />
-                  </div>
-                  <div>
-                    <label className="prof-label">Vara / Órgão julgador:</label>
-                    <input className="prof-input" value={vara} onChange={e => setVara(e.target.value)} placeholder="Ex.: 2ª Vara Cível de BH" />
-                  </div>
-                </div>
-              </section>
-
-              {/* Passo 2 */}
-              <section>
-                <StepTitle n={2} icon={Users} titulo="Partes do processo" />
-                <div style={{ fontSize: 13, color: '#6b7280', margin: '6px 0 14px' }}>
-                  Cadastre as partes (autor e réu). O nome e o CPF/CNPJ são o que o aluno usa para pesquisar.
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {partes.map(p => (
-                    <div key={p.id} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 14, background: '#f9fafb' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr)) 44px', gap: 10, alignItems: 'end' }}>
-                        <div>
-                          <label className="prof-label">Polo:</label>
-                          <select className="prof-input" value={p.polo} onChange={e => updateParte(p.id, { polo: e.target.value as 'ativo' | 'passivo' })}>
-                            <option value="ativo">Autor (polo ativo)</option>
-                            <option value="passivo">Réu (polo passivo)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="prof-label">Tipo:</label>
-                          <select className="prof-input" value={p.tipoPessoa} onChange={e => updateParte(p.id, { tipoPessoa: e.target.value as 'fisica' | 'juridica', cpfCnpj: '' })}>
-                            <option value="fisica">Pessoa Física</option>
-                            <option value="juridica">Pessoa Jurídica</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="prof-label">Nome / Razão social:</label>
-                          <input className="prof-input" value={p.nome} onChange={e => updateParte(p.id, { nome: e.target.value })} />
-                        </div>
-                        <div>
-                          <label className="prof-label">{p.tipoPessoa === 'fisica' ? 'CPF:' : 'CNPJ:'}</label>
-                          <input className="prof-input" value={p.tipoPessoa === 'fisica' ? formatCpf(p.cpfCnpj) : formatCnpj(p.cpfCnpj)} onChange={e => updateParte(p.id, { cpfCnpj: e.target.value.replace(/\D/g, '') })} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 4 }}>
-                          {partes.length > 1 && (
-                            <button title="Remover parte" onClick={() => removeParte(p.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 8 }}>
-                              <Trash2 size={18} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button className="prof-btn-secondary" style={{ height: 38, marginTop: 12, fontSize: 14 }} onClick={addParte}>
-                  <Plus size={16} /> Adicionar outra parte
+        {/* Cartões de revisão (um por PDF) */}
+        {cards.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div className="prof-section-title"><Pencil size={18} color="#1e40af" /> Confira os processos lidos ({cards.length})</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="prof-btn-primary" onClick={salvarTodos} disabled={salvando || processando || qtdValidos === 0}>
+                  <CheckCircle2 size={18} /> {salvando ? 'Salvando...' : `Salvar todos (${qtdValidos})`}
                 </button>
-              </section>
-
-              {/* Passo 3 */}
-              <section>
-                <StepTitle n={3} icon={Paperclip} titulo="Documentos do processo" />
-                <div style={{ fontSize: 13, color: '#6b7280', margin: '6px 0 14px' }}>
-                  Anexe os documentos (peças) deste processo. O aluno poderá abri-los ao consultar o processo.
-                </div>
-
-                <label style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  gap: 8, border: '2px dashed #93c5fd', borderRadius: 8, padding: 28,
-                  background: '#eff6ff', cursor: 'pointer',
-                }}>
-                  <UploadCloud size={34} color="#3b82f6" />
-                  <span style={{ fontSize: 15, fontWeight: 600, color: '#334155' }}>Clique aqui para selecionar os arquivos</span>
-                  <span style={{ fontSize: 12, color: '#6b7280' }}>Você pode selecionar vários de uma vez (PDF, imagens, documentos)</span>
-                  <input type="file" multiple style={{ display: 'none' }} onChange={e => onFiles(e.target.files)} />
-                </label>
-
-                {docs.length > 0 && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {docs.map(d => (
-                      <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #e5e7eb', borderRadius: 6, padding: 10, background: '#fff' }}>
-                        <FileText size={18} color="#64748b" style={{ flexShrink: 0 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.nome}</div>
-                          <div style={{ fontSize: 11, color: '#9ca3af' }}>{(d.file.size / 1024).toFixed(0)} KB</div>
-                        </div>
-                        <select className="prof-input" style={{ width: 210, height: 38, fontSize: 13 }} value={d.tipoPeca} onChange={e => setDocs(docs.map(x => x.id === d.id ? { ...x, tipoPeca: e.target.value } : x))}>
-                          {TIPOS_PECA.map(t => <option key={t} value={t}>{t}</option>)}
-                        </select>
-                        <button title="Remover" onClick={() => removeDoc(d.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 4, flexShrink: 0 }}>
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {erro && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 6, padding: '10px 14px', fontSize: 14 }}>{erro}</div>
-              )}
-
-              <div style={{ display: 'flex', gap: 10, paddingTop: 12, borderTop: '1px solid #e5e7eb' }}>
-                <button className="prof-btn-primary" onClick={salvar} disabled={salvando}>
-                  <CheckCircle2 size={18} /> {salvando ? 'Salvando...' : 'Salvar e disponibilizar'}
-                </button>
-                <button className="prof-btn-secondary" onClick={() => { setMostrarForm(false); limparForm(); }} disabled={salvando}>
-                  Cancelar
-                </button>
+                <button className="prof-btn-secondary" onClick={() => setCards([])} disabled={salvando}>Limpar</button>
               </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {cards.map(c => (
+                <CardRevisao
+                  key={c.id}
+                  card={c}
+                  onUpdate={patch => updateCard(c.id, patch)}
+                  onRemove={() => removeCard(c.id)}
+                  onUpdateParte={(pid, patch) => updateParte(c.id, pid, patch)}
+                  onAddParte={() => addParte(c.id)}
+                  onRemoveParte={pid => removeParte(c.id, pid)}
+                />
+              ))}
             </div>
           </div>
         )}
 
-        {/* Lista */}
+        {/* Lista de processos já disponibilizados */}
         <div className="prof-card" style={{ padding: 0 }}>
           <div className="prof-card-header" style={{ justifyContent: 'space-between' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><FileText size={18} color="#1e40af" /> Processos disponibilizados</span>
@@ -285,7 +239,7 @@ export default function DisponibilizarProcessosPage() {
           {lista.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
               Você ainda não disponibilizou nenhum processo.<br />
-              Clique em <strong>“Adicionar processo”</strong> para começar.
+              Anexe os PDFs acima para começar.
             </div>
           ) : (
             <div>
@@ -316,12 +270,101 @@ export default function DisponibilizarProcessosPage() {
   );
 }
 
-function StepTitle({ n, icon: Icon, titulo }: { n: number; icon: typeof FileText; titulo: string }) {
+// ---- Cartão de revisão de um PDF ----
+function CardRevisao({ card, onUpdate, onRemove, onUpdateParte, onAddParte, onRemoveParte }: {
+  card: CardProcesso;
+  onUpdate: (patch: Partial<CardProcesso>) => void;
+  onRemove: () => void;
+  onUpdateParte: (parteId: string, patch: Partial<CardParte>) => void;
+  onAddParte: () => void;
+  onRemoveParte: (parteId: string) => void;
+}) {
+  const semNumero = !card.numero.trim();
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span style={{ width: 26, height: 26, borderRadius: '50%', background: '#1e40af', color: '#fff', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{n}</span>
-      <Icon size={18} color="#64748b" />
-      <span style={{ fontSize: 16, fontWeight: 700, color: '#1e3a5f' }}>{titulo}</span>
+    <div className="prof-card" style={{ padding: 0 }}>
+      {/* Cabeçalho do cartão */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc', borderRadius: '8px 8px 0 0' }}>
+        <FileText size={18} color="#64748b" />
+        <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#1e3a5f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.file.name}</span>
+        {card.status === 'processando' && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#1e40af' }}>
+            <Loader2 size={14} className="animate-spin" /> Lendo o PDF...
+          </span>
+        )}
+        {card.status === 'lido' && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#166534', background: '#dcfce7', padding: '3px 10px', borderRadius: 999 }}>
+            <CheckCircle2 size={13} /> Preenchido automaticamente
+          </span>
+        )}
+        {card.status === 'nao_lido' && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#92400e', background: '#fef3c7', padding: '3px 10px', borderRadius: 999 }}>
+            <AlertTriangle size={13} /> Não foi possível ler — preencha manualmente
+          </span>
+        )}
+        <button title="Remover este arquivo" onClick={onRemove} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 6 }}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+
+      {card.status !== 'processando' && (
+        <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Dados */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <div style={{ gridColumn: '1 / -1', maxWidth: 460 }}>
+              <label className="prof-label">Número do processo: *</label>
+              <input className="prof-input" style={semNumero ? { borderColor: '#dc2626', background: '#fff5f5' } : undefined}
+                value={card.numero} onChange={e => onUpdate({ numero: e.target.value })} placeholder="0000000-00.0000.8.13.0000" />
+            </div>
+            <div>
+              <label className="prof-label">Classe processual:</label>
+              <input className="prof-input" value={card.classe} onChange={e => onUpdate({ classe: e.target.value })} />
+            </div>
+            <div>
+              <label className="prof-label">Assunto:</label>
+              <input className="prof-input" value={card.assunto} onChange={e => onUpdate({ assunto: e.target.value })} />
+            </div>
+            <div>
+              <label className="prof-label">Vara / Órgão:</label>
+              <input className="prof-input" value={card.vara} onChange={e => onUpdate({ vara: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Partes */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+              <Users size={16} color="#64748b" /> Partes
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {card.partes.map(p => (
+                <div key={p.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(120px,1fr) minmax(100px,0.8fr) minmax(160px,1.6fr) minmax(120px,1fr) 36px', gap: 8, alignItems: 'center' }}>
+                  <select className="prof-input" style={{ height: 38 }} value={p.polo} onChange={e => onUpdateParte(p.id, { polo: e.target.value as 'ativo' | 'passivo' })}>
+                    <option value="ativo">Autor</option>
+                    <option value="passivo">Réu</option>
+                  </select>
+                  <select className="prof-input" style={{ height: 38 }} value={p.tipoPessoa} onChange={e => onUpdateParte(p.id, { tipoPessoa: e.target.value as 'fisica' | 'juridica', cpfCnpj: '' })}>
+                    <option value="fisica">Física</option>
+                    <option value="juridica">Jurídica</option>
+                  </select>
+                  <input className="prof-input" style={{ height: 38 }} placeholder="Nome / Razão social" value={p.nome} onChange={e => onUpdateParte(p.id, { nome: e.target.value })} />
+                  <input className="prof-input" style={{ height: 38 }} placeholder={p.tipoPessoa === 'fisica' ? 'CPF' : 'CNPJ'}
+                    value={p.tipoPessoa === 'fisica' ? formatCpf(p.cpfCnpj) : formatCnpj(p.cpfCnpj)}
+                    onChange={e => onUpdateParte(p.id, { cpfCnpj: e.target.value.replace(/\D/g, '') })} />
+                  <button title="Remover parte" onClick={() => onRemoveParte(p.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 6 }}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button className="prof-btn-secondary" style={{ height: 34, marginTop: 8, fontSize: 13 }} onClick={onAddParte}>
+              <Plus size={14} /> Adicionar parte
+            </button>
+          </div>
+
+          <div style={{ fontSize: 12, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Paperclip size={13} /> O arquivo <strong>{card.file.name}</strong> será anexado como documento do processo.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
