@@ -7,6 +7,7 @@ import { Upload, Users, Download } from 'lucide-react';
 import Papa from 'papaparse';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { cpfToEmail, formatCpf, generateOab } from '@/lib/masks';
+import { demoAlunosLista } from '@/data/demoStore';
 
 interface AlunoCSV {
   cpf: string;
@@ -22,9 +23,9 @@ interface ResultadoImport {
   mensagem?: string;
 }
 
-const DEMO_ALUNOS = [
-  { cpf: '121.572.976-69', nome: 'Luiz Cordeiro', matricula: '2023.1.001234', turma: 'Processo Civil I' },
-];
+const DEMO_ALUNOS = demoAlunosLista.map(a => ({
+  cpf: a.cpf, nome: a.nome, matricula: a.matricula, turma: a.turma,
+}));
 
 export default function GerenciarAlunosPage() {
   const { user: _user } = useAuth();

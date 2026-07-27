@@ -183,6 +183,17 @@ export default function DisponibilizarProcessosPage() {
           </div>
         )}
 
+        {/* Aviso sobre limitação de PDF escaneado */}
+        <div style={{ display: 'flex', gap: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+          <AlertTriangle size={20} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.55 }}>
+            <strong>Atenção:</strong> a leitura automática funciona em PDFs que têm <strong>texto selecionável</strong>
+            {' '}(os gerados pelo e-Proc/PJe). Se o PDF for <strong>escaneado (uma imagem/foto do documento)</strong>,
+            o sistema não consegue ler o conteúdo — o cartão vai avisar <em>“Não foi possível ler”</em> e você
+            preenche os dados manualmente. Dica: sempre que possível, use o PDF original baixado do sistema, não o digitalizado.
+          </div>
+        </div>
+
         {/* Dropzone principal */}
         <label style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',

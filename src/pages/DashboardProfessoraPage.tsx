@@ -5,7 +5,7 @@ import ProfLayout from '@/components/layout/ProfLayout';
 import { HelpTooltip } from '@/components/prof/HelpTooltip';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
-  getDemoTarefas, getAllDemoProcessos, demoTurmas,
+  getDemoTarefas, getAllDemoProcessos, demoTurmas, demoAlunosLista,
 } from '@/data/demoStore';
 import type { Processo, Tarefa } from '@/integrations/supabase/types';
 import {
@@ -20,9 +20,7 @@ interface ProcessoComAluno extends Processo {
   nome_aluno?: string;
 }
 
-const DEMO_ALUNOS_LISTA = [
-  { id: 'demo-aluno-1', nome: 'Luiz Cordeiro', cpf: '121.572.976-69' },
-];
+const DEMO_ALUNOS_LISTA = demoAlunosLista.map(a => ({ id: a.id, nome: a.nome, cpf: a.cpf }));
 
 export default function DashboardProfessoraPage() {
   const { user } = useAuth();
