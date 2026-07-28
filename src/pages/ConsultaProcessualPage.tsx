@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Info, Volume2, FileText, ExternalLink, ArrowLeft } from 'lucide-react';
 import EprocLayout from '@/components/layout/EprocLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,6 +67,18 @@ export default function ConsultaProcessualPage() {
   const [parteSelecionada, setParteSelecionada] = useState<ParteAgregada | null>(null);
   const [detalhe, setDetalhe] = useState<AcervoProcesso | null>(null);
   const [erro, setErro] = useState('');
+
+  // Busca automática por número quando chega via ?numero= (cabeçalho, relatórios, audiências)
+  const location = useLocation();
+  useEffect(() => {
+    const numero = new URLSearchParams(location.search).get('numero');
+    if (!numero || acervo.length === 0) return;
+    const alvo = numero.replace(/\D/g, '');
+    setNumProcesso(numero);
+    setProcessosEncontrados(acervo.filter(pr => pr.numeroProcesso.replace(/\D/g, '').includes(alvo)));
+    setParteSelecionada(null);
+    setView('processos');
+  }, [location.search, acervo]);
 
   const normaliza = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 

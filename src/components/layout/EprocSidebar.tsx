@@ -150,6 +150,14 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
             badge={intimacoesCount}
           />
 
+          <ExpandableItem
+            label="Relatórios"
+            defaultOpen={startsWith('/relatorios')}
+            active={startsWith('/relatorios')}
+          >
+            <SubItem label="Relação de Processos" path="/relatorios/processos" active={at('/relatorios/processos')} />
+          </ExpandableItem>
+
           <div className="pje-sidebar-section-label">ACESSO PÚBLICO</div>
 
           <SidebarItem label="Acessibilidade" path="/acessibilidade" active={at('/acessibilidade')} />

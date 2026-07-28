@@ -23,6 +23,7 @@ import CorrecaoPage from './pages/CorrecaoPage';
 import GerenciarAlunosPage from './pages/GerenciarAlunosPage';
 import PeticaoReferenciaPage from './pages/PeticaoReferenciaPage';
 import ConsultaProcessualPage from './pages/ConsultaProcessualPage';
+import RelatorioProcessosPage from './pages/RelatorioProcessosPage';
 import DisponibilizarProcessosPage from './pages/DisponibilizarProcessosPage';
 import AcessibilidadePage from './pages/AcessibilidadePage';
 import CadastreSePage from './pages/CadastreSePage';
@@ -103,6 +104,7 @@ function AppRoutes() {
 
       {/* Acesso Público — rotas acessíveis a qualquer usuário logado */}
       <Route path="/consulta-processual" element={<RequireAuth><ConsultaProcessualPage /></RequireAuth>} />
+      <Route path="/relatorios/processos" element={<RequireAuth><RelatorioProcessosPage /></RequireAuth>} />
       <Route path="/acessibilidade" element={<RequireAuth><AcessibilidadePage /></RequireAuth>} />
       <Route path="/cadastre-se" element={<RequireAuth><CadastreSePage /></RequireAuth>} />
       <Route path="/cadastre-se/:tipo" element={<RequireAuth><CadastreSePage /></RequireAuth>} />

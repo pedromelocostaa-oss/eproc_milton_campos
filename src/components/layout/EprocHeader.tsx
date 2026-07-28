@@ -1,4 +1,4 @@
-import { Menu, LogOut, Settings, Contrast, Hand } from 'lucide-react';
+import { Menu, LogOut, Settings, Contrast, Hand, Search, ExternalLink } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -12,6 +12,16 @@ export default function EprocHeader({ onToggleSidebar }: EprocHeaderProps) {
   const { user, logout, demoMode } = useAuth();
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
+  const [buscaProcesso, setBuscaProcesso] = useState('');
+
+  const abrirProcesso = (novaJanela: boolean) => {
+    const q = buscaProcesso.trim();
+    if (!q) return;
+    const url = `/consulta-processual?numero=${encodeURIComponent(q)}`;
+    if (novaJanela) window.open(url, '_blank');
+    else navigate(url);
+    setBuscaProcesso('');
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -61,9 +71,29 @@ export default function EprocHeader({ onToggleSidebar }: EprocHeaderProps) {
         </button>
         <span className="tjmg-header-title">Tribunal de Justiça do Estado de Minas Gerais</span>
 
+        {/* Busca rápida por processo (Opção 1 do manual) */}
+        {user && (
+          <div className="ml-auto flex items-center bg-white rounded overflow-hidden mr-2">
+            <input
+              type="text"
+              className="px-2 py-1 text-[12px] text-foreground outline-none w-[150px] md:w-[200px]"
+              placeholder="Nº de processo"
+              value={buscaProcesso}
+              onChange={e => setBuscaProcesso(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && abrirProcesso(false)}
+            />
+            <button className="px-2 py-1 text-slate-600 hover:text-sky-700" title="Abrir na mesma janela" onClick={() => abrirProcesso(false)}>
+              <Search size={15} />
+            </button>
+            <button className="px-2 py-1 text-slate-600 hover:text-sky-700 border-l border-slate-200" title="Abrir em nova janela" onClick={() => abrirProcesso(true)}>
+              <ExternalLink size={15} />
+            </button>
+          </div>
+        )}
+
         {/* Usuário / sair */}
         {user && (
-          <div className="ml-auto relative">
+          <div className="relative">
             <button
               className="tjmg-header-avatar"
               onClick={() => setShowMenu(!showMenu)}
