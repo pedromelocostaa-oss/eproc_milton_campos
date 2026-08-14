@@ -193,7 +193,7 @@ export default function LoginPage() {
               <button type="button" className="text-[11px] hover:underline bg-transparent border-none cursor-pointer" style={{ color: 'hsl(210,100%,20%)' }}>
                 Esqueci minha senha
               </button>
-              <button type="button" className="text-[11px] hover:underline bg-transparent border-none cursor-pointer" style={{ color: 'hsl(210,100%,20%)' }}>
+              <button type="button" className="text-[11px] hover:underline bg-transparent border-none cursor-pointer font-semibold" style={{ color: 'hsl(210,100%,20%)' }} onClick={() => navigate('/cadastro')}>
                 Primeiro acesso / Cadastro
               </button>
             </div>

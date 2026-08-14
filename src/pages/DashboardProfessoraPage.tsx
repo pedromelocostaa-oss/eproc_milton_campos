@@ -7,6 +7,8 @@ import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoTarefas, getAllDemoProcessos, demoTurmas, demoAlunosLista,
 } from '@/data/demoStore';
+import { solicitacoesDoProfessor, subscribeCadastros } from '@/data/cadastroStore';
+import { UserPlus } from 'lucide-react';
 import type { Processo, Tarefa } from '@/integrations/supabase/types';
 import {
   ClipboardList, CheckCircle2, BookOpen, Users, AlertTriangle,
@@ -68,6 +70,15 @@ export default function DashboardProfessoraPage() {
     });
   }, [user]);
 
+  // Solicitações de cadastro de alunos aguardando aprovação
+  const [solicitacoes, setSolicitacoes] = useState(0);
+  useEffect(() => {
+    if (!user) return;
+    const load = () => setSolicitacoes(solicitacoesDoProfessor(user.id).length);
+    load();
+    return subscribeCadastros(load);
+  }, [user]);
+
   const pendentes = processos.filter(p => p.status === 'em_andamento');
   const corrigidos = processos.filter(p => p.status === 'com_despacho' || p.status === 'encerrado');
   const tarefasAtivas = tarefas.filter(t => t.ativa);
@@ -102,6 +113,32 @@ export default function DashboardProfessoraPage() {
             Turmas ativas: {demoTurmas.map(t => t.nome).join(' · ')}
           </div>
         </div>
+
+        {/* ── Solicitações de alunos (destaque) ── */}
+        {solicitacoes > 0 && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24,
+              background: '#fffbeb', border: '2px solid #f59e0b', borderRadius: 8,
+              padding: '16px 20px', boxShadow: '0 0 0 4px rgba(245,158,11,0.12)',
+            }}
+          >
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#f59e0b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <UserPlus size={22} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#92400e' }}>
+                {solicitacoes} aluno(s) aguardando sua aprovação
+              </div>
+              <div style={{ fontSize: 13, color: '#78350f' }}>
+                Novos alunos se cadastraram nas suas matérias e precisam da sua liberação para acessar o sistema.
+              </div>
+            </div>
+            <button className="prof-btn-primary" style={{ background: '#d97706', flexShrink: 0 }} onClick={() => navigate('/prof/alunos')}>
+              Revisar solicitações →
+            </button>
+          </div>
+        )}
 
         {/* ── 3.2 Summary cards ── */}
         <div

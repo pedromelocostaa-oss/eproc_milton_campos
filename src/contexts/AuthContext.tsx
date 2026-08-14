@@ -2,12 +2,16 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import type { Profile } from '@/integrations/supabase/types';
 import { formatCpf, cpfToEmail } from '@/lib/masks';
+import { autenticarCadastro, cadastroPorCpf, type StatusCadastro } from '@/data/cadastroStore';
+import { demoTurmas } from '@/data/demoStore';
 
 interface AuthUser extends Profile {
   email?: string;
   name?: string;
   curso?: string;
   instituicao?: string;
+  statusCadastro?: StatusCadastro; // para alunos auto-cadastrados
+  turmaNome?: string;
 }
 
 interface AuthContextType {
@@ -18,6 +22,26 @@ interface AuthContextType {
   logout: () => Promise<void>;
   trocarSenha: (novaSenha: string) => Promise<{ error: string | null }>;
   refreshUser: () => Promise<void>;
+  atualizarUsuario: (patch: Partial<AuthUser>) => void;
+}
+
+/** Monta um AuthUser a partir de um cadastro de aluno auto-registrado. */
+function usuarioDoCadastro(cad: { id: string; cpf: string; nome: string; turmaId: string; status: StatusCadastro; createdAt: string }): AuthUser {
+  const turma = demoTurmas.find(t => t.id === cad.turmaId);
+  return {
+    id: cad.id,
+    cpf: cad.cpf,
+    nome_completo: cad.nome,
+    matricula: null,
+    turma_id: cad.turmaId,
+    perfil: 'aluno',
+    oab_simulado: null,
+    primeiro_acesso: false,
+    ativo: cad.status === 'aprovado',
+    created_at: cad.createdAt,
+    statusCadastro: cad.status,
+    turmaNome: turma?.nome,
+  };
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -56,9 +80,14 @@ const DEMO_PASSWORD = 'Milton@2025';
 function getDemoUser(cpf: string, senha: string): AuthUser | null {
   const normalized = formatCpf(cpf.replace(/\D/g, ''));
   const user = DEMO_USERS[normalized];
-  if (!user) return null;
-  if (senha !== DEMO_PASSWORD && senha !== 'demo123') return null;
-  return user;
+  if (user) {
+    if (senha === DEMO_PASSWORD || senha === 'demo123') return user;
+    return null;
+  }
+  // Aluno auto-cadastrado
+  const cad = autenticarCadastro(normalized, senha);
+  if (cad) return usuarioDoCadastro(cad);
+  return null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -169,8 +198,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profile) setUser(profile);
   };
 
+  const atualizarUsuario = (patch: Partial<AuthUser>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...patch };
+      if (DEMO_MODE) localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, demoMode: DEMO_MODE, login, logout, trocarSenha, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, demoMode: DEMO_MODE, login, logout, trocarSenha, refreshUser, atualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   );

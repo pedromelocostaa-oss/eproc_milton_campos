@@ -8,6 +8,8 @@ import { ReactNode } from 'react';
 
 // Pages
 import LoginPage from './pages/LoginPage';
+import CadastroAlunoPage from './pages/CadastroAlunoPage';
+import AguardandoAprovacaoPage from './pages/AguardandoAprovacaoPage';
 import TrocarSenhaPage from './pages/TrocarSenhaPage';
 import DashboardAlunoPage from './pages/DashboardAlunoPage';
 import PeticaoInicialPage from './pages/PeticaoInicialPage';
@@ -45,6 +47,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/" replace />;
+  if (user.statusCadastro && user.statusCadastro !== 'aprovado') return <Navigate to="/aguardando" replace />;
   if (user.primeiro_acesso) return <Navigate to="/trocar-senha" replace />;
   return <>{children}</>;
 }
@@ -54,6 +57,7 @@ function RequireAluno({ children }: { children: ReactNode }) {
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
   if (user.perfil !== 'aluno') return <Navigate to="/prof/dashboard" replace />;
+  if (user.statusCadastro && user.statusCadastro !== 'aprovado') return <Navigate to="/aguardando" replace />;
   return <>{children}</>;
 }
 
@@ -72,7 +76,14 @@ function AppRoutes() {
     <Routes>
       {/* Public */}
       <Route path="/" element={<LoginPage />} />
+      <Route path="/cadastro" element={<CadastroAlunoPage />} />
       <Route path="/consulta-publica" element={<ConsultaPublicaPage />} />
+
+      {/* Aluno aguardando aprovação (requer login, sem gate de status) */}
+      <Route
+        path="/aguardando"
+        element={loading ? null : user ? <AguardandoAprovacaoPage /> : <Navigate to="/" replace />}
+      />
 
       {/* First access */}
       <Route
