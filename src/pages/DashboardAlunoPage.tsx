@@ -1,28 +1,28 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
-import { PlusCircle, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
-import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
-  getDemoProcessos, getDemoIntimacoesAluno, getDemoTarefas,
-  getDemoIntimacoesNaoLidas, subscribeDemoStore,
+  FileText, History, ListChecks, HelpCircle, MoreVertical, Clock,
+  Lightbulb, X, ArrowRight,
+} from 'lucide-react';
+import { DEMO_MODE } from '@/integrations/supabase/client';
+import {
+  getDemoProcessos, getDemoIntimacoesAluno, getDemoIntimacoesNaoLidas,
+  getDemoTarefas, subscribeDemoStore,
 } from '@/data/demoStore';
+import { getAcervoParaAluno, subscribeAcervo } from '@/data/acervoStore';
+import { contar, proximaAudiencia } from '@/data/audiencias';
 import type { Processo, Tarefa, Intimacao } from '@/integrations/supabase/types';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
-
-function statusLabel(s: string): { label: string; cls: string } {
-  const map: Record<string, { label: string; cls: string }> = {
-    em_andamento: { label: 'Em andamento', cls: 'badge-info' },
-    aguardando_resposta: { label: 'Aguardando resposta', cls: 'badge-warning' },
-    com_despacho: { label: 'Com despacho', cls: 'badge-warning' },
-    encerrado: { label: 'Encerrado', cls: 'badge-neutral' },
-    devolvido: { label: 'Devolvido p/ ajuste', cls: 'badge-danger' },
-  };
-  return map[s] ?? { label: s, cls: 'badge-neutral' };
+function fmtProxima(iso: string) {
+  const d = new Date(iso);
+  const dia = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${dia} - ${hora}`;
 }
 
 export default function DashboardAlunoPage() {
@@ -30,348 +30,306 @@ export default function DashboardAlunoPage() {
   const navigate = useNavigate();
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
-  const [tarefasDefesa, setTarefasDefesa] = useState<Tarefa[]>([]);
   const [intimacoes, setIntimacoes] = useState<Intimacao[]>([]);
-  const [intimacoesNaoLidas, setIntimacoesNaoLidas] = useState(0);
+  const [naoLidas, setNaoLidas] = useState(0);
+  const [acervoCount, setAcervoCount] = useState(0);
+  const [abaCit, setAbaCit] = useState<'MG' | 'TJMG'>('MG');
+  const [abaAud, setAbaAud] = useState<'audiencias' | 'foruns' | 'pericias'>('audiencias');
+  const [abaTrab, setAbaTrab] = useState<'pendencias' | 'substabelecimento'>('pendencias');
+  const [novidades, setNovidades] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-
-    if (DEMO_MODE) {
-      const load = () => {
-        setProcessos(getDemoProcessos(user.id));
-        setIntimacoes(getDemoIntimacoesAluno(user.id));
-        setIntimacoesNaoLidas(getDemoIntimacoesNaoLidas(user.id));
-        const tarefasAll = getDemoTarefas();
-        setTarefas(tarefasAll.filter(t => t.ativa));
-        setTarefasDefesa(tarefasAll.filter(
-          t => t.ativa && t.tipo_atividade === 'defesa' && t.peticao_referencia != null
-        ));
-      };
-
-      load();
-      const unsubscribe = subscribeDemoStore(load);
-      return unsubscribe;
-    }
-
-    Promise.all([
-      supabase!.from('processos').select('*').eq('aluno_id', user.id).order('created_at', { ascending: false }),
-      supabase!.from('intimacoes').select('*').eq('destinatario_id', user.id).order('created_at', { ascending: false }),
-      supabase!.from('tarefas').select('*').eq('turma_id', user.turma_id ?? '').eq('ativa', true),
-    ]).then(([pRes, iRes, tRes]) => {
-      if (pRes.data) setProcessos(pRes.data);
-      if (iRes.data) {
-        setIntimacoes(iRes.data);
-        setIntimacoesNaoLidas(iRes.data.filter(i => !i.lida).length);
-      }
-      if (tRes.data) setTarefas(tRes.data);
-    });
+    if (!user || !DEMO_MODE) return;
+    const load = () => {
+      setProcessos(getDemoProcessos(user.id));
+      setIntimacoes(getDemoIntimacoesAluno(user.id));
+      setNaoLidas(getDemoIntimacoesNaoLidas(user.id));
+      setTarefas(getDemoTarefas().filter(t => t.ativa));
+      setAcervoCount(getAcervoParaAluno([user.turma_id]).length);
+    };
+    load();
+    const u1 = subscribeDemoStore(load);
+    const u2 = subscribeAcervo(load);
+    return () => { u1(); u2(); };
   }, [user]);
 
+  // ---- números conectados aos dados reais ----
+  const audFuturas = useMemo(() => contar('futura', false), []);
+  const audFuturasConc = useMemo(() => contar('futura', true), []);
+  const prox = useMemo(() => proximaAudiencia(), []);
   const tarefasPendentes = tarefas.filter(t => !processos.some(p => p.tarefa_id === t.id));
 
-  // Counters for CITAÇÕES/INTIMAÇÕES section
-  const now = new Date();
-  const intimacoesComPrazo = intimacoes.filter(i =>
-    i.prazo_resposta && new Date(i.prazo_resposta) >= now
-  );
-  const intimacoesUrgentes = intimacoes.filter(i => {
-    if (!i.prazo_resposta) return false;
-    const prazo = new Date(i.prazo_resposta);
-    const diffDays = (prazo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-    return diffDays >= 0 && diffDays <= 5;
-  });
-  const intimacoesLidasComPrazo = intimacoes.filter(i =>
-    i.lida && i.prazo_resposta && new Date(i.prazo_resposta) >= now
-  );
+  const irRelatorio = () => navigate('/relatorios/processos');
+  const irIntimacoes = () => navigate('/intimacoes');
+  const irAudiencias = () => navigate('/audiencias');
 
   return (
-    <EprocLayout intimacoesCount={intimacoesNaoLidas}>
-      <div className="p-4">
-        {/* Breadcrumb */}
-        <div className="breadcrumb mb-4">
-          <span>Início</span>
-          <span>›</span>
-          <span>Painel do Advogado</span>
-        </div>
-
-        {/* Welcome bar */}
-        <div className="bg-white border border-border p-3 mb-4 flex items-center justify-between">
-          <div>
-            <span className="text-[13px] font-bold" style={{ color: 'hsl(210, 100%, 20%)' }}>
-              {user?.nome_completo}
-            </span>
-            <span className="text-[11px] text-muted-foreground ml-2">
-              {user?.oab_simulado} · Matrícula: {user?.matricula}
-            </span>
-          </div>
-          <button
-            className="btn-primary flex items-center gap-1.5 text-[11px]"
-            onClick={() => navigate('/peticao-inicial')}
-          >
-            <PlusCircle size={13} />
-            Nova Petição
-          </button>
-        </div>
-
-        {/* SEÇÃO 1 — CITAÇÕES/INTIMAÇÕES */}
-        <div className="eproc-painel-section">
-          <div className="eproc-painel-section-header">CITAÇÕES/INTIMAÇÕES</div>
-          <div className="eproc-painel-row">
-            <span className="eproc-painel-row-label">Processos pendentes de citação/intimação</span>
-            <button
-              className="eproc-painel-counter"
-              onClick={() => navigate('/intimacoes')}
-            >
-              {intimacoesNaoLidas}
-            </button>
-          </div>
-          <div className="eproc-painel-row">
-            <span className="eproc-painel-row-label">Processos com prazo em aberto</span>
-            <button
-              className="eproc-painel-counter"
-              onClick={() => navigate('/intimacoes')}
-            >
-              {intimacoesComPrazo.length}
-            </button>
-          </div>
-          <div className="eproc-painel-row">
-            <span className="eproc-painel-row-label">Processos com prazo em aberto — urgente</span>
-            <button
-              className="eproc-painel-counter-urgent"
-              onClick={() => navigate('/intimacoes')}
-            >
-              {intimacoesUrgentes.length}
-            </button>
-          </div>
-          <div className="eproc-painel-row">
-            <span className="eproc-painel-row-label">Visualizados com prazo em aberto</span>
-            <button
-              className="eproc-painel-counter"
-              onClick={() => navigate('/intimacoes')}
-            >
-              {intimacoesLidasComPrazo.length}
-            </button>
-          </div>
-        </div>
-
-        {/* SEÇÃO 1b — CITAÇÃO / DEFESA */}
-        {tarefasDefesa.length > 0 && (
-          <div className="eproc-painel-section">
-            <div className="eproc-painel-section-header">CITAÇÃO — AÇÃO EM QUE FOI CITADO(A)</div>
-            <div className="overflow-x-auto">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Processo</th>
-                    <th>Tarefa / Enunciado</th>
-                    <th>Prazo para Contestar</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tarefasDefesa.map(t => {
-                    const vencido = t.prazo && new Date(t.prazo) < now;
-                    return (
-                      <tr key={t.id}>
-                        <td className="font-mono text-[11px]">1000099-01.2025.4.01.3800</td>
-                        <td className="font-semibold">{t.titulo}</td>
-                        <td className={`font-bold ${vencido ? 'text-red-600' : 'text-orange-600'}`}>
-                          {t.prazo ? formatDate(t.prazo) : '—'}
-                          {vencido && <span className="ml-1 text-[10px]">VENCIDO</span>}
-                        </td>
-                        <td>
-                          <div className="flex gap-3">
-                            <button
-                              className="text-[11px] hover:underline cursor-pointer"
-                              style={{ color: 'hsl(210,100%,20%)' }}
-                              onClick={() => navigate(`/peticao-referencia/${t.id}`)}
-                            >
-                              [Ver Petição Inicial]
-                            </button>
-                            <button
-                              className="text-[11px] hover:underline cursor-pointer"
-                              style={{ color: 'hsl(210,100%,20%)' }}
-                              onClick={() => navigate(`/peticao-incidental?tarefa=${t.id}&tipo=Contesta%C3%A7%C3%A3o`)}
-                            >
-                              [Protocolar Contestação]
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+    <EprocLayout intimacoesCount={naoLidas}>
+      <div className="p-4 relative">
+        {/* Toast Novidades */}
+        {novidades && (
+          <div style={{ position: 'absolute', top: 8, right: 12, width: 340, maxWidth: '90%', background: '#fff', border: '1px solid #dbeafe', borderRadius: 6, boxShadow: '0 4px 14px rgba(0,0,0,0.12)', padding: 12, display: 'flex', gap: 10, zIndex: 30 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 6, background: '#3b82f6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Lightbulb size={18} />
             </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e3a5f' }}>Novidades</div>
+              <div style={{ fontSize: 12, color: '#2c77ba' }}>Você possui novidades não lidas.</div>
+            </div>
+            <button onClick={() => setNovidades(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={16} /></button>
           </div>
         )}
 
-        {/* SEÇÃO 2 — RELAÇÃO DE PROCESSOS */}
-        <div className="eproc-painel-section">
-          <div className="eproc-painel-section-header">RELAÇÃO DE PROCESSOS</div>
-          <div className="px-3 py-2 border-b border-border flex gap-2">
-            <button
-              className="btn-primary text-[11px] py-0.5 px-3"
-              onClick={() => navigate('/peticao-inicial')}
-            >
-              Petição Inicial
-            </button>
-            <button
-              className="btn-secondary text-[11px] py-0.5 px-3"
-              onClick={() => navigate('/meus-processos')}
-            >
-              Últimas Movimentações
-            </button>
-            <button
-              className="btn-secondary text-[11px] py-0.5 px-3"
-              onClick={() => navigate('/meus-processos')}
-            >
-              Relação de Processos
-            </button>
+        {/* Título + ações */}
+        <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
+          <h1 className="text-[26px] font-bold" style={{ color: '#333' }}>Painel do Advogado</h1>
+          <div className="flex gap-2 flex-wrap">
+            <BotaoAcao icon={<FileText size={15} />} label="Petição inicial" onClick={() => navigate('/peticao-inicial')} />
+            <BotaoAcao icon={<History size={15} />} label="Últimas movimentações" onClick={() => navigate('/meus-processos')} />
+            <BotaoAcao icon={<ListChecks size={15} />} label="Relação de processos" onClick={irRelatorio} />
           </div>
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Nº Processo</th>
-                  <th>Classe</th>
-                  <th>Vara</th>
-                  <th>Situação</th>
-                  <th>Último Evento</th>
-                  <th>Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {processos.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="text-center py-6 text-muted-foreground">
-                      Nenhum processo protocolado. Clique em "Petição Inicial" para começar.
-                    </td>
-                  </tr>
-                )}
-                {processos.slice(0, 8).map(p => {
-                  const st = statusLabel(p.status);
-                  return (
-                    <tr
-                      key={p.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/processo/${p.id}`)}
-                    >
-                      <td className="font-mono text-[11px] font-semibold">{p.numero_processo}</td>
-                      <td>{p.classe_processual}</td>
-                      <td>{p.vara}</td>
-                      <td><span className={st.cls}>{st.label}</span></td>
-                      <td className="text-muted-foreground">{p.status === 'em_andamento' ? 'Distribuição' : 'Movimentação'}</td>
-                      <td>{formatDate(p.updated_at)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {processos.length > 8 && (
-            <div className="px-3 py-2 border-t border-border text-[11px] text-center">
-              <button
-                className="hover:underline"
-                style={{ color: 'hsl(210,100%,20%)' }}
-                onClick={() => navigate('/meus-processos')}
-              >
-                Ver todos os {processos.length} processos →
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* SEÇÃO 3 — TAREFAS DO PROFESSOR */}
-        <div className="eproc-painel-section">
-          <div className="eproc-painel-section-header">TAREFAS DO PROFESSOR</div>
-          {tarefas.length === 0 && (
-            <div className="px-3 py-4 text-[12px] text-muted-foreground text-center">
-              Nenhuma tarefa ativa no momento.
-            </div>
-          )}
-          {tarefas.length > 0 && (
+        {/* Aviso / Novidades */}
+        <div className="text-[13px] text-foreground leading-relaxed mb-5 max-w-5xl">
+          <p className="font-bold mb-2">Prezados Advogados e Advogadas,</p>
+          <p className="mb-2">
+            A interposição de <strong>Agravo de Instrumento</strong> em processos dos <strong>Juizados Especiais Cíveis</strong>
+            {' '}deve ser feita pela ação <strong>"Agravo de Instrumento TR"</strong>, disponível nos autos digitais —
+            tramitando no e-Proc da 1ª Instância, perante a Turma Recursal.
+          </p>
+          <p className="mb-2">
+            Já nos processos da <strong>Justiça Comum</strong>, utilize a ação <strong>"Agravo"</strong>, também nos autos
+            digitais, com tramitação no e-Proc da 2ª Instância. Consulte o Manual dos Advogados para o passo a passo completo.
+          </p>
+        </div>
+
+        {/* Grade de painéis */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          {/* Citações/Intimações */}
+          <Painel titulo="Citações/Intimações" cor="#c0392b" menu>
+            <Abas
+              itens={[{ id: 'MG', label: 'MG' }, { id: 'TJMG', label: 'TJMG' }]}
+              ativo={abaCit}
+              onSelect={id => setAbaCit(id as 'MG' | 'TJMG')}
+            />
+            {abaCit === 'MG' ? (
+              <TabelaContagem
+                colTipo="Tipo"
+                linhas={[
+                  { label: 'Processos com prazo em aberto', qtd: acervoCount, onClick: irRelatorio },
+                  { label: 'Processos com prazo em aberto - urgente', qtd: 0 },
+                  { label: 'Processos pendentes de citação/intimação - Urgentes', qtd: 0 },
+                  { label: 'Processos pendentes de citação/intimação', qtd: naoLidas, onClick: irIntimacoes },
+                  { label: 'Processos pendentes de intimação de homologação de acordo', qtd: 0 },
+                  { label: 'Processos pendentes de citação - art. 334 CPC', qtd: 0 },
+                  { label: 'Decursos de prazo nos últimos 30 dias', qtd: 0 },
+                ]}
+              />
+            ) : (
+              <TabelaContagem colTipo="Tipo" linhas={[{ label: 'Processos com prazo em aberto', qtd: 0 }]} />
+            )}
+            <RodapeRelogio texto="Processos com prazo vencendo hoje:" valor="0" />
+          </Painel>
+
+          {/* Audiências/Fóruns/Perícias */}
+          <Painel titulo="Audiências/Fóruns de Conciliações/Perícias" cor="#c0392b" menu>
+            <Abas
+              itens={[
+                { id: 'audiencias', label: 'Audiências' },
+                { id: 'foruns', label: 'Fóruns de Conciliações' },
+                { id: 'pericias', label: 'Perícias' },
+              ]}
+              ativo={abaAud}
+              onSelect={id => setAbaAud(id as typeof abaAud)}
+            />
+            {abaAud === 'audiencias' && (
+              <>
+                <TabelaContagem
+                  colTipo="Situação"
+                  linhas={[
+                    { label: 'Audiências Futuras', qtd: audFuturas, ajuda: true, onClick: irAudiencias },
+                    { label: 'Audiências Futuras de Conciliação', qtd: audFuturasConc, ajuda: true, onClick: irAudiencias },
+                  ]}
+                />
+                <div className="flex items-center justify-end gap-2 mt-3 text-[12px]" style={{ color: '#2c77ba' }}>
+                  <Clock size={14} />
+                  <span>Próxima audiência:{' '}
+                    {prox
+                      ? <button className="hover:underline font-semibold" onClick={irAudiencias}>{fmtProxima(prox.inicio)}</button>
+                      : <span className="font-semibold">SEM AUDIÊNCIAS</span>}
+                  </span>
+                </div>
+              </>
+            )}
+            {abaAud === 'foruns' && <Vazio texto="Nenhum fórum de conciliação designado." />}
+            {abaAud === 'pericias' && <Vazio texto="Nenhuma perícia designada." />}
+          </Painel>
+        </div>
+
+        {/* Recursos do Tribunal + Sessões de Julgamento */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <Painel titulo="Recursos do Tribunal" cor="#334155">
+            <TabelaContagem colTipo="Tipo" linhas={[{ label: 'Agravo de Instrumento Distribuído', qtd: 0 }]} />
+          </Painel>
+
+          <Painel titulo="Sessões de Julgamento" cor="#2e7d32">
+            <TabelaContagem
+              colTipo="Tipo"
+              linhas={[{ label: 'Processos em pauta', qtd: 0, onClick: () => navigate('/sessoes-julgamento') }]}
+            />
+          </Painel>
+        </div>
+
+        {/* Área de trabalho */}
+        <div className="mb-4">
+          <Painel titulo="Área de trabalho" cor="#334155">
+            <Abas
+              itens={[{ id: 'pendencias', label: 'Pendências' }, { id: 'substabelecimento', label: 'Substabelecimento' }]}
+              ativo={abaTrab}
+              onSelect={id => setAbaTrab(id as typeof abaTrab)}
+            />
+            {abaTrab === 'pendencias' ? (
+              <TabelaContagem
+                colTipo="Tipo"
+                linhas={[
+                  { label: 'Processos pendentes do advogado', qtd: processos.length, onClick: () => navigate('/meus-processos') },
+                  { label: 'Movimentações/petições pendentes para advogado', qtd: 0 },
+                ]}
+              />
+            ) : (
+              <Vazio texto="Nenhum substabelecimento pendente." />
+            )}
+          </Painel>
+        </div>
+
+        {/* Tarefas do Professor (educacional) */}
+        <div className="bg-white border border-border">
+          <div className="panel-header flex items-center justify-between">
+            <span>TAREFAS DO PROFESSOR</span>
+            {tarefasPendentes.length > 0 && <span className="badge-warning">{tarefasPendentes.length} pendente(s)</span>}
+          </div>
+          {tarefas.length === 0 ? (
+            <div className="px-3 py-4 text-[12px] text-muted-foreground text-center">Nenhuma tarefa ativa no momento.</div>
+          ) : (
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Tarefa</th>
-                  <th>Prazo</th>
-                  <th>Situação</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Tarefa</th><th>Prazo</th><th>Situação</th><th>Ação</th></tr></thead>
               <tbody>
                 {tarefas.map(t => {
                   const hasProcesso = processos.some(p => p.tarefa_id === t.id);
-                  const prazoDate = t.prazo ? new Date(t.prazo) : null;
-                  const vencido = prazoDate && prazoDate < now;
+                  const vencido = t.prazo && new Date(t.prazo) < new Date();
                   return (
                     <tr key={t.id}>
                       <td className="font-semibold">{t.titulo}</td>
-                      <td>
-                        {t.prazo ? formatDate(t.prazo) : '—'}
-                        {vencido && <span className="ml-2 text-red-600 font-bold text-[10px]">VENCIDO</span>}
-                      </td>
-                      <td>
-                        {hasProcesso
-                          ? <span className="badge-success">Protocolado</span>
-                          : <span className="badge-warning">Pendente</span>}
-                      </td>
-                      <td>
-                        {!hasProcesso && (
-                          <button
-                            className="btn-primary text-[10px] py-0.5 px-2 flex items-center gap-1"
-                            onClick={() => navigate(`/peticao-inicial?tarefa=${t.id}`)}
-                          >
-                            <ArrowRight size={11} /> Peticionar
-                          </button>
-                        )}
-                      </td>
+                      <td>{t.prazo ? formatDate(t.prazo) : '—'}{vencido && <span className="ml-2 text-red-600 font-bold text-[10px]">VENCIDO</span>}</td>
+                      <td>{hasProcesso ? <span className="badge-success">Protocolado</span> : <span className="badge-warning">Pendente</span>}</td>
+                      <td>{!hasProcesso && (
+                        <button className="btn-primary text-[10px] py-0.5 px-2 flex items-center gap-1" onClick={() => navigate(`/peticao-inicial?tarefa=${t.id}`)}>
+                          <ArrowRight size={11} /> Peticionar
+                        </button>
+                      )}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           )}
-        </div>
-
-        {/* INTIMAÇÕES RECENTES */}
-        <div className="eproc-painel-section">
-          <div className="eproc-painel-section-header flex items-center justify-between">
-            <span>INTIMAÇÕES RECENTES</span>
-            <button className="text-[10px] text-white underline opacity-80" onClick={() => navigate('/intimacoes')}>
-              Ver todas
-            </button>
-          </div>
-          {intimacoes.length === 0 && (
-            <div className="px-3 py-4 text-[12px] text-muted-foreground text-center">
-              Nenhuma intimação recebida.
-            </div>
-          )}
-          {intimacoes.slice(0, 3).map(i => (
-            <div
-              key={i.id}
-              className={`eproc-painel-row cursor-pointer hover:bg-muted flex items-start gap-3 ${!i.lida ? 'bg-blue-50' : ''}`}
-              onClick={() => navigate('/intimacoes')}
-            >
-              {!i.lida
-                ? <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
-                : <CheckCircle size={14} className="text-green-600 mt-0.5 shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] truncate">{i.texto.split('\n')[0]}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">
-                  {formatDate(i.created_at)}
-                  {i.prazo_resposta && (
-                    <span className="ml-2 text-orange-600">Prazo: {formatDate(i.prazo_resposta)}</span>
-                  )}
-                </div>
-              </div>
-              {!i.lida && <span className="badge-danger shrink-0">NÃO LIDA</span>}
-            </div>
-          ))}
         </div>
       </div>
     </EprocLayout>
   );
+}
+
+// ---------- componentes de UI ----------
+function BotaoAcao({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2 text-[13px] font-medium px-3 py-2 bg-white border rounded hover:bg-blue-50"
+      style={{ color: '#2c77ba', borderColor: '#d1d5db' }}
+    >
+      {icon} {label}
+    </button>
+  );
+}
+
+function Painel({ titulo, cor, menu, children }: { titulo: string; cor: string; menu?: boolean; children: ReactNode }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderLeft: `3px solid ${cor}`, borderRadius: 3 }}>
+      <div style={{ padding: '10px 14px', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ color: cor, fontWeight: 700, fontSize: 14 }}>{titulo}</span>
+        {menu && <MoreVertical size={16} style={{ color: '#c0392b' }} />}
+      </div>
+      <div style={{ padding: 14 }}>{children}</div>
+    </div>
+  );
+}
+
+function Abas({ itens, ativo, onSelect }: { itens: { id: string; label: string }[]; ativo: string; onSelect: (id: string) => void }) {
+  return (
+    <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginBottom: 12 }}>
+      {itens.map(it => (
+        <button
+          key={it.id}
+          onClick={() => onSelect(it.id)}
+          style={{
+            padding: '6px 14px', fontSize: 13, fontWeight: 600, background: 'transparent', border: 'none', cursor: 'pointer',
+            color: ativo === it.id ? '#2c77ba' : '#6b7280',
+            borderBottom: ativo === it.id ? '2px solid #2c77ba' : '2px solid transparent',
+          }}
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+interface LinhaContagem { label: string; qtd: number; ajuda?: boolean; onClick?: () => void; }
+function TabelaContagem({ colTipo, linhas }: { colTipo: string; linhas: LinhaContagem[] }) {
+  const cell: React.CSSProperties = { padding: '9px 12px', fontSize: 13, textAlign: 'left', borderBottom: '1px solid #f0f0f0' };
+  return (
+    <div style={{ border: '1px solid #e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: '#f3f4f6' }}>
+            <th style={{ ...cell, fontWeight: 700, color: '#374151' }}>{colTipo}</th>
+            <th style={{ ...cell, fontWeight: 700, color: '#374151', textAlign: 'center', width: 130 }}>Quantidade</th>
+          </tr>
+        </thead>
+        <tbody>
+          {linhas.map((l, i) => (
+            <tr key={i}>
+              <td style={cell}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  {l.label}
+                  {l.ajuda && <HelpCircle size={13} style={{ color: '#9ca3af' }} />}
+                </span>
+              </td>
+              <td style={{ ...cell, textAlign: 'center' }}>
+                {l.onClick && l.qtd > 0 ? (
+                  <button onClick={l.onClick} style={{ color: '#2c77ba', fontWeight: 600, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13 }}>{l.qtd}</button>
+                ) : (
+                  <span style={{ color: l.qtd > 0 ? '#2c77ba' : '#9ca3af', fontWeight: 600 }}>{l.qtd}</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RodapeRelogio({ texto, valor }: { texto: string; valor: string }) {
+  return (
+    <div className="flex items-center justify-end gap-2 mt-3 text-[12px]" style={{ color: '#374151' }}>
+      <Clock size={14} style={{ color: '#374151' }} />
+      <span>{texto} <strong style={{ color: '#2c77ba' }}>{valor}</strong></span>
+    </div>
+  );
+}
+
+function Vazio({ texto }: { texto: string }) {
+  return <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 12 }}>{texto}</div>;
 }
