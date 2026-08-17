@@ -10,6 +10,7 @@ import {
   arvoreAssuntos,
 } from '@/data/classesAssuntos';
 import type { AssuntoCNJ, NodoAssunto } from '@/data/classesAssuntos';
+import { comarcasMG, ritosPJe, areasPJe, niveisSigiloPJe } from '@/data/peticaoInicialPJe';
 import { sortearVara } from '@/data/varas';
 import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } from '@/lib/masks';
 import { generateProcessNumber } from '@/lib/cnj';
@@ -170,11 +171,15 @@ type ConsultaEstado = 'idle' | 'buscando' | 'resultado' | 'nao_encontrado' | 'no
 
 interface FormData {
   tribunal: string;
+  comarca: string;
+  rito: string;
   area: string;
   classe: string;
   nivelSigilo: string;
   tipoJustica: string;
   valorCausa: string;
+  valorNaoSeAplica: boolean;
+  valorAlcada: boolean;
   processoOriginario: string;
   juizo: string;
   naoSeAplica: boolean;
@@ -195,10 +200,10 @@ interface FormData {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const STEP_NAMES = [
-  'Informações do Processo',
+  'Informações do processo',
   'Assuntos',
-  'Partes ( Requerentes )',
-  'Partes ( Requeridos )',
+  'Partes Autoras',
+  'Partes Rés',
   'Documentos',
   'Confirmar Ajuizamento',
 ];
@@ -256,11 +261,15 @@ const emptyInfoAdicionais = (): InfoAdicionais => ({
 
 const initialForm = (tarefaId: string): FormData => ({
   tribunal: tribunaisTJMG[0],
+  comarca: '',
+  rito: 'JUÍZO COMUM',
   area: '',
   classe: '',
-  nivelSigilo: niveisSigno[0],
+  nivelSigilo: niveisSigiloPJe[0],
   tipoJustica: 'Estadual',
   valorCausa: '',
+  valorNaoSeAplica: false,
+  valorAlcada: false,
   processoOriginario: '',
   juizo: '',
   naoSeAplica: false,
@@ -434,7 +443,7 @@ export default function PeticaoInicialPage() {
 
   // ── Área → Classe cascade ──
   const areaClasses = form.area
-    ? (areasTJMG.find(a => a.descricao === form.area)?.classes ?? [])
+    ? (areasPJe.find(a => a.nome === form.area)?.classes ?? [])
     : [];
 
   const handleAreaChange = (newArea: string) => {
@@ -606,9 +615,10 @@ export default function PeticaoInicialPage() {
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (step === 1) {
+      if (!form.comarca)    errs.comarca = 'Selecione a comarca.';
       if (!form.area)       errs.area    = 'Selecione a área.';
       if (!form.classe)     errs.classe  = 'Selecione a classe processual.';
-      if (!form.valorCausa) errs.valorCausa = 'Informe o valor da causa.';
+      if (!form.valorCausa && !form.valorNaoSeAplica) errs.valorCausa = 'Informe o valor da causa.';
     }
     if (step === 2) {
       if (form.assuntos.length === 0) errs.assuntos = 'Selecione ao menos um assunto.';
@@ -650,7 +660,7 @@ export default function PeticaoInicialPage() {
           assunto: assuntoPrincipal,
           valor_causa: parseCurrency(form.valorCausa),
           vara: vara.nome,
-          segredo_justica: form.nivelSigilo !== 'Público',
+          segredo_justica: /segredo|sigilo/i.test(form.nivelSigilo) && !/sem sigilo/i.test(form.nivelSigilo),
           prioridade: null,
           status: 'em_andamento',
           nota: null,
@@ -691,7 +701,7 @@ export default function PeticaoInicialPage() {
           assunto: assuntoPrincipal,
           valor_causa: parseCurrency(form.valorCausa),
           vara: vara.nome,
-          segredo_justica: form.nivelSigilo !== 'Público',
+          segredo_justica: /segredo|sigilo/i.test(form.nivelSigilo) && !/sem sigilo/i.test(form.nivelSigilo),
           prioridade: null,
           status: 'em_andamento',
         });
@@ -1103,159 +1113,113 @@ export default function PeticaoInicialPage() {
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 1 && (
           <div style={{ margin: 16 }}>
-            <StepPanel>
-              <div style={SECT_HEADER}>Identificação do Processo</div>
+            {/* Apoio por IA */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <button
+                type="button"
+                onClick={() => update('apoioIA', !form.apoioIA)}
+                aria-pressed={form.apoioIA}
+                style={{
+                  width: 42, height: 22, borderRadius: 999, border: 'none', cursor: 'pointer', position: 'relative',
+                  background: form.apoioIA ? '#2c77ba' : '#cbd5e1', transition: 'background .15s',
+                }}
+              >
+                <span style={{ position: 'absolute', top: 2, left: form.apoioIA ? 22 : 2, width: 18, height: 18, borderRadius: '50%', background: '#fff', transition: 'left .15s' }} />
+              </button>
+              <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                Apoio por Inteligência Artificial
+                <span title="Recurso ilustrativo — não disponível neste simulador" style={{ color: '#94a3b8', cursor: 'help' }}>ⓘ</span>
+              </span>
+            </div>
 
-              {/* Two-column layout */}
+            <StepPanel>
+              <div style={SECT_HEADER}>Informações Preliminares</div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-                {/* Left column */}
-                <div style={{ borderRight: '1px solid #e5e7eb' }}>
-                  {/* Tribunal */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label style={FORM_LABEL}>Tribunal</label>
-                    <select className="form-field" value={form.tribunal} disabled style={{ maxWidth: '100%', background: '#f9fafb' }}>
-                      {tribunaisTJMG.map(t => <option key={t} value={t}>{t}</option>)}
+                {/* Coluna esquerda: comarca, rito, área, classe, sigilo */}
+                <div style={{ borderRight: '1px solid #e5e7eb', padding: '4px 0' }}>
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>Desejo entrar com a ação em:</label>
+                    <select className={fieldCls(errors.comarca)} value={form.comarca} onChange={e => update('comarca', e.target.value)} style={{ maxWidth: '100%' }}>
+                      <option value=""></option>
+                      {comarcasMG.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    {errors.comarca && <div className="form-error">{errors.comarca}</div>}
+                  </div>
+
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>Rito:</label>
+                    <select className="form-field" value={form.rito} onChange={e => update('rito', e.target.value)} style={{ maxWidth: '100%' }}>
+                      {ritosPJe.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
 
-                  {/* Área */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label style={FORM_LABEL}>Área *</label>
-                    <select
-                      className={fieldCls(errors.area)}
-                      value={form.area}
-                      onChange={e => handleAreaChange(e.target.value)}
-                      style={{ maxWidth: '100%' }}
-                    >
-                      <option value="">-- Selecione --</option>
-                      {areasTJMG.map(a => <option key={a.codigo} value={a.descricao}>{a.descricao}</option>)}
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>Área:</label>
+                    <select className={fieldCls(errors.area)} value={form.area} onChange={e => handleAreaChange(e.target.value)} style={{ maxWidth: '100%' }}>
+                      <option value="">-- Selecione uma área --</option>
+                      {areasPJe.map(a => <option key={a.nome} value={a.nome}>{a.nome}</option>)}
                     </select>
                     {errors.area && <div className="form-error">{errors.area}</div>}
                   </div>
 
-                  {/* Classe */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label style={FORM_LABEL}>Classe Processual *</label>
-                    <select
-                      className={fieldCls(errors.classe)}
-                      value={form.classe}
-                      onChange={e => update('classe', e.target.value)}
-                      disabled={!form.area}
-                      style={{ maxWidth: '100%' }}
-                    >
-                      <option value="">-- Selecione --</option>
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>Classe processual:</label>
+                    <select className={fieldCls(errors.classe)} value={form.classe} onChange={e => update('classe', e.target.value)} disabled={!form.area} style={{ maxWidth: '100%' }}>
+                      <option value=""></option>
                       {areaClasses.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     {errors.classe && <div className="form-error">{errors.classe}</div>}
                   </div>
 
-                  {/* Tipo Justiça */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label style={FORM_LABEL}>Tipo de Justiça</label>
-                    <input type="text" className="form-field" value={form.tipoJustica} disabled
-                      style={{ background: '#f9fafb', maxWidth: '100%' }} />
-                  </div>
-
-                  {/* Nível de Sigilo */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label style={FORM_LABEL}>Nível de Sigilo</label>
-                    <select
-                      className="form-field"
-                      value={form.nivelSigilo}
-                      onChange={e => update('nivelSigilo', e.target.value)}
-                      style={{ maxWidth: '100%' }}
-                    >
-                      {niveisSigno.map(n => <option key={n} value={n}>{n}</option>)}
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>
+                      Nível de Sigilo do Processo:{' '}
+                      <span title="Sem Sigilo: processo público. Segredo de Justiça: acesso restrito às partes." style={{ color: '#94a3b8', cursor: 'help' }}>ⓘ</span>
+                    </label>
+                    <select className="form-field" value={form.nivelSigilo} onChange={e => update('nivelSigilo', e.target.value)} style={{ maxWidth: '100%' }}>
+                      {niveisSigiloPJe.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
+                </div>
 
-                  {/* Valor da causa */}
+                {/* Coluna direita: valor da causa, previsão de custas, advogados */}
+                <div style={{ padding: '4px 0' }}>
                   <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>Valor da Causa (R$) *</label>
+                    <label style={FORM_LABEL}>
+                      Valor da Causa: (R$) <span style={{ fontWeight: 400, color: '#6b7280' }}>(Somente números)</span>
+                    </label>
                     <input
                       type="text"
                       className={fieldCls(errors.valorCausa)}
                       value={form.valorCausa}
                       onChange={e => update('valorCausa', formatCurrency(e.target.value))}
-                      placeholder="0,00"
-                      style={{ maxWidth: 200 }}
+                      disabled={form.valorNaoSeAplica}
+                      style={{ maxWidth: 260, background: form.valorNaoSeAplica ? '#f1f5f9' : undefined }}
                     />
                     {errors.valorCausa && <div className="form-error">{errors.valorCausa}</div>}
-                  </div>
-                </div>
 
-                {/* Right column */}
-                <div>
-                  {/* Processo Originário */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label style={FORM_LABEL}>Processo Originário</label>
-                    <input
-                      type="text"
-                      className="form-field"
-                      value={form.processoOriginario}
-                      onChange={e => update('processoOriginario', e.target.value)}
-                      placeholder="Ex.: 0001234-56.2020.8.13.0079"
-                      style={{ maxWidth: '100%' }}
-                    />
-                  </div>
+                    {/* Previsão de custas — aparece ao digitar o valor (igual ao PJe) */}
+                    {form.valorCausa && !form.valorNaoSeAplica && (
+                      <div style={{ fontSize: 13, marginTop: 6, color: '#374151' }}>
+                        <strong>Previsão de Custas:</strong> <span style={{ color: '#6b7280' }}>Não foi possível calcular as custas</span>
+                      </div>
+                    )}
 
-                  {/* Juízo (disabled) */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label style={FORM_LABEL}>Juízo / Vara</label>
-                    <input
-                      type="text"
-                      className="form-field"
-                      value={form.juizo}
-                      disabled
-                      placeholder="Preenchido automaticamente após distribuição"
-                      style={{ background: '#f9fafb', maxWidth: '100%' }}
-                    />
-                    <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 2 }}>
-                      Será definido após sorteio automático.
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 8 }}>
+                      <label className="pje-checkbox" style={{ fontSize: 13 }}>
+                        <input type="checkbox" checked={form.valorNaoSeAplica} onChange={e => update('valorNaoSeAplica', e.target.checked)} />
+                        <span>Não se aplica</span>
+                      </label>
+                      <label className="pje-checkbox" style={{ fontSize: 13 }}>
+                        <input type="checkbox" checked={form.valorAlcada} onChange={e => update('valorAlcada', e.target.checked)} />
+                        <span>Valor de Alçada</span>
+                      </label>
                     </div>
-                  </div>
 
-                  {/* Não se aplica */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={form.naoSeAplica}
-                        onChange={e => update('naoSeAplica', e.target.checked)}
-                      />
-                      <span>Não se aplica a distribuição por especialização</span>
-                    </label>
-                  </div>
-
-                  {/* Remeter ao Plantão */}
-                  <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
-                    <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                      <input
-                        type="checkbox"
-                        checked={form.remeterPlantao}
-                        onChange={e => update('remeterPlantao', e.target.checked)}
-                      />
-                      <span>Remeter ao Plantão Judiciário</span>
-                    </label>
-                  </div>
-
-                  {/* Plantão warning */}
-                  {form.remeterPlantao && (
-                    <div style={{
-                      margin: '0 12px 8px', padding: '8px 12px',
-                      background: '#fefce8', border: '1px solid #fde047',
-                      borderRadius: 3, fontSize: 11, color: '#713f12',
-                    }}>
-                      ⚠ <strong>Atenção:</strong> O peticionamento em regime de plantão é cabível apenas
-                      em situações urgentes previstas no Regimento Interno do TJMG. O uso indevido
-                      pode ensejar sanções processuais.
-                    </div>
-                  )}
-
-                  {/* Custas note */}
-                  <div style={{ padding: '8px 12px', background: '#fffbeb', borderTop: '1px solid #fde68a', fontSize: 11, color: '#92400e' }}>
-                    ℹ <strong>Custas:</strong> No simulador educacional, as custas são dispensadas
-                    para fins didáticos.
+                    <button type="button" style={{ marginTop: 14, background: 'transparent', border: 'none', color: '#2c77ba', fontSize: 14, cursor: 'pointer', padding: 0 }}>
+                      + Incluir outros advogados
+                    </button>
                   </div>
                 </div>
               </div>
