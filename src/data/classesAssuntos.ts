@@ -203,9 +203,9 @@ export const tiposDocOutros: string[] = [
 // ─── Dados Pessoais ───────────────────────────────────────────────────────────
 
 export const sexos: string[] = [
-  'Masculino',
   'Feminino',
-  'Não informado',
+  'Masculino',
+  'Intersexo',
 ];
 
 export const estadosCivis: string[] = [

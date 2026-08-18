@@ -1,5 +1,99 @@
 [
   {
+    "codigo": "15000",
+    "descricao": "DIREITO À EDUCAÇÃO",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15001", "descricao": "Acesso", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15002", "descricao": "Avaliação e Controle", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15003", "descricao": "Financiamento", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15004", "descricao": "Gestão", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15005", "descricao": "Permanência", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15006", "descricao": "Qualidade", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15007", "descricao": "Valorização do Magistério e dos Profissionais da Educação", "area": "Cível", "podePrincipal": true }
+    ]
+  },
+  {
+    "codigo": "864",
+    "descricao": "DIREITO ADMINISTRATIVO E OUTRAS MATÉRIAS DE DIREITO PÚBLICO",
+    "area": "Fazenda Pública",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "10219",
+        "descricao": "Atos Administrativos",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10220", "descricao": "Improbidade Administrativa", "area": "Fazenda Pública", "podePrincipal": true, "norma": "Lei 8.429/92" },
+          { "codigo": "10221", "descricao": "Anulação", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10222", "descricao": "Licitações", "area": "Fazenda Pública", "podePrincipal": true, "norma": "Lei 14.133/21" }
+        ]
+      },
+      {
+        "codigo": "10223",
+        "descricao": "Servidor Público Civil",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10224", "descricao": "Concurso Público / Edital", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10225", "descricao": "Gratificação Incorporada", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10226", "descricao": "Reajustes de Remuneração", "area": "Fazenda Pública", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "10227",
+        "descricao": "Saúde e Educação",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10228", "descricao": "Fornecimento de Medicamentos", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10229", "descricao": "Tratamento Médico-Hospitalar", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10230", "descricao": "Vaga em Creche / Escola", "area": "Fazenda Pública", "podePrincipal": true }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "15100",
+    "descricao": "DIREITO AMBIENTAL",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15101", "descricao": "Dano Ambiental", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15102", "descricao": "Área de Preservação Permanente", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15103", "descricao": "Licenciamento Ambiental", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15104", "descricao": "Fauna", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15105", "descricao": "Flora", "area": "Cível", "podePrincipal": true }
+    ]
+  },
+  {
+    "codigo": "15200",
+    "descricao": "DIREITO ASSISTENCIAL",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15201", "descricao": "Auxílio Brasil (Lei 14.284/2021)", "area": "Cível", "podePrincipal": true, "norma": "Lei 14.284/2021" },
+      { "codigo": "15202", "descricao": "Auxílio Emergencial (Lei 13.982/2020)", "area": "Cível", "podePrincipal": true, "norma": "Lei 13.982/2020" },
+      { "codigo": "15203", "descricao": "Auxílio Reconstrução (MP 1.219/2024)", "area": "Cível", "podePrincipal": true, "norma": "MP 1.219/2024" },
+      {
+        "codigo": "15204",
+        "descricao": "Benefício Assistencial (Art. 203, V, CF/88)",
+        "area": "Cível",
+        "podePrincipal": false,
+        "norma": "CF/88",
+        "artigo": "art. 203, V",
+        "subitens": [
+          { "codigo": "15205", "descricao": "Idoso", "area": "Cível", "podePrincipal": true, "norma": "CF/88", "artigo": "art. 203, V" },
+          { "codigo": "15206", "descricao": "Pessoa com Deficiência", "area": "Cível", "podePrincipal": true, "norma": "CF/88", "artigo": "art. 203, V" }
+        ]
+      },
+      { "codigo": "15207", "descricao": "Bolsa Família (Lei 14.601/2023)", "area": "Cível", "podePrincipal": true, "norma": "Lei 14.601/2023" },
+      { "codigo": "15208", "descricao": "Pensão Especial (Lei 14.717/2023)", "area": "Cível", "podePrincipal": true, "norma": "Lei 14.717/2023" }
+    ]
+  },
+  {
     "codigo": "899",
     "descricao": "DIREITO CIVIL",
     "area": "Cível",
@@ -69,6 +163,48 @@
     ]
   },
   {
+    "codigo": "8826",
+    "descricao": "DIREITO DA CRIANÇA E DO ADOLESCENTE",
+    "area": "Infância e Juventude",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "8829",
+        "descricao": "Medidas de Proteção",
+        "area": "Infância e Juventude",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "8830", "descricao": "Acolhimento Institucional", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 101" },
+          { "codigo": "8831", "descricao": "Adoção", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 39" },
+          { "codigo": "8832", "descricao": "Destituição do Poder Familiar", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 155" }
+        ]
+      },
+      {
+        "codigo": "8840",
+        "descricao": "Ato Infracional",
+        "area": "Infância e Juventude",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "8841", "descricao": "Liberdade Assistida", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 118" },
+          { "codigo": "8842", "descricao": "Internação", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 121" }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "15300",
+    "descricao": "DIREITO DA SAÚDE",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15301", "descricao": "Fornecimento de Medicamentos", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15302", "descricao": "Tratamento Médico-Hospitalar e Cirúrgico", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15303", "descricao": "Leito Hospitalar / UTI / CTI", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15304", "descricao": "Saúde Mental", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15305", "descricao": "Vigilância Sanitária e Epidemiológica", "area": "Cível", "podePrincipal": true }
+    ]
+  },
+  {
     "codigo": "1156",
     "descricao": "DIREITO DO CONSUMIDOR",
     "area": "Cível",
@@ -101,44 +237,26 @@
     ]
   },
   {
-    "codigo": "864",
-    "descricao": "DIREITO ADMINISTRATIVO E OUTRAS MATÉRIAS DE DIREITO PÚBLICO",
-    "area": "Fazenda Pública",
+    "codigo": "15400",
+    "descricao": "DIREITO INTERNACIONAL",
+    "area": "Cível",
     "podePrincipal": false,
     "subitens": [
-      {
-        "codigo": "10219",
-        "descricao": "Atos Administrativos",
-        "area": "Fazenda Pública",
-        "podePrincipal": false,
-        "subitens": [
-          { "codigo": "10220", "descricao": "Improbidade Administrativa", "area": "Fazenda Pública", "podePrincipal": true, "norma": "Lei 8.429/92" },
-          { "codigo": "10221", "descricao": "Anulação", "area": "Fazenda Pública", "podePrincipal": true },
-          { "codigo": "10222", "descricao": "Licitações", "area": "Fazenda Pública", "podePrincipal": true, "norma": "Lei 14.133/21" }
-        ]
-      },
-      {
-        "codigo": "10223",
-        "descricao": "Servidor Público Civil",
-        "area": "Fazenda Pública",
-        "podePrincipal": false,
-        "subitens": [
-          { "codigo": "10224", "descricao": "Concurso Público / Edital", "area": "Fazenda Pública", "podePrincipal": true },
-          { "codigo": "10225", "descricao": "Gratificação Incorporada", "area": "Fazenda Pública", "podePrincipal": true },
-          { "codigo": "10226", "descricao": "Reajustes de Remuneração", "area": "Fazenda Pública", "podePrincipal": true }
-        ]
-      },
-      {
-        "codigo": "10227",
-        "descricao": "Saúde e Educação",
-        "area": "Fazenda Pública",
-        "podePrincipal": false,
-        "subitens": [
-          { "codigo": "10228", "descricao": "Fornecimento de Medicamentos", "area": "Fazenda Pública", "podePrincipal": true },
-          { "codigo": "10229", "descricao": "Tratamento Médico-Hospitalar", "area": "Fazenda Pública", "podePrincipal": true },
-          { "codigo": "10230", "descricao": "Vaga em Creche / Escola", "area": "Fazenda Pública", "podePrincipal": true }
-        ]
-      }
+      { "codigo": "15401", "descricao": "Cooperação Jurídica Internacional", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15402", "descricao": "Homologação de Sentença Estrangeira", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15403", "descricao": "Extradição", "area": "Criminal", "podePrincipal": true }
+    ]
+  },
+  {
+    "codigo": "15500",
+    "descricao": "DIREITO MARÍTIMO",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15501", "descricao": "Avaria Grossa e Particular", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15502", "descricao": "Abalroamento", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15503", "descricao": "Hipoteca Naval", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15504", "descricao": "Frete", "area": "Cível", "podePrincipal": true }
     ]
   },
   {
@@ -185,6 +303,20 @@
     ]
   },
   {
+    "codigo": "15600",
+    "descricao": "DIREITO PREVIDENCIÁRIO",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15601", "descricao": "Aposentadoria por Idade", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.213/91", "artigo": "art. 48" },
+      { "codigo": "15602", "descricao": "Aposentadoria por Invalidez", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.213/91", "artigo": "art. 42" },
+      { "codigo": "15603", "descricao": "Aposentadoria por Tempo de Contribuição", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.213/91" },
+      { "codigo": "15604", "descricao": "Auxílio-Doença", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.213/91", "artigo": "art. 59" },
+      { "codigo": "15605", "descricao": "Pensão por Morte", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.213/91", "artigo": "art. 74" },
+      { "codigo": "15606", "descricao": "Salário-Maternidade", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.213/91", "artigo": "art. 71" }
+    ]
+  },
+  {
     "codigo": "9985",
     "descricao": "DIREITO PROCESSUAL CIVIL E DO TRABALHO",
     "area": "Cível",
@@ -212,6 +344,18 @@
           { "codigo": "9163", "descricao": "Arresto / Sequestro", "area": "Cível", "podePrincipal": true }
         ]
       }
+    ]
+  },
+  {
+    "codigo": "15700",
+    "descricao": "DIREITO PROCESSUAL PENAL",
+    "area": "Criminal",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15701", "descricao": "Habeas Corpus", "area": "Criminal", "podePrincipal": true, "norma": "CPP", "artigo": "art. 647" },
+      { "codigo": "15702", "descricao": "Liberdade Provisória", "area": "Criminal", "podePrincipal": true, "norma": "CPP", "artigo": "art. 321" },
+      { "codigo": "15703", "descricao": "Prisão Preventiva", "area": "Criminal", "podePrincipal": true, "norma": "CPP", "artigo": "art. 311" },
+      { "codigo": "15704", "descricao": "Revisão Criminal", "area": "Criminal", "podePrincipal": true, "norma": "CPP", "artigo": "art. 621" }
     ]
   },
   {
@@ -245,32 +389,26 @@
     ]
   },
   {
-    "codigo": "8826",
-    "descricao": "DIREITO DA CRIANÇA E DO ADOLESCENTE",
-    "area": "Infância e Juventude",
+    "codigo": "15800",
+    "descricao": "QUESTÕES DE ALTA COMPLEXIDADE, GRANDE IMPACTO E REPERCUSSÃO",
+    "area": "Cível",
     "podePrincipal": false,
     "subitens": [
-      {
-        "codigo": "8829",
-        "descricao": "Medidas de Proteção",
-        "area": "Infância e Juventude",
-        "podePrincipal": false,
-        "subitens": [
-          { "codigo": "8830", "descricao": "Acolhimento Institucional", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 101" },
-          { "codigo": "8831", "descricao": "Adoção", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 39" },
-          { "codigo": "8832", "descricao": "Destituição do Poder Familiar", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 155" }
-        ]
-      },
-      {
-        "codigo": "8840",
-        "descricao": "Ato Infracional",
-        "area": "Infância e Juventude",
-        "podePrincipal": false,
-        "subitens": [
-          { "codigo": "8841", "descricao": "Liberdade Assistida", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 118" },
-          { "codigo": "8842", "descricao": "Internação", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 121" }
-        ]
-      }
+      { "codigo": "15801", "descricao": "Ação Civil Pública", "area": "Cível", "podePrincipal": true, "norma": "Lei 7.347/85" },
+      { "codigo": "15802", "descricao": "Ação Popular", "area": "Cível", "podePrincipal": true, "norma": "Lei 4.717/65" },
+      { "codigo": "15803", "descricao": "Mandado de Segurança Coletivo", "area": "Cível", "podePrincipal": true }
+    ]
+  },
+  {
+    "codigo": "15900",
+    "descricao": "REGISTROS PÚBLICOS",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      { "codigo": "15901", "descricao": "Registro Civil das Pessoas Naturais", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15902", "descricao": "Registro de Imóveis", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15903", "descricao": "Registro de Títulos e Documentos", "area": "Cível", "podePrincipal": true },
+      { "codigo": "15904", "descricao": "Retificação de Registro", "area": "Cível", "podePrincipal": true }
     ]
   }
 ]

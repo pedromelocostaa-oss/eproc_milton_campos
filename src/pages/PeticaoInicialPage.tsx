@@ -17,7 +17,7 @@ import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } 
 import { generateProcessNumber } from '@/lib/cnj';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { saveDemoProcesso, saveDemoPartes, saveDemoMovimentacao, getDemoTarefas } from '@/data/demoStore';
-import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, Folder, Info } from 'lucide-react';
+import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, Folder, Info, Home } from 'lucide-react';
 
 function countLeaves(node: NodoAssunto): number {
   if (!node.subitens || node.subitens.length === 0) return 1;
@@ -859,19 +859,34 @@ export default function PeticaoInicialPage() {
   ) => {
     const set = (k: keyof Parte, v: unknown) => setDraft(d => ({ ...d, [k]: v }));
     return (
-      <div style={{ border: '1px solid #c7d2fe', borderRadius: 4, margin: '12px 0', background: '#f8faff' }}>
-        <div style={{ background: 'hsl(205,60%,28%)', color: '#fff', padding: '8px 16px', fontSize: 14, fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Cadastro de Pessoa Física</span>
+      <div style={{ margin: '12px 0', background: '#fff' }}>
+        <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: '#374151' }}>Cadastro de Pessoa Física</span>
+            <span style={{ color: '#2c77ba', cursor: 'pointer', fontSize: 16 }} title="Ajuda">&#9432;</span>
+          </div>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button style={{ ...BTN_PRIMARY, height: 28, padding: '0 14px', fontSize: 12 }} onClick={onIncluir}>Salvar</button>
+            <button
+              style={{
+                height: 30, padding: '0 16px', fontSize: 13, fontWeight: 600,
+                background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                borderRadius: 3, cursor: 'pointer',
+              }}
+              onClick={onIncluir}
+            >Salvar</button>
             <button
               type="button"
               onClick={() => { setDraft(emptyParte(draft.polo)); }}
-              style={{ height: 28, padding: '0 14px', fontSize: 12, background: '#fff', color: '#374151', border: '1px solid #c7d2de', borderRadius: 3, cursor: 'pointer' }}
+              style={{
+                height: 30, padding: '0 16px', fontSize: 13, fontWeight: 600,
+                background: '#fff', color: '#374151', border: '1px solid #c7d2de',
+                borderRadius: 3, cursor: 'pointer',
+              }}
             >Voltar</button>
           </div>
         </div>
-        <div style={{ padding: 16 }}>
+
+        <div style={{ padding: '0 16px 16px' }}>
           {errors[errKey] && (
             <div style={{ marginBottom: 8, padding: '6px 10px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderRadius: 3 }}>
               {errors[errKey]}
@@ -879,265 +894,273 @@ export default function PeticaoInicialPage() {
           )}
 
           {/* CPF + Nome + Incluir nome social */}
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 4, padding: 12, marginBottom: 12 }}>
+          <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16, marginBottom: 16 }}>
             {draft.cpf_cnpj && (
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>CPF: {draft.cpf_cnpj}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>CPF: {draft.cpf_cnpj}</div>
             )}
             <div style={{ marginBottom: 8 }}>
-              <label style={FORM_LABEL}>Nome:</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Nome:</label>
+                <button type="button" style={{ background: 'none', border: 'none', color: '#2c77ba', fontSize: 12, cursor: 'pointer' }}>
+                  Incluir nome social <span style={{ color: '#2c77ba' }}>&#9432;</span>
+                </button>
+              </div>
               <input type="text" className="form-field" value={draft.nome}
                 onChange={e => set('nome', e.target.value)} style={{ textTransform: 'uppercase' }} />
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <button type="button" style={{ background: 'none', border: 'none', color: '#2c77ba', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
-                Incluir nome social
-              </button>
-            </div>
-          </div>
 
-          {/* Sexo, Estado Civil, Data de Nascimento, Profissão */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Sexo:</label>
-              <select className="form-field" value={draft.sexo} onChange={e => set('sexo', e.target.value)}>
-                <option value="">--</option>
-                {sexos.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Estado Civil:</label>
-              <select className="form-field" value={draft.estadoCivil} onChange={e => set('estadoCivil', e.target.value)}>
-                <option value="">--</option>
-                {estadosCivis.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Data de Nascimento:</label>
-              <input type="date" className="form-field" value={draft.dataNascimento}
-                onChange={e => set('dataNascimento', e.target.value)} />
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Profissão:</label>
-              <input type="text" className="form-field" value={draft.profissao}
-                onChange={e => set('profissao', e.target.value)} />
-            </div>
-          </div>
-
-          {/* Auto Declarado LGBTI, Identidade de Gênero, Orientação Sexual */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Auto Declarado LGBTI:</label>
-              <select className="form-field" value={draft.ehLGBTI} onChange={e => set('ehLGBTI', e.target.value)}>
-                <option value="SELECIONE ...">SELECIONE ...</option>
-                <option value="Sim">Sim</option>
-                <option value="Não">Não</option>
-              </select>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Identidade de Gênero:</label>
-              <select className="form-field" value={draft.identidadeGenero} onChange={e => set('identidadeGenero', e.target.value)}>
-                <option value="">SELECIONE ...</option>
-                {identidadesGenero.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Orientação Sexual:</label>
-              <select className="form-field" value={draft.orientacaoSexual} onChange={e => set('orientacaoSexual', e.target.value)}>
-                <option value="">SELECIONE ...</option>
-                {orientacoesSexuais.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* Nacionalidade, Naturalidade (UF) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Nacionalidade:</label>
-              <select className="form-field" value={draft.nacionalidade} onChange={e => set('nacionalidade', e.target.value)}>
-                {nacionalidades.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Naturalidade:</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 4 }}>
-                <select className="form-field" value={draft.naturalidade} onChange={e => set('naturalidade', e.target.value)}>
-                  <option value="">--</option>
-                  {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+            {/* Sexo, Estado Civil, Data de Nascimento, Profissão */}
+            <div style={{ display: 'grid', gridTemplateColumns: '100px 140px 1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Sexo:</label>
+                <select className="form-field" value={draft.sexo} onChange={e => set('sexo', e.target.value)}>
+                  <option value=""></option>
+                  {sexos.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <select className="form-field" disabled>
-                  <option value="">--</option>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Estado Civil:</label>
+                <select className="form-field" value={draft.estadoCivil} onChange={e => set('estadoCivil', e.target.value)}>
+                  <option value=""></option>
+                  {estadosCivis.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Data de Nascimento:</label>
+                <input type="date" className="form-field" value={draft.dataNascimento}
+                  onChange={e => set('dataNascimento', e.target.value)} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Profissão:</label>
+                <input type="text" className="form-field" value={draft.profissao}
+                  onChange={e => set('profissao', e.target.value)} />
+              </div>
+            </div>
+
+            {/* Auto Declarado LGBTI, Identidade de Gênero, Orientação Sexual */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Auto Declarado LGBTI:</label>
+                <select className="form-field" value={draft.ehLGBTI} onChange={e => set('ehLGBTI', e.target.value)}>
+                  <option value="SELECIONE ...">SELECIONE ...</option>
+                  <option value="Sim">Sim</option>
+                  <option value="Não">Não</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Identidade de Gênero:</label>
+                <select className="form-field" value={draft.identidadeGenero} onChange={e => set('identidadeGenero', e.target.value)}>
+                  <option value="">SELECIONE ...</option>
+                  {identidadesGenero.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Orientação Sexual:</label>
+                <select className="form-field" value={draft.orientacaoSexual} onChange={e => set('orientacaoSexual', e.target.value)}>
+                  <option value="">SELECIONE ...</option>
+                  {orientacoesSexuais.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Nacionalidade, Naturalidade (UF) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Nacionalidade:</label>
+                <select className="form-field" value={draft.nacionalidade} onChange={e => set('nacionalidade', e.target.value)}>
+                  {nacionalidades.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Naturalidade:</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 4 }}>
+                  <select className="form-field" value={draft.naturalidade} onChange={e => set('naturalidade', e.target.value)}>
+                    <option value=""></option>
+                    {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                  </select>
+                  <select className="form-field" disabled>
+                    <option value=""></option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Nome Mãe, Nome Pai */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Nome Mãe:</label>
+                <input type="text" className="form-field" value={draft.nomeMae}
+                  onChange={e => set('nomeMae', e.target.value)} style={{ textTransform: 'uppercase' }} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Nome Pai:</label>
+                <input type="text" className="form-field" value={draft.nomePai}
+                  onChange={e => set('nomePai', e.target.value)} style={{ textTransform: 'uppercase' }} />
+              </div>
+            </div>
+
+            {/* Pessoa com deficiência, Tipo de deficiência, Gestante/Puérpera/Lactante, Data do Parto */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto 1fr', gap: 12, marginBottom: 12, alignItems: 'end' }}>
+              <div style={{ paddingBottom: 6 }}>
+                <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                  <input type="checkbox" checked={draft.temDeficiencia}
+                    onChange={e => { set('temDeficiencia', e.target.checked); if (!e.target.checked) set('tipoDeficiencia', ''); }} />
+                  <span style={{ fontWeight: 700 }}>Pessoa com deficiência</span>
+                </label>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Tipo de deficiência:</label>
+                <select className="form-field" value={draft.tipoDeficiencia}
+                  disabled={!draft.temDeficiencia}
+                  onChange={e => set('tipoDeficiencia', e.target.value)}
+                  style={{ background: !draft.temDeficiencia ? '#f3f4f6' : undefined }}>
+                  <option value="">Escolha o tipo de deficiência</option>
+                  {tiposDeficiencia.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div style={{ paddingBottom: 6 }}>
+                <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                  <input type="checkbox" checked={draft.gestante} onChange={e => set('gestante', e.target.checked)} />
+                  <span style={{ fontWeight: 700 }}>Gestante/Puérpera/Lactante</span>
+                </label>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Data do Parto:</label>
+                <input type="date" className="form-field" value={draft.dataParto}
+                  disabled={!draft.gestante}
+                  onChange={e => set('dataParto', e.target.value)}
+                  style={{ background: !draft.gestante ? '#f3f4f6' : undefined }} />
+              </div>
+            </div>
+
+            {/* Escolaridade, Complemento */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 0 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Escolaridade:</label>
+                <select className="form-field" value={draft.escolaridade} onChange={e => set('escolaridade', e.target.value)}>
+                  <option value="">Escolha o nível de escolaridade</option>
+                  {niveisEscolaridade.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Complemento:</label>
+                <input type="text" className="form-field" value={draft.complemento}
+                  onChange={e => set('complemento', e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* Identificação Étnica */}
+          <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
+              Identificação Etnica
+            </div>
+            <div style={{ maxWidth: 220 }}>
+              <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Raça/Etnia</label>
+              <select className="form-field" value={draft.racaEtnia} onChange={e => set('racaEtnia', e.target.value)}>
+                <option value="">Selecione</option>
+                {racasEtnia.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Dependentes */}
+          <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
+              Dependentes
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 160px', gap: 8, alignItems: 'end' }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>CPF:</label>
+                <input type="text" className="form-field" value="" disabled placeholder="" style={{ background: '#f3f4f6' }} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Nome:</label>
+                <input type="text" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Data de Nascimento:</label>
+                <input type="date" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Possui deficiência?</label>
+                <select className="form-field" disabled style={{ background: '#f3f4f6' }}>
+                  <option value="Não">Não</option>
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Nome Mãe, Nome Pai */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Nome Mãe:</label>
-              <input type="text" className="form-field" value={draft.nomeMae}
-                onChange={e => set('nomeMae', e.target.value)} style={{ textTransform: 'uppercase' }} />
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Nome Pai:</label>
-              <input type="text" className="form-field" value={draft.nomePai}
-                onChange={e => set('nomePai', e.target.value)} style={{ textTransform: 'uppercase' }} />
-            </div>
-          </div>
-
-          {/* Pessoa com deficiência, Tipo de deficiência, Gestante/Puérpera/Lactante, Data do Parto */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 8, alignItems: 'end' }}>
-            <div>
-              <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                <input type="checkbox" checked={draft.temDeficiencia}
-                  onChange={e => { set('temDeficiencia', e.target.checked); if (!e.target.checked) set('tipoDeficiencia', ''); }} />
-                <span>Pessoa com deficiência</span>
-              </label>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Tipo de deficiência:</label>
-              <select className="form-field" value={draft.tipoDeficiencia}
-                disabled={!draft.temDeficiencia}
-                onChange={e => set('tipoDeficiencia', e.target.value)}
-                style={{ background: !draft.temDeficiencia ? '#f3f4f6' : undefined }}>
-                <option value="">Escolha o tipo de deficiência</option>
-                {tiposDeficiencia.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                <input type="checkbox" checked={draft.gestante} onChange={e => set('gestante', e.target.checked)} />
-                <span>Gestante/Puérpera/Lactante</span>
-              </label>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Data do Parto:</label>
-              <input type="date" className="form-field" value={draft.dataParto}
-                disabled={!draft.gestante}
-                onChange={e => set('dataParto', e.target.value)}
-                style={{ background: !draft.gestante ? '#f3f4f6' : undefined }} />
-            </div>
-          </div>
-
-          {/* Escolaridade, Complemento */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Escolaridade:</label>
-              <select className="form-field" value={draft.escolaridade} onChange={e => set('escolaridade', e.target.value)}>
-                <option value="">Escolha o nível de escolaridade</option>
-                {niveisEscolaridade.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Complemento:</label>
-              <input type="text" className="form-field" value={draft.complemento}
-                onChange={e => set('complemento', e.target.value)} />
-            </div>
-          </div>
-
-          {/* Identificação Étnica */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
-            Identificação Etnica
-          </div>
-          <div style={{ marginBottom: 8, maxWidth: 200 }}>
-            <label style={FORM_LABEL}>Raça/Etnia</label>
-            <select className="form-field" value={draft.racaEtnia} onChange={e => set('racaEtnia', e.target.value)}>
-              <option value="">Selecione</option>
-              {racasEtnia.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          {/* Dependentes */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
-            Dependentes
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 160px', gap: 8, marginBottom: 8, alignItems: 'end' }}>
-            <div>
-              <label style={FORM_LABEL}>CPF:</label>
-              <input type="text" className="form-field" value="" disabled placeholder="" style={{ background: '#f3f4f6' }} />
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Nome:</label>
-              <input type="text" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Data de Nascimento:</label>
-              <input type="date" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Possui deficiência?</label>
-              <select className="form-field" disabled style={{ background: '#f3f4f6' }}>
-                <option value="Não">Não</option>
-              </select>
-            </div>
-          </div>
-
           {/* Endereço */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
-            Endereço
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 80px', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>CEP</label>
-              <input type="text" className="form-field" value={draft.cep}
-                onChange={e => set('cep', formatCep(e.target.value))}
-                onBlur={e => buscarCep(e.target.value, (k, v) => setDraft(d => ({ ...d, [k]: v })))}
-                placeholder="00000-000" maxLength={9} />
+          <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
+              Endereço
             </div>
-            <div>
-              <label style={FORM_LABEL}>Logradouro</label>
-              <input type="text" className="form-field" value={draft.logradouro}
-                onChange={e => set('logradouro', e.target.value)} />
+            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 80px', gap: 8, marginBottom: 8 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>CEP</label>
+                <input type="text" className="form-field" value={draft.cep}
+                  onChange={e => set('cep', formatCep(e.target.value))}
+                  onBlur={e => buscarCep(e.target.value, (k, v) => setDraft(d => ({ ...d, [k]: v })))}
+                  placeholder="00000-000" maxLength={9} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Logradouro</label>
+                <input type="text" className="form-field" value={draft.logradouro}
+                  onChange={e => set('logradouro', e.target.value)} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Número</label>
+                <input type="text" className="form-field" value={draft.numero}
+                  onChange={e => set('numero', e.target.value)} />
+              </div>
             </div>
-            <div>
-              <label style={FORM_LABEL}>Número</label>
-              <input type="text" className="form-field" value={draft.numero}
-                onChange={e => set('numero', e.target.value)} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 8 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Bairro</label>
+                <input type="text" className="form-field" value={draft.bairro}
+                  onChange={e => set('bairro', e.target.value)} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Cidade</label>
+                <input type="text" className="form-field" value={draft.cidade}
+                  onChange={e => set('cidade', e.target.value)} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>UF</label>
+                <select className="form-field" value={draft.estado} onChange={e => set('estado', e.target.value)}>
+                  {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                </select>
+              </div>
+              <div />
             </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Bairro</label>
-              <input type="text" className="form-field" value={draft.bairro}
-                onChange={e => set('bairro', e.target.value)} />
-            </div>
-            <div>
-              <label style={FORM_LABEL}>Cidade</label>
-              <input type="text" className="form-field" value={draft.cidade}
-                onChange={e => set('cidade', e.target.value)} />
-            </div>
-            <div>
-              <label style={FORM_LABEL}>UF</label>
-              <select className="form-field" value={draft.estado} onChange={e => set('estado', e.target.value)}>
-                {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-              </select>
-            </div>
-            <div />
           </div>
 
-          {/* Forma de Contato */}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
-            Contato
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Forma de Contato:</label>
-              <select className="form-field" value={draft.formaContato} onChange={e => set('formaContato', e.target.value)}>
-                <option value="">Escolha o Tipo</option>
-                {formasContato.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
+          {/* Contato */}
+          <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16, marginBottom: 16 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
+              Contato
             </div>
-            <div>
-              <label style={FORM_LABEL}>&nbsp;</label>
-              <input type="text" className="form-field"
-                value={draft.formaContato === 'E-mail' ? draft.email : draft.telefone}
-                onChange={e => {
-                  if (draft.formaContato === 'E-mail') set('email', e.target.value);
-                  else set('telefone', formatPhone(e.target.value));
-                }}
-                placeholder={draft.formaContato === 'E-mail' ? 'email@exemplo.com' : '(00) 00000-0000'}
-                maxLength={draft.formaContato === 'E-mail' ? undefined : 15}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 8 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Forma de Contato:</label>
+                <select className="form-field" value={draft.formaContato} onChange={e => set('formaContato', e.target.value)}>
+                  <option value="">Escolha o Tipo</option>
+                  {formasContato.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={FORM_LABEL}>&nbsp;</label>
+                <input type="text" className="form-field"
+                  value={draft.formaContato === 'E-mail' ? draft.email : draft.telefone}
+                  onChange={e => {
+                    if (draft.formaContato === 'E-mail') set('email', e.target.value);
+                    else set('telefone', formatPhone(e.target.value));
+                  }}
+                  placeholder={draft.formaContato === 'E-mail' ? 'email@exemplo.com' : '(00) 00000-0000'}
+                  maxLength={draft.formaContato === 'E-mail' ? undefined : 15}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -1239,6 +1262,15 @@ export default function PeticaoInicialPage() {
                 >
                   Cancelar
                 </button>
+              </div>
+            )}
+            {(step === 3 || step === 4) && (
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={() => navigate('/meus-processos')}>Consultar</button>
+                <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={resetForm}>Novo</button>
+                <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={back}>&lt; Anterior</button>
+                <button style={{ background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96', borderRadius: 3, padding: '4px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={next}>Próxima &gt;</button>
+                <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={() => navigate('/dashboard')}>Cancelar</button>
               </div>
             )}
           </div>
@@ -1673,36 +1705,29 @@ export default function PeticaoInicialPage() {
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 3 && (
           <div style={{ margin: 16 }}>
-            <StepPanel>
-              <div style={SECT_HEADER}>Polo Ativo — Partes Requerentes</div>
-
-              {errors.autora && (
-                <div style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderBottom: '1px solid #fecaca' }}>
-                  {errors.autora}
-                </div>
-              )}
-
-              {/* Advogado */}
-              <div style={{ padding: '8px 12px', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', fontSize: 12 }}>
-                <strong>Advogado(a) peticionante:</strong> {user?.nome_completo} — {user?.oab_simulado}
+            {errors.autora && (
+              <div style={{ marginBottom: 8, padding: '6px 10px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderRadius: 3 }}>
+                {errors.autora}
               </div>
+            )}
 
+            <StepPanel>
               {/* Consulta form */}
-              <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 10 }}>
+              <div style={{ padding: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
                   Consulta
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '130px 200px auto 200px auto', gap: 8, alignItems: 'end', marginBottom: 8 }}>
-                  <div>
-                    <label style={FORM_LABEL}>Tipo Pessoa:</label>
-                    <select className="form-field" value={queryAutora.tipoPessoa}
-                      onChange={e => setQueryAutora(q => ({ ...q, tipoPessoa: e.target.value }))}>
-                      {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={FORM_LABEL}>CPF:</label>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16 }}>
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'end', marginBottom: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Tipo Pessoa:</label>
+                      <select className="form-field" value={queryAutora.tipoPessoa}
+                        onChange={e => setQueryAutora(q => ({ ...q, tipoPessoa: e.target.value }))}>
+                        {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ ...FORM_LABEL, fontWeight: 700 }}>CPF:</label>
                       <input
                         type="text"
                         className="form-field"
@@ -1711,44 +1736,51 @@ export default function PeticaoInicialPage() {
                         placeholder=""
                         maxLength={14}
                         disabled={queryAutora.semCpf}
-                        style={{ flex: 1, background: queryAutora.semCpf ? '#f9fafb' : undefined }}
+                        style={{ width: 180, background: queryAutora.semCpf ? '#f9fafb' : undefined }}
                       />
                     </div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingBottom: 4 }}>
-                    <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                      <input type="checkbox" checked={queryAutora.semCpf}
-                        onChange={e => setQueryAutora(q => ({ ...q, semCpf: e.target.checked, cpf: '' }))} />
-                      <span>Sem CPF:</span>
-                    </label>
-                  </div>
-                  <div>
-                    <label style={FORM_LABEL}>Outros Documentos:</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                      <select className="form-field" value={queryAutora.outroDocTipo}
-                        onChange={e => setQueryAutora(q => ({ ...q, outroDocTipo: e.target.value }))}>
-                        <option value="">Escolha o Tipo</option>
-                        {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingBottom: 6 }}>
+                      <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                        <input type="checkbox" checked={queryAutora.semCpf}
+                          onChange={e => setQueryAutora(q => ({ ...q, semCpf: e.target.checked, cpf: '' }))} />
+                        <span style={{ fontWeight: 700 }}>Sem CPF:</span>
+                      </label>
+                    </div>
+                    <div style={{ paddingBottom: 2 }}>
+                      <select className="form-field" disabled style={{ background: '#e5e7eb', width: 120 }}>
+                        <option value=""></option>
                       </select>
-                      <input type="text" className="form-field" value={queryAutora.outroDocNum}
-                        onChange={e => setQueryAutora(q => ({ ...q, outroDocNum: e.target.value }))} />
+                    </div>
+                    <div>
+                      <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Outros Documentos:</label>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <select className="form-field" value={queryAutora.outroDocTipo}
+                          onChange={e => setQueryAutora(q => ({ ...q, outroDocTipo: e.target.value }))}>
+                          <option value="">Escolha o Tipo</option>
+                          {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <input type="text" className="form-field" value={queryAutora.outroDocNum}
+                          onChange={e => setQueryAutora(q => ({ ...q, outroDocNum: e.target.value }))}
+                          style={{ width: 160 }} />
+                      </div>
                     </div>
                   </div>
-                  <div />
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={FORM_LABEL}>Pesquisar pelo nome:</label>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input type="text" className="form-field" value={queryAutora.nome}
-                      onChange={e => setQueryAutora(q => ({ ...q, nome: e.target.value }))}
-                      style={{ flex: 1 }} />
-                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12 }} onClick={consultarAutora}>
-                      Consultar
-                    </button>
-                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12, background: '#16a34a' }}
-                      onClick={() => { setConsultaAutoraEstado('novo_cadastro'); setShowCadastroAutora(true); }}>
-                      Novo
-                    </button>
+                  <div>
+                    <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Pesquisar pelo nome:</label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="text" className="form-field" value={queryAutora.nome}
+                        onChange={e => setQueryAutora(q => ({ ...q, nome: e.target.value }))}
+                        style={{ flex: 1 }} />
+                      <button
+                        style={{
+                          background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                          borderRadius: 3, padding: '5px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}
+                        onClick={consultarAutora}
+                      >
+                        Consultar
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1760,36 +1792,45 @@ export default function PeticaoInicialPage() {
                 </div>
               )}
               {consultaAutoraEstado === 'resultado' && resultadosAutora.length > 0 && (
-                <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
-                    Resultado da consulta
+                <div style={{ padding: '16px 12px', borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#374151' }}>
+                      Resultado(s) da busca:
+                    </div>
+                    <div style={{ fontSize: 13, color: '#374151' }}>
+                      Partes localizadas {resultadosAutora.length}.
+                    </div>
                   </div>
-                  <table className="data-table">
+                  <table className="data-table" style={{ fontSize: 13 }}>
                     <thead>
                       <tr>
-                        <th>Pessoa</th>
-                        <th>CPF</th>
-                        <th>Nome</th>
-                        <th>Info. Extras</th>
-                        <th>Principal</th>
-                        <th></th>
+                        <th style={{ textAlign: 'center' }}>Pessoa</th>
+                        <th style={{ textAlign: 'center' }}>CPF / CNPJ</th>
+                        <th style={{ textAlign: 'center' }}>Nome / Razão Social</th>
+                        <th style={{ textAlign: 'center' }}>Informações Extras</th>
+                        <th style={{ textAlign: 'center' }}>Principal</th>
+                        <th style={{ textAlign: 'center' }}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
                       {resultadosAutora.map(r => (
                         <tr key={r.id}>
-                          <td>Física</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{r.cpf}</td>
-                          <td style={{ fontWeight: 600 }}>{r.nome}</td>
-                          <td style={{ fontSize: 11, color: '#6b7280' }}>{r.infoExtras}</td>
-                          <td>
-                            <select style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}>
-                              <option>Sim ▼</option>
+                          <td style={{ textAlign: 'center' }}>Física</td>
+                          <td style={{ textAlign: 'center' }}>{r.cpf}</td>
+                          <td>{r.nome}</td>
+                          <td style={{ fontSize: 12, color: '#6b7280' }}>{r.infoExtras}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <select style={{ fontSize: 12, padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: 2 }}>
+                              <option value="Sim">Sim</option>
+                              <option value="Não">Não</option>
                             </select>
                           </td>
-                          <td>
+                          <td style={{ textAlign: 'center' }}>
                             <button
-                              style={{ ...BTN_PRIMARY, height: 24, padding: '0 8px', fontSize: 11 }}
+                              style={{
+                                background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                                borderRadius: 3, padding: '4px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                              }}
                               onClick={() => incluirAutoraFromResultado(r)}
                             >
                               Incluir
@@ -1808,23 +1849,25 @@ export default function PeticaoInicialPage() {
                   {renderCadastroForm(draftAutora, setDraftAutora, incluirAutoraCadastro, 'autora')}
                 </div>
               )}
+            </StepPanel>
 
-              {/* Partes (requerentes) a utilizar neste ajuizamento */}
-              <div style={{ padding: 12 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
-                  Partes (<span style={{ textDecoration: 'underline' }}>requerentes</span>) a utilizar neste ajuizamento
-                </div>
-                <table className="data-table" style={{ fontSize: 12 }}>
+            {/* Partes (autores) a utilizar neste ajuizamento */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+                Partes (<span style={{ textDecoration: 'underline' }}>autores</span>) a utilizar neste ajuizamento
+              </div>
+              <StepPanel>
+                <table className="data-table" style={{ fontSize: 13 }}>
                   <thead>
                     <tr>
                       <th>Nome</th>
-                      <th>CPF / CNPJ</th>
-                      <th>Tipo de Parte</th>
-                      <th>Principal?</th>
-                      <th>Tipo Representação</th>
-                      <th>Justiça Gratuita</th>
-                      <th>Adicionar Endereço</th>
-                      <th>Ações</th>
+                      <th style={{ textAlign: 'center' }}>CPF / CNPJ</th>
+                      <th style={{ textAlign: 'center' }}>Tipo de Parte</th>
+                      <th style={{ textAlign: 'center' }}>Principal?</th>
+                      <th style={{ textAlign: 'center' }}>Tipo Representação</th>
+                      <th style={{ textAlign: 'center' }}>Justiça Gratuita</th>
+                      <th style={{ textAlign: 'center' }}>Adicionar Endereço</th>
+                      <th style={{ textAlign: 'center' }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1838,13 +1881,20 @@ export default function PeticaoInicialPage() {
                       form.partesAutoras.map((p, i) => (
                         <tr key={i}>
                           <td style={{ fontWeight: 600 }}>{p.nome}</td>
-                          <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.cpf_cnpj || '—'}</td>
-                          <td>{p.tipo_pessoa}</td>
-                          <td>{i === 0 ? 'Sim' : 'Não'}</td>
-                          <td>—</td>
-                          <td>
+                          <td style={{ textAlign: 'center' }}>{p.cpf_cnpj || '—'}</td>
+                          <td style={{ textAlign: 'center' }}>AUTOR</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{ color: '#2c77ba', cursor: 'pointer', textDecoration: 'underline' }}>
+                              {i === 0 ? 'Sim' : 'Não'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{ color: '#2c77ba', cursor: 'pointer', textDecoration: 'underline' }}>Definir</span>
+                            {' '}<span style={{ color: '#9ca3af' }}>(Opcional)</span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
                             <select
-                              style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}
+                              style={{ fontSize: 12, padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: 2 }}
                               value={p.justicaGratuita}
                               onChange={e => {
                                 const arr = [...form.partesAutoras];
@@ -1855,11 +1905,13 @@ export default function PeticaoInicialPage() {
                               {justicaGratuitaOpcoes.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
                           </td>
-                          <td>—</td>
-                          <td>
+                          <td style={{ textAlign: 'center' }}>
+                            <Home size={16} style={{ color: '#2c77ba', cursor: 'pointer' }} />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
                             <button onClick={() => removerAutora(i)}
-                              style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}>
-                              <Trash2 size={13} />
+                              style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', fontSize: 16, fontWeight: 700 }}>
+                              ✗
                             </button>
                           </td>
                         </tr>
@@ -1867,22 +1919,41 @@ export default function PeticaoInicialPage() {
                     )}
                   </tbody>
                 </table>
-              </div>
+              </StepPanel>
+            </div>
 
-              {/* Footer links */}
-              <div style={{
-                padding: '8px 12px', borderTop: '1px solid #e5e7eb',
-                fontSize: 12,
-              }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2c77ba', fontSize: 12 }}>
-                  Ver totalizador de partes
-                </button>
-              </div>
-              <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Custas Processuais:</div>
-                <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
-              </div>
-            </StepPanel>
+            {/* Footer links */}
+            <div style={{ padding: '8px 0', fontSize: 12 }}>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2c77ba', fontSize: 12 }}>
+                Ver totalizador de partes
+              </button>
+            </div>
+            <div style={{ padding: '8px 0' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Custas Processuais:</div>
+              <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
+            </div>
+
+            {/* Bottom action buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+              <button style={{ ...TOOLBAR_BTN }} onClick={() => navigate('/meus-processos')}>Consultar</button>
+              <button style={{ ...TOOLBAR_BTN }} onClick={resetForm}>Novo</button>
+              <button style={{ ...TOOLBAR_BTN }} onClick={back}>&lt; Anterior</button>
+              <button
+                style={{
+                  background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                  borderRadius: 3, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+                onClick={next}
+              >
+                Próxima &gt;
+              </button>
+              <button
+                style={{ background: 'none', border: '1px solid #c7d2de', borderRadius: 3, padding: '5px 14px', fontSize: 13, cursor: 'pointer', color: '#374151' }}
+                onClick={() => navigate('/dashboard')}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
