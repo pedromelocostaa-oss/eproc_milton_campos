@@ -1,0 +1,276 @@
+[
+  {
+    "codigo": "899",
+    "descricao": "DIREITO CIVIL",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "10431",
+        "descricao": "Obrigações",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "7681", "descricao": "Inadimplemento", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 389" },
+          { "codigo": "7682", "descricao": "Espécies de Contratos", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 421" },
+          { "codigo": "7683", "descricao": "Pagamento em Consignação", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 334" },
+          { "codigo": "7767", "descricao": "Cláusula Penal", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 408" }
+        ]
+      },
+      {
+        "codigo": "10432",
+        "descricao": "Responsabilidade Civil",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10433", "descricao": "Indenização por Dano Moral", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 186" },
+          { "codigo": "10434", "descricao": "Indenização por Dano Material", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 402" },
+          { "codigo": "10435", "descricao": "Acidente de Trânsito", "area": "Cível", "podePrincipal": true },
+          { "codigo": "10437", "descricao": "Erro Médico", "area": "Cível", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "10441",
+        "descricao": "Família",
+        "area": "Família e Sucessões",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "5779", "descricao": "Alimentos", "area": "Família e Sucessões", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1.694" },
+          { "codigo": "5781", "descricao": "Guarda", "area": "Família e Sucessões", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1.583" },
+          { "codigo": "5782", "descricao": "Regulamentação de Visitas", "area": "Família e Sucessões", "podePrincipal": true },
+          { "codigo": "5626", "descricao": "Divórcio", "area": "Família e Sucessões", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1.571" },
+          { "codigo": "5632", "descricao": "União Estável ou Concubinato", "area": "Família e Sucessões", "podePrincipal": true },
+          { "codigo": "5794", "descricao": "Investigação de Paternidade", "area": "Família e Sucessões", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "10450",
+        "descricao": "Sucessões",
+        "area": "Família e Sucessões",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "5797", "descricao": "Inventário e Partilha", "area": "Família e Sucessões", "podePrincipal": true },
+          { "codigo": "5798", "descricao": "Testamento", "area": "Família e Sucessões", "podePrincipal": true },
+          { "codigo": "5799", "descricao": "Sonegados", "area": "Família e Sucessões", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "10460",
+        "descricao": "Coisas",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10461", "descricao": "Propriedade", "area": "Cível", "podePrincipal": true },
+          { "codigo": "10462", "descricao": "Usucapião", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1.238" },
+          { "codigo": "10463", "descricao": "Posse", "area": "Cível", "podePrincipal": true },
+          { "codigo": "10464", "descricao": "Condomínio", "area": "Cível", "podePrincipal": true }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "1156",
+    "descricao": "DIREITO DO CONSUMIDOR",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "7771",
+        "descricao": "Responsabilidade do Fornecedor",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "7772", "descricao": "Indenização por Dano Moral", "area": "Cível", "podePrincipal": true, "norma": "CDC", "artigo": "art. 6º, VI" },
+          { "codigo": "7773", "descricao": "Vício do Produto", "area": "Cível", "podePrincipal": true, "norma": "CDC", "artigo": "art. 18" },
+          { "codigo": "7779", "descricao": "Inclusão Indevida em Cadastro de Inadimplentes", "area": "Cível", "podePrincipal": true, "norma": "CDC", "artigo": "art. 43" },
+          { "codigo": "7780", "descricao": "Cobrança Indevida de Valores", "area": "Cível", "podePrincipal": true, "norma": "CDC", "artigo": "art. 42" }
+        ]
+      },
+      {
+        "codigo": "7787",
+        "descricao": "Contratos de Consumo",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "7788", "descricao": "Bancários", "area": "Cível", "podePrincipal": true },
+          { "codigo": "7789", "descricao": "Planos de Saúde", "area": "Cível", "podePrincipal": true, "norma": "Lei 9.656/98" },
+          { "codigo": "7790", "descricao": "Telefonia", "area": "Cível", "podePrincipal": true },
+          { "codigo": "7791", "descricao": "Transporte Aéreo", "area": "Cível", "podePrincipal": true }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "864",
+    "descricao": "DIREITO ADMINISTRATIVO E OUTRAS MATÉRIAS DE DIREITO PÚBLICO",
+    "area": "Fazenda Pública",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "10219",
+        "descricao": "Atos Administrativos",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10220", "descricao": "Improbidade Administrativa", "area": "Fazenda Pública", "podePrincipal": true, "norma": "Lei 8.429/92" },
+          { "codigo": "10221", "descricao": "Anulação", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10222", "descricao": "Licitações", "area": "Fazenda Pública", "podePrincipal": true, "norma": "Lei 14.133/21" }
+        ]
+      },
+      {
+        "codigo": "10223",
+        "descricao": "Servidor Público Civil",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10224", "descricao": "Concurso Público / Edital", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10225", "descricao": "Gratificação Incorporada", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10226", "descricao": "Reajustes de Remuneração", "area": "Fazenda Pública", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "10227",
+        "descricao": "Saúde e Educação",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10228", "descricao": "Fornecimento de Medicamentos", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10229", "descricao": "Tratamento Médico-Hospitalar", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "10230", "descricao": "Vaga em Creche / Escola", "area": "Fazenda Pública", "podePrincipal": true }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "287",
+    "descricao": "DIREITO PENAL",
+    "area": "Criminal",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "3372",
+        "descricao": "Crimes contra a Pessoa",
+        "area": "Criminal",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "3373", "descricao": "Homicídio Simples", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 121" },
+          { "codigo": "3374", "descricao": "Homicídio Qualificado", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 121, §2º" },
+          { "codigo": "3375", "descricao": "Lesão Corporal", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 129" },
+          { "codigo": "3376", "descricao": "Ameaça", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 147" }
+        ]
+      },
+      {
+        "codigo": "3380",
+        "descricao": "Crimes contra o Patrimônio",
+        "area": "Criminal",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "3381", "descricao": "Furto", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 155" },
+          { "codigo": "3382", "descricao": "Roubo", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 157" },
+          { "codigo": "3383", "descricao": "Estelionato", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 171" },
+          { "codigo": "3384", "descricao": "Apropriação Indébita", "area": "Criminal", "podePrincipal": true, "norma": "Código Penal", "artigo": "art. 168" }
+        ]
+      },
+      {
+        "codigo": "3390",
+        "descricao": "Crimes Previstos em Legislação Extravagante",
+        "area": "Criminal",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "3391", "descricao": "Tráfico de Drogas", "area": "Criminal", "podePrincipal": true, "norma": "Lei 11.343/06", "artigo": "art. 33" },
+          { "codigo": "3392", "descricao": "Violência Doméstica contra a Mulher", "area": "Criminal", "podePrincipal": true, "norma": "Lei 11.340/06" },
+          { "codigo": "3393", "descricao": "Estatuto do Desarmamento", "area": "Criminal", "podePrincipal": true, "norma": "Lei 10.826/03" }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "9985",
+    "descricao": "DIREITO PROCESSUAL CIVIL E DO TRABALHO",
+    "area": "Cível",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "9148",
+        "descricao": "Liquidação / Cumprimento / Execução",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9149", "descricao": "Obrigação de Fazer / Não Fazer", "area": "Cível", "podePrincipal": true },
+          { "codigo": "9192", "descricao": "Penhora / Depósito / Avaliação", "area": "Cível", "podePrincipal": true },
+          { "codigo": "9196", "descricao": "Causas Supervenientes à Sentença", "area": "Cível", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "9160",
+        "descricao": "Medida Cautelar",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9161", "descricao": "Tutela de Urgência", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 300" },
+          { "codigo": "9162", "descricao": "Tutela de Evidência", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 311" },
+          { "codigo": "9163", "descricao": "Arresto / Sequestro", "area": "Cível", "podePrincipal": true }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "14",
+    "descricao": "DIREITO TRIBUTÁRIO",
+    "area": "Fazenda Pública",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "5916",
+        "descricao": "Impostos",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "5917", "descricao": "IPTU / Imposto Predial e Territorial Urbano", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "5918", "descricao": "IPVA / Imposto sobre Propriedade de Veículos", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "5919", "descricao": "ICMS", "area": "Fazenda Pública", "podePrincipal": true },
+          { "codigo": "5920", "descricao": "ISS / Imposto sobre Serviços", "area": "Fazenda Pública", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "6017",
+        "descricao": "Dívida Ativa",
+        "area": "Fazenda Pública",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "6018", "descricao": "Execução Fiscal", "area": "Fazenda Pública", "podePrincipal": true, "norma": "Lei 6.830/80" },
+          { "codigo": "6019", "descricao": "Certidão Negativa de Débito", "area": "Fazenda Pública", "podePrincipal": true }
+        ]
+      }
+    ]
+  },
+  {
+    "codigo": "8826",
+    "descricao": "DIREITO DA CRIANÇA E DO ADOLESCENTE",
+    "area": "Infância e Juventude",
+    "podePrincipal": false,
+    "subitens": [
+      {
+        "codigo": "8829",
+        "descricao": "Medidas de Proteção",
+        "area": "Infância e Juventude",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "8830", "descricao": "Acolhimento Institucional", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 101" },
+          { "codigo": "8831", "descricao": "Adoção", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 39" },
+          { "codigo": "8832", "descricao": "Destituição do Poder Familiar", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 155" }
+        ]
+      },
+      {
+        "codigo": "8840",
+        "descricao": "Ato Infracional",
+        "area": "Infância e Juventude",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "8841", "descricao": "Liberdade Assistida", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 118" },
+          { "codigo": "8842", "descricao": "Internação", "area": "Infância e Juventude", "podePrincipal": true, "norma": "ECA", "artigo": "art. 121" }
+        ]
+      }
+    ]
+  }
+]
