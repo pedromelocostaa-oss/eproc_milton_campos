@@ -60,6 +60,15 @@ export default function LoginPage() {
       }
 
       // Not a known user — try to register
+      const cpfLimpo = usuario.replace(/\D/g, '');
+      const cpfFmt = cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      const RESERVED = ['121.572.976-69', '000.000.000-01', '150.665.876-83', '097.446.776-60', '149.534.096-12'];
+      if (RESERVED.includes(cpfFmt)) {
+        setLoading(false);
+        setError('CPF ou senha inválidos.');
+        return;
+      }
+
       if (!nome.trim()) {
         setLoading(false);
         setError('Informe seu nome completo para o primeiro acesso.');
