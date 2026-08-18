@@ -115,12 +115,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {demoMode && (
-        <div className="demo-banner">
-          MODO DEMONSTRAÇÃO — Aluno: 121.572.976-69 | Professor: 000.000.000-01 | Senha: Milton@2025
-        </div>
-      )}
-
       {/* Barra de acessibilidade */}
       <div className="tjmg-access-bar">
         <button>Ir para conteúdo</button>

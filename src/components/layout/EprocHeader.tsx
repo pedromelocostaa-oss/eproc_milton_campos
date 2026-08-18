@@ -41,12 +41,6 @@ export default function EprocHeader({ onToggleSidebar }: EprocHeaderProps) {
 
   return (
     <div>
-      {demoMode && (
-        <div className="demo-banner">
-          ⚠️ MODO DEMONSTRAÇÃO — CPF: 121.572.976-69 | Senha: Milton@2025 (aluno) · CPF: 000.000.000-01 (professor)
-        </div>
-      )}
-
       {/* ── Barra de acessibilidade ── */}
       <div className="tjmg-access-bar">
         <button onClick={() => { const el = document.querySelector('main'); el?.scrollIntoView(); }}>
