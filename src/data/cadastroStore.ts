@@ -135,9 +135,9 @@ export function statusCadastroPorId(id: string): StatusCadastro | null {
 
 // ---- seed: solicitações de exemplo para o professor testar ----
 const SEED: AlunoCadastro[] = [
-  { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-07-18T09:00:00Z' },
-  { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', senha: 'aluno123', turmaId: 'demo-turma-3', status: 'pendente', createdAt: '2026-07-19T10:30:00Z' },
-  { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-07-20T08:15:00Z' },
+  { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T09:00:00Z' },
+  { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T10:30:00Z' },
+  { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T08:15:00Z' },
 ];
 
 export function garantirSeedCadastros(): void {
