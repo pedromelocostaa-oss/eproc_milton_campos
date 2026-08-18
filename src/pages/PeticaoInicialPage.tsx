@@ -1445,38 +1445,65 @@ export default function PeticaoInicialPage() {
                 )}
               </div>
 
-              {/* Leaf detail panel */}
+              {/* Leaf detail panel — Norma / Artigo / Glossário */}
               {selectedLeaf && (
                 <div style={{
-                  padding: '8px 12px', borderBottom: '1px solid #e5e7eb',
-                  background: '#eff6ff', fontSize: 12,
+                  padding: '12px 16px', borderBottom: '1px solid #e5e7eb',
+                  fontSize: 13,
                 }}>
-                  <div style={{ fontWeight: 700, color: '#1a4f72', marginBottom: 4 }}>
-                    {selectedLeaf.descricao} <span style={{ fontFamily: 'monospace', fontWeight: 400, color: '#6b7280' }}>({selectedLeaf.codigo})</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    {/* Left column */}
                     <div>
-                      <span style={{ color: '#6b7280' }}>Pode ser principal: </span>
-                      <strong>{selectedLeaf.podePrincipal ? 'Sim' : 'Não'}</strong>
+                      <div style={{ marginBottom: 10 }}>
+                        <span style={{ fontWeight: 700, color: '#374151', marginRight: 12 }}>Assunto pode ser principal?</span>
+                        <label style={{ marginRight: 10, color: '#374151' }}>
+                          <input type="radio" checked={selectedLeaf.podePrincipal === true} readOnly style={{ marginRight: 4 }} />
+                          Sim
+                        </label>
+                        <label style={{ color: '#374151' }}>
+                          <input type="radio" checked={selectedLeaf.podePrincipal !== true} readOnly style={{ marginRight: 4 }} />
+                          Não
+                        </label>
+                      </div>
+                      <div style={{ marginBottom: 8 }}>
+                        <label style={{ fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Norma:</label>
+                        <textarea
+                          readOnly
+                          value={selectedLeaf.norma || ''}
+                          style={{
+                            width: '100%', minHeight: 60, resize: 'vertical',
+                            border: '1px solid #d1d5db', borderRadius: 3, padding: '6px 8px',
+                            fontSize: 13, background: '#f3f4f6', color: '#374151',
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Artigo:</label>
+                        <textarea
+                          readOnly
+                          value={selectedLeaf.artigo || ''}
+                          style={{
+                            width: '100%', minHeight: 36, resize: 'vertical',
+                            border: '1px solid #d1d5db', borderRadius: 3, padding: '6px 8px',
+                            fontSize: 13, background: '#f3f4f6', color: '#374151',
+                          }}
+                        />
+                      </div>
                     </div>
-                    {selectedLeaf.norma && (
-                      <div>
-                        <span style={{ color: '#6b7280' }}>Norma: </span>
-                        <strong>{selectedLeaf.norma}</strong>
-                      </div>
-                    )}
-                    {selectedLeaf.artigo && (
-                      <div>
-                        <span style={{ color: '#6b7280' }}>Artigo: </span>
-                        <strong>{selectedLeaf.artigo}</strong>
-                      </div>
-                    )}
+                    {/* Right column — Glossário */}
+                    <div>
+                      <label style={{ fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Glossário:</label>
+                      <textarea
+                        readOnly
+                        value={selectedLeaf.glossario || ''}
+                        style={{
+                          width: '100%', minHeight: 160, resize: 'vertical',
+                          border: '1px solid #d1d5db', borderRadius: 3, padding: '6px 8px',
+                          fontSize: 13, background: '#f3f4f6', color: '#374151',
+                        }}
+                      />
+                    </div>
                   </div>
-                  {selectedLeaf.glossario && (
-                    <div style={{ marginTop: 4, color: '#374151', fontStyle: 'italic' }}>
-                      Glossário: {selectedLeaf.glossario}
-                    </div>
-                  )}
                 </div>
               )}
             </StepPanel>
