@@ -301,8 +301,8 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="w-full border rounded py-2.5 text-[14px] font-semibold"
-                style={{ borderColor: '#c7ccd1', color: '#2c77ba' }}
-                onClick={() => setError('Certificado Digital não disponível neste simulador educacional.')}
+                style={{ borderColor: '#e5e7eb', color: '#9ca3af', cursor: 'not-allowed', background: '#f9fafb' }}
+                disabled
               >
                 Certificado Digital
               </button>
