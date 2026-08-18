@@ -742,7 +742,7 @@ export default function PeticaoInicialPage() {
           todasPartes.map(p => ({
             processo_id: processoId,
             polo: p.polo,
-            tipo_pessoa: p.tipo_pessoa === 'Pessoa Física' ? 'fisica' : 'juridica',
+            tipo_pessoa: (p.tipo_pessoa === 'Pessoa Física' ? 'fisica' : 'juridica') as 'fisica' | 'juridica',
             nome: p.nome,
             cpf_cnpj: p.cpf_cnpj || null,
             rg: null,
