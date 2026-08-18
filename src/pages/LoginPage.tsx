@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCpf } from '@/lib/masks';
-import { Eye, EyeOff, HelpCircle, Contrast, Hand, GraduationCap, BookOpen } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, Contrast, Hand, GraduationCap, BookOpen, CheckCircle } from 'lucide-react';
 import { demoTurmas } from '@/data/demoStore';
 import { registrarAluno, cadastroPorCpf, autenticarCadastro } from '@/data/cadastroStore';
 
@@ -31,6 +31,7 @@ export default function LoginPage() {
   const [showSenha, setShowSenha] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [registroEnviado, setRegistroEnviado] = useState(false);
 
   const changeFont = (delta: number) => {
     const root = document.documentElement;
@@ -72,11 +73,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Now log in with the newly created account
-      const { error: loginError2, user: user2 } = await login(usuario, senha);
       setLoading(false);
-      if (loginError2) { setError(loginError2); return; }
-      navigate(user2?.perfil === 'professor' || user2?.perfil === 'admin' ? '/prof/dashboard' : '/dashboard');
+      setRegistroEnviado(true);
       return;
     }
 
@@ -135,8 +133,35 @@ export default function LoginPage() {
         <div className="bg-white border border-border w-full max-w-[520px] px-8 py-8 rounded" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div className="flex justify-center mb-6"><EprocLogo /></div>
 
-          {/* Role selector */}
-          {papel === null ? (
+          {/* Mensagem de registro enviado */}
+          {registroEnviado ? (
+            <div className="text-center py-4">
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <CheckCircle size={40} style={{ color: '#16a34a' }} />
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>
+                Solicitação enviada com sucesso!
+              </div>
+              <p style={{ fontSize: 14, color: '#4b5563', marginBottom: 6 }}>
+                Olá, <strong>{nome}</strong>! Seu pedido de acesso à matéria foi enviado ao professor responsável.
+              </p>
+              <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>
+                Assim que o professor aprovar seu cadastro, você poderá acessar o sistema com seu CPF e senha.
+              </p>
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '10px 16px', fontSize: 13, color: '#92400e', marginBottom: 20 }}>
+                <strong>Guarde seus dados de acesso:</strong><br />
+                CPF: {usuario}<br />
+                Senha: (a que você acabou de criar)
+              </div>
+              <button
+                type="button"
+                onClick={() => { setRegistroEnviado(false); setPapel(null); setUsuario(''); setSenha(''); setNome(''); setTurmaId(''); }}
+                style={{ background: '#2c77ba', color: '#fff', border: 'none', borderRadius: 4, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Voltar ao login
+              </button>
+            </div>
+          ) : papel === null ? (
             <div>
               <div className="text-center text-[15px] text-foreground mb-5 font-semibold">
                 Como deseja acessar o sistema?
