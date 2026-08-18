@@ -457,8 +457,16 @@ function BigCard({
       >
         <button
           type="button"
-          onMouseEnter={() => setTipVisible(true)}
-          onMouseLeave={() => setTipVisible(false)}
+          onMouseEnter={e => {
+            setTipVisible(true);
+            e.currentTarget.style.background = '#1e40af';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={e => {
+            setTipVisible(false);
+            e.currentTarget.style.background = '#e5e7eb';
+            e.currentTarget.style.color = '#6b7280';
+          }}
           onFocus={() => setTipVisible(true)}
           onBlur={() => setTipVisible(false)}
           aria-label="Ajuda"
@@ -469,14 +477,6 @@ function BigCard({
             fontSize: 12, fontWeight: 700,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             transition: 'background 0.15s',
-          }}
-          onMouseEnterCapture={e => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#1e40af';
-            (e.currentTarget as HTMLButtonElement).style.color = '#fff';
-          }}
-          onMouseLeaveCapture={e => {
-            (e.currentTarget as HTMLButtonElement).style.background = '#e5e7eb';
-            (e.currentTarget as HTMLButtonElement).style.color = '#6b7280';
           }}
         >
           ?
