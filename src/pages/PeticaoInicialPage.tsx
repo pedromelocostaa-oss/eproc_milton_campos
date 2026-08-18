@@ -2224,27 +2224,6 @@ export default function PeticaoInicialPage() {
               <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
             </div>
 
-            {/* Bottom action buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-              <button style={{ ...TOOLBAR_BTN }} onClick={() => navigate('/meus-processos')}>Consultar</button>
-              <button style={{ ...TOOLBAR_BTN }} onClick={resetForm}>Novo</button>
-              <button style={{ ...TOOLBAR_BTN }} onClick={back}>&lt; Anterior</button>
-              <button
-                style={{
-                  background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
-                  borderRadius: 3, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                }}
-                onClick={next}
-              >
-                Próxima &gt;
-              </button>
-              <button
-                style={{ background: 'none', border: '1px solid #c7d2de', borderRadius: 3, padding: '5px 14px', fontSize: 13, cursor: 'pointer', color: '#374151' }}
-                onClick={() => navigate('/dashboard')}
-              >
-                Cancelar
-              </button>
-            </div>
           </div>
         )}
 
@@ -2467,27 +2446,6 @@ export default function PeticaoInicialPage() {
               <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
             </div>
 
-            {/* Bottom action buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-              <button style={{ ...TOOLBAR_BTN }} onClick={() => navigate('/meus-processos')}>Consultar</button>
-              <button style={{ ...TOOLBAR_BTN }} onClick={resetForm}>Novo</button>
-              <button style={{ ...TOOLBAR_BTN }} onClick={back}>&lt; Anterior</button>
-              <button
-                style={{
-                  background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
-                  borderRadius: 3, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                }}
-                onClick={next}
-              >
-                Próxima &gt;
-              </button>
-              <button
-                style={{ background: 'none', border: '1px solid #c7d2de', borderRadius: 3, padding: '5px 14px', fontSize: 13, cursor: 'pointer', color: '#374151' }}
-                onClick={() => navigate('/dashboard')}
-              >
-                Cancelar
-              </button>
-            </div>
           </div>
         )}
 
