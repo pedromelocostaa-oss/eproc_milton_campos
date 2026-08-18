@@ -1573,7 +1573,17 @@ export default function PeticaoInicialPage() {
             {(step === 3 || step === 4) && (
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={() => navigate('/meus-processos')}>Consultar</button>
-                <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={resetForm}>Novo</button>
+                <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={() => {
+                  if (step === 3) {
+                    setConsultaAutoraEstado('novo_cadastro');
+                    setShowCadastroAutora(true);
+                    setDraftAutora(p => ({ ...p, tipo_pessoa: queryAutora.tipoPessoa, cpf_cnpj: queryAutora.cpf }));
+                  } else {
+                    setConsultaReuEstado('novo_cadastro');
+                    setShowCadastroReu(true);
+                    setDraftReu(p => ({ ...p, tipo_pessoa: queryReu.tipoPessoa, cpf_cnpj: queryReu.cpf }));
+                  }
+                }}>Novo</button>
                 <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={back}>&lt; Anterior</button>
                 <button style={{ background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96', borderRadius: 3, padding: '4px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }} onClick={next}>Próxima &gt;</button>
                 <button style={{ background: '#fff', border: '1px solid #c7d2de', borderRadius: 3, padding: '4px 12px', fontSize: 13, cursor: 'pointer', color: '#374151' }} onClick={() => navigate('/dashboard')}>Cancelar</button>
