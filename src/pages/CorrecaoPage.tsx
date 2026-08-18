@@ -73,7 +73,8 @@ export default function CorrecaoPage() {
       supabase!.from('processos').select('*, profiles!processos_aluno_id_fkey(nome_completo)').eq('id', id).single(),
       supabase!.from('partes').select('*').eq('processo_id', id),
       supabase!.from('documentos').select('*').eq('processo_id', id),
-    ]).then(([pRes, partRes, docRes]) => {
+    ]).then((res) => {
+      const [pRes, partRes, docRes] = res as any[];
       if (pRes.data) {
         setProcesso(pRes.data);
         setFeedback((pRes.data as any).feedback_professor ?? '');
