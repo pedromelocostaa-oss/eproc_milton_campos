@@ -127,6 +127,11 @@ export function recusarCadastro(id: string) {
   if (c) { c.status = 'recusado'; writeAll(list); }
 }
 
+export function excluirCadastros(ids: string[]) {
+  const set = new Set(ids);
+  writeAll(readAll().filter(c => !set.has(c.id)));
+}
+
 /** Autentica um aluno auto-cadastrado (retorna qualquer status; o gate cuida do pendente/recusado). */
 export function autenticarCadastro(cpf: string, senha: string): AlunoCadastro | null {
   const c = cadastroPorCpf(cpf);

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProfLayout from '@/components/layout/ProfLayout';
-import { Users, UserCheck, UserX, Clock, Check, X, GraduationCap } from 'lucide-react';
+import { Users, UserCheck, UserX, Clock, Check, X, GraduationCap, Trash2 } from 'lucide-react';
 import { demoTurmas, demoAlunosLista } from '@/data/demoStore';
 import {
   solicitacoesDoProfessor, alunosDoProfessor, aprovarCadastro, recusarCadastro,
-  subscribeCadastros, type AlunoCadastro,
+  excluirCadastros, subscribeCadastros, type AlunoCadastro,
 } from '@/data/cadastroStore';
 
 function turmaNome(turmaId: string) {
@@ -16,7 +16,7 @@ function fmtData(iso: string) {
   return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-interface AlunoAprovado { nome: string; cpf: string; materia: string; }
+interface AlunoAprovado { id: string | null; nome: string; cpf: string; materia: string; isDemo: boolean; }
 
 export default function GerenciarAlunosPage() {
   const { user } = useAuth();
@@ -24,10 +24,12 @@ export default function GerenciarAlunosPage() {
 
   const [pendentes, setPendentes] = useState<AlunoCadastro[]>([]);
   const [aprovadosCad, setAprovadosCad] = useState<AlunoCadastro[]>([]);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
 
   const recarregar = () => {
     setPendentes(solicitacoesDoProfessor(professorId));
     setAprovadosCad(alunosDoProfessor(professorId, 'aprovado'));
+    setSelecionados(new Set());
   };
   useEffect(() => {
     if (!professorId) return;
@@ -41,11 +43,44 @@ export default function GerenciarAlunosPage() {
     recusarCadastro(c.id); recarregar();
   };
 
-  // Lista de aprovados: alunos pré-cadastrados (exemplo) + auto-cadastrados aprovados
   const aprovados: AlunoAprovado[] = [
-    ...demoAlunosLista.map(a => ({ nome: a.nome, cpf: a.cpf, materia: a.turma })),
-    ...aprovadosCad.map(c => ({ nome: c.nome, cpf: c.cpf, materia: turmaNome(c.turmaId) })),
+    ...demoAlunosLista.map(a => ({ id: null, nome: a.nome, cpf: a.cpf, materia: a.turma, isDemo: true })),
+    ...aprovadosCad.map(c => ({ id: c.id, nome: c.nome, cpf: c.cpf, materia: turmaNome(c.turmaId), isDemo: false })),
   ];
+
+  const excluiveis = aprovados.filter(a => !a.isDemo && a.id);
+  const todosExcluiveisSelecionados = excluiveis.length > 0 && excluiveis.every(a => selecionados.has(a.id!));
+
+  const toggleSelecao = (id: string) => {
+    setSelecionados(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleTodos = () => {
+    if (todosExcluiveisSelecionados) {
+      setSelecionados(new Set());
+    } else {
+      setSelecionados(new Set(excluiveis.map(a => a.id!)));
+    }
+  };
+
+  const excluirSelecionados = () => {
+    if (selecionados.size === 0) return;
+    const nomes = aprovados.filter(a => a.id && selecionados.has(a.id)).map(a => a.nome);
+    if (!confirm(`Excluir ${nomes.length} aluno(s)?\n\n${nomes.join('\n')}`)) return;
+    excluirCadastros([...selecionados]);
+    recarregar();
+  };
+
+  const excluirUm = (a: AlunoAprovado) => {
+    if (!a.id) return;
+    if (!confirm(`Excluir o aluno ${a.nome}?`)) return;
+    excluirCadastros([a.id]);
+    recarregar();
+  };
 
   return (
     <ProfLayout>
@@ -127,7 +162,17 @@ export default function GerenciarAlunosPage() {
         <div className="prof-card" style={{ padding: 0 }}>
           <div className="prof-card-header" style={{ justifyContent: 'space-between' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><UserCheck size={18} color="#1e40af" /> Alunos aprovados</span>
-            <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280' }}>{aprovados.length} aluno(s)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {selecionados.size > 0 && (
+                <button
+                  onClick={excluirSelecionados}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', border: '2px solid #dc2626', borderRadius: 6, background: '#fef2f2', color: '#dc2626', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  <Trash2 size={15} /> Excluir selecionados ({selecionados.size})
+                </button>
+              )}
+              <span style={{ fontSize: 13, fontWeight: 400, color: '#6b7280' }}>{aprovados.length} aluno(s)</span>
+            </div>
           </div>
           {aprovados.length === 0 ? (
             <div style={{ padding: 32, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>Nenhum aluno aprovado ainda.</div>
@@ -135,17 +180,54 @@ export default function GerenciarAlunosPage() {
             <table className="prof-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={{ width: '40%' }}>Nome</th>
-                  <th style={{ width: '25%' }}>CPF</th>
+                  <th style={{ width: 40, textAlign: 'center' }}>
+                    {excluiveis.length > 0 && (
+                      <input
+                        type="checkbox"
+                        checked={todosExcluiveisSelecionados}
+                        onChange={toggleTodos}
+                        title="Selecionar todos"
+                        style={{ cursor: 'pointer', width: 16, height: 16 }}
+                      />
+                    )}
+                  </th>
+                  <th style={{ width: '35%' }}>Nome</th>
+                  <th style={{ width: '20%' }}>CPF</th>
                   <th>Matéria</th>
+                  <th style={{ width: 60, textAlign: 'center' }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {aprovados.map((a, i) => (
-                  <tr key={`${a.cpf}-${i}`}>
+                  <tr key={`${a.cpf}-${i}`} style={{ background: a.id && selecionados.has(a.id) ? '#eff6ff' : undefined }}>
+                    <td style={{ textAlign: 'center' }}>
+                      {!a.isDemo && a.id ? (
+                        <input
+                          type="checkbox"
+                          checked={selecionados.has(a.id)}
+                          onChange={() => toggleSelecao(a.id!)}
+                          style={{ cursor: 'pointer', width: 16, height: 16 }}
+                        />
+                      ) : (
+                        <span style={{ color: '#d1d5db' }} title="Aluno pré-cadastrado (não pode ser excluído)">—</span>
+                      )}
+                    </td>
                     <td style={{ fontWeight: 600, color: '#1e3a5f' }}>{a.nome}</td>
                     <td>{a.cpf}</td>
                     <td>{a.materia}</td>
+                    <td style={{ textAlign: 'center' }}>
+                      {!a.isDemo && a.id ? (
+                        <button
+                          onClick={() => excluirUm(a)}
+                          title={`Excluir ${a.nome}`}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: 4 }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      ) : (
+                        <span style={{ color: '#d1d5db' }}>—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
