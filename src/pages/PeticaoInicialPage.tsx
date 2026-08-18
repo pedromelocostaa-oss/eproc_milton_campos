@@ -190,6 +190,48 @@ interface ConsultaQuery {
 
 type ConsultaEstado = 'idle' | 'buscando' | 'resultado' | 'nao_encontrado' | 'novo_cadastro';
 
+interface EnderecoSalvo {
+  tipo: string;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+  observacao: string;
+  favorito: boolean;
+  ativo: boolean;
+}
+
+interface DependenteSalvo {
+  cpf: string;
+  nome: string;
+  dataNascimento: string;
+  tipoDeficiencia: string;
+}
+
+interface ContatoSalvo {
+  tipo: string;
+  contato: string;
+  receberPrazos: boolean;
+  receberDistribuicao: boolean;
+  usarEsquecimentoSenha: boolean;
+  confirmado: boolean;
+  receberMensageiros: boolean;
+  observacao: string;
+  interno: boolean;
+}
+
+interface CadastroSavedItems {
+  enderecos: EnderecoSalvo[];
+  dependentes: DependenteSalvo[];
+  contatos: ContatoSalvo[];
+  draftEndereco: EnderecoSalvo;
+  draftDependente: DependenteSalvo;
+  draftContato: { tipo: string; valor: string; observacao: string; interno: boolean };
+}
+
 interface FormData {
   tribunal: string;
   comarca: string;
@@ -460,6 +502,26 @@ export default function PeticaoInicialPage() {
   const [draftReu, setDraftReu] = useState<Parte>(emptyParte('passivo'));
   const [showCadastroReu, setShowCadastroReu] = useState(false);
 
+  const emptyEnderecoSalvo = (): EnderecoSalvo => ({
+    tipo: 'Residencial', cep: '', logradouro: '', numero: '', complemento: '',
+    bairro: '', cidade: '', estado: '', observacao: '', favorito: false, ativo: true,
+  });
+  const emptyDependenteSalvo = (): DependenteSalvo => ({
+    cpf: '', nome: '', dataNascimento: '', tipoDeficiencia: '',
+  });
+  const emptyDraftContato = () => ({
+    tipo: '', valor: '', observacao: '', interno: false,
+  });
+  const emptyCadastroSaved = (): CadastroSavedItems => ({
+    enderecos: [], dependentes: [], contatos: [],
+    draftEndereco: emptyEnderecoSalvo(),
+    draftDependente: emptyDependenteSalvo(),
+    draftContato: emptyDraftContato(),
+  });
+
+  const [savedAutora, setSavedAutora] = useState<CadastroSavedItems>(emptyCadastroSaved());
+  const [savedReu, setSavedReu] = useState<CadastroSavedItems>(emptyCadastroSaved());
+
   useEffect(() => {
     if (form.tarefaId && DEMO_MODE) {
       const t = getDemoTarefas().find(t => t.id === form.tarefaId);
@@ -488,6 +550,8 @@ export default function PeticaoInicialPage() {
     setResultadosReu([]);
     setDraftReu(emptyParte('passivo'));
     setShowCadastroReu(false);
+    setSavedAutora(emptyCadastroSaved());
+    setSavedReu(emptyCadastroSaved());
     scrollTop();
   };
 
@@ -856,8 +920,61 @@ export default function PeticaoInicialPage() {
     setDraft: React.Dispatch<React.SetStateAction<Parte>>,
     onIncluir: () => void,
     errKey: string,
+    saved: CadastroSavedItems,
+    setSaved: React.Dispatch<React.SetStateAction<CadastroSavedItems>>,
   ) => {
     const set = (k: keyof Parte, v: unknown) => setDraft(d => ({ ...d, [k]: v }));
+    const setEnd = (k: keyof EnderecoSalvo, v: unknown) =>
+      setSaved(s => ({ ...s, draftEndereco: { ...s.draftEndereco, [k]: v } }));
+    const setDep = (k: keyof DependenteSalvo, v: unknown) =>
+      setSaved(s => ({ ...s, draftDependente: { ...s.draftDependente, [k]: v } }));
+    const setCont = (k: string, v: unknown) =>
+      setSaved(s => ({ ...s, draftContato: { ...s.draftContato, [k]: v } }));
+
+    const incluirEndereco = () => {
+      const e = saved.draftEndereco;
+      if (!e.cep && !e.logradouro) return;
+      setSaved(s => ({
+        ...s,
+        enderecos: [...s.enderecos, { ...e }],
+        draftEndereco: emptyEnderecoSalvo(),
+      }));
+    };
+    const incluirDependente = () => {
+      const d = saved.draftDependente;
+      if (!d.nome && !d.cpf) return;
+      setSaved(s => ({
+        ...s,
+        dependentes: [...s.dependentes, { ...d }],
+        draftDependente: emptyDependenteSalvo(),
+      }));
+    };
+    const incluirContato = () => {
+      const c = saved.draftContato;
+      if (!c.tipo || !c.valor) return;
+      setSaved(s => ({
+        ...s,
+        contatos: [...s.contatos, {
+          tipo: c.tipo, contato: c.valor,
+          receberPrazos: false, receberDistribuicao: false,
+          usarEsquecimentoSenha: false, confirmado: false,
+          receberMensageiros: false, observacao: c.observacao, interno: c.interno,
+        }],
+        draftContato: emptyDraftContato(),
+      }));
+    };
+
+    const btnIncluir: React.CSSProperties = {
+      height: 30, padding: '0 16px', fontSize: 13, fontWeight: 600,
+      background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+      borderRadius: 3, cursor: 'pointer',
+    };
+    const btnLimpar: React.CSSProperties = {
+      height: 30, padding: '0 16px', fontSize: 13, fontWeight: 600,
+      background: '#fff', color: '#374151', border: '1px solid #c7d2de',
+      borderRadius: 3, cursor: 'pointer',
+    };
+
     return (
       <div style={{ margin: '12px 0', background: '#fff' }}>
         <div style={{ padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1072,23 +1189,67 @@ export default function PeticaoInicialPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 160px', gap: 8, alignItems: 'end' }}>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>CPF:</label>
-                <input type="text" className="form-field" value="" disabled placeholder="" style={{ background: '#f3f4f6' }} />
+                <input type="text" className="form-field"
+                  value={saved.draftDependente.cpf}
+                  onChange={e => setDep('cpf', formatCpfCnpj(e.target.value))}
+                  maxLength={14} />
               </div>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Nome:</label>
-                <input type="text" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
+                <input type="text" className="form-field"
+                  value={saved.draftDependente.nome}
+                  onChange={e => setDep('nome', e.target.value)}
+                  style={{ textTransform: 'uppercase' }} />
               </div>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Data de Nascimento:</label>
-                <input type="date" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
+                <input type="date" className="form-field"
+                  value={saved.draftDependente.dataNascimento}
+                  onChange={e => setDep('dataNascimento', e.target.value)} />
               </div>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Possui deficiência?</label>
-                <select className="form-field" disabled style={{ background: '#f3f4f6' }}>
-                  <option value="Não">Não</option>
+                <select className="form-field"
+                  value={saved.draftDependente.tipoDeficiencia}
+                  onChange={e => setDep('tipoDeficiencia', e.target.value)}>
+                  <option value="">Não</option>
+                  {tiposDeficiencia.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+              <button style={btnIncluir} onClick={incluirDependente}>Incluir</button>
+              <button style={btnLimpar} onClick={() => setSaved(s => ({ ...s, draftDependente: emptyDependenteSalvo() }))}>Limpar</button>
+            </div>
+            {saved.dependentes.length > 0 && (
+              <div style={{ marginTop: 12, overflowX: 'auto' }}>
+                <table className="data-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>CPF</th>
+                      <th>Nome</th>
+                      <th>Data de Nascimento</th>
+                      <th>Tipo de deficiência</th>
+                      <th style={{ textAlign: 'center' }}>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {saved.dependentes.map((d, i) => (
+                      <tr key={i}>
+                        <td>{d.cpf || '—'}</td>
+                        <td>{d.nome}</td>
+                        <td>{d.dataNascimento}</td>
+                        <td>{d.tipoDeficiencia || '—'}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button onClick={() => setSaved(s => ({ ...s, dependentes: s.dependentes.filter((_, j) => j !== i) }))}
+                            style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✗</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* Endereço */}
@@ -1096,55 +1257,147 @@ export default function PeticaoInicialPage() {
             <div style={{ fontSize: 16, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
               Endereço
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 80px', gap: 8, marginBottom: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 120px 1fr 80px 1fr', gap: 8, marginBottom: 8 }}>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Tipo</label>
+                <select className="form-field" value={saved.draftEndereco.tipo}
+                  onChange={e => setEnd('tipo', e.target.value)}>
+                  <option value="Residencial">Residencial</option>
+                  <option value="Comercial">Comercial</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>CEP</label>
-                <input type="text" className="form-field" value={draft.cep}
-                  onChange={e => set('cep', formatCep(e.target.value))}
-                  onBlur={e => buscarCep(e.target.value, (k, v) => setDraft(d => ({ ...d, [k]: v })))}
-                  placeholder="00000-000" maxLength={9} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <input type="text" className="form-field" value={saved.draftEndereco.cep}
+                    onChange={e => setEnd('cep', formatCep(e.target.value))}
+                    onBlur={e => buscarCep(e.target.value, ((k: keyof Parte, v: string) => {
+                      const keyMap: Record<string, keyof EnderecoSalvo> = {
+                        logradouro: 'logradouro', bairro: 'bairro', cidade: 'cidade', estado: 'estado',
+                      };
+                      if (keyMap[k]) setEnd(keyMap[k], v);
+                    }) as (k: keyof Parte, v: string) => void)}
+                    placeholder="00000-000" maxLength={9} style={{ flex: 1 }} />
+                  <Search size={14} style={{ color: '#6b7280' }} />
+                </div>
               </div>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Logradouro</label>
-                <input type="text" className="form-field" value={draft.logradouro}
-                  onChange={e => set('logradouro', e.target.value)} />
+                <input type="text" className="form-field" value={saved.draftEndereco.logradouro}
+                  onChange={e => setEnd('logradouro', e.target.value)} />
               </div>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Número</label>
-                <input type="text" className="form-field" value={draft.numero}
-                  onChange={e => set('numero', e.target.value)} />
+                <input type="text" className="form-field" value={saved.draftEndereco.numero}
+                  onChange={e => setEnd('numero', e.target.value)} />
+              </div>
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Complemento</label>
+                <input type="text" className="form-field" value={saved.draftEndereco.complemento}
+                  onChange={e => setEnd('complemento', e.target.value)} />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 1fr', gap: 8, marginBottom: 8 }}>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Bairro</label>
-                <input type="text" className="form-field" value={draft.bairro}
-                  onChange={e => set('bairro', e.target.value)} />
+                <input type="text" className="form-field" value={saved.draftEndereco.bairro}
+                  onChange={e => setEnd('bairro', e.target.value)} />
               </div>
               <div>
-                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Cidade</label>
-                <input type="text" className="form-field" value={draft.cidade}
-                  onChange={e => set('cidade', e.target.value)} />
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>País</label>
+                <input type="text" className="form-field" value="BRASIL" disabled style={{ background: '#f3f4f6' }} />
               </div>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>UF</label>
-                <select className="form-field" value={draft.estado} onChange={e => set('estado', e.target.value)}>
+                <select className="form-field" value={saved.draftEndereco.estado}
+                  onChange={e => setEnd('estado', e.target.value)}>
+                  <option value=""></option>
                   {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
                 </select>
               </div>
-              <div />
+              <div>
+                <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Cidade</label>
+                <input type="text" className="form-field" value={saved.draftEndereco.cidade}
+                  onChange={e => setEnd('cidade', e.target.value)} />
+              </div>
             </div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 8 }}>
+              <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                <input type="checkbox" checked={saved.draftEndereco.favorito}
+                  onChange={e => setEnd('favorito', e.target.checked)} />
+                <span style={{ fontWeight: 700 }}>Favorito</span>
+              </label>
+              <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                <input type="checkbox" />
+                <span>Declaro que desconheço o endereço da parte</span>
+              </label>
+            </div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Observação</label>
+              <textarea className="form-field" rows={2} value={saved.draftEndereco.observacao}
+                onChange={e => setEnd('observacao', e.target.value)}
+                style={{ resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 12 }}>
+              <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                <input type="checkbox" />
+                <span>Interna</span>
+              </label>
+              <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                <input type="checkbox" />
+                <span>Listar Inativos</span>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              <button style={btnIncluir} onClick={incluirEndereco}>Incluir</button>
+              <button style={btnLimpar} onClick={() => setSaved(s => ({ ...s, draftEndereco: emptyEnderecoSalvo() }))}>Limpar</button>
+            </div>
+            {saved.enderecos.length > 0 && (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Endereço</th>
+                      <th>Cidade</th>
+                      <th>Observação</th>
+                      <th style={{ textAlign: 'center' }}>Ativo?</th>
+                      <th style={{ textAlign: 'center' }}>Favorito</th>
+                      <th style={{ textAlign: 'center' }}>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {saved.enderecos.map((e, i) => (
+                      <tr key={i}>
+                        <td>{e.tipo}</td>
+                        <td>{`${e.logradouro}${e.numero ? ', ' + e.numero : ''}${e.complemento ? ' - ' + e.complemento : ''}, ${e.bairro}, CEP ${e.cep}`}</td>
+                        <td>{e.cidade}/{e.estado}</td>
+                        <td>{e.observacao || '—'}</td>
+                        <td style={{ textAlign: 'center' }}>{e.ativo ? 'Sim' : 'Não'}</td>
+                        <td style={{ textAlign: 'center' }}>{e.favorito ? '⭐' : '—'}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button onClick={() => setSaved(s => ({ ...s, enderecos: s.enderecos.filter((_, j) => j !== i) }))}
+                            style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✗</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
-          {/* Contato */}
+          {/* Contato(s) */}
           <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
-              Contato
+              Contato(s)
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 8, marginBottom: 8 }}>
               <div>
                 <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Forma de Contato:</label>
-                <select className="form-field" value={draft.formaContato} onChange={e => set('formaContato', e.target.value)}>
+                <select className="form-field" value={saved.draftContato.tipo}
+                  onChange={e => setCont('tipo', e.target.value)}>
                   <option value="">Escolha o Tipo</option>
                   {formasContato.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
@@ -1152,16 +1405,69 @@ export default function PeticaoInicialPage() {
               <div>
                 <label style={FORM_LABEL}>&nbsp;</label>
                 <input type="text" className="form-field"
-                  value={draft.formaContato === 'E-mail' ? draft.email : draft.telefone}
-                  onChange={e => {
-                    if (draft.formaContato === 'E-mail') set('email', e.target.value);
-                    else set('telefone', formatPhone(e.target.value));
-                  }}
-                  placeholder={draft.formaContato === 'E-mail' ? 'email@exemplo.com' : '(00) 00000-0000'}
-                  maxLength={draft.formaContato === 'E-mail' ? undefined : 15}
+                  value={saved.draftContato.valor}
+                  onChange={e => setCont('valor', saved.draftContato.tipo === 'E-mail' ? e.target.value : formatPhone(e.target.value))}
+                  placeholder={saved.draftContato.tipo === 'E-mail' ? 'email@exemplo.com' : '(00) 00000-0000'}
+                  maxLength={saved.draftContato.tipo === 'E-mail' ? undefined : 15}
                 />
               </div>
             </div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Observação</label>
+              <textarea className="form-field" rows={2} value={saved.draftContato.observacao}
+                onChange={e => setCont('observacao', e.target.value)}
+                style={{ resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 12 }}>
+              <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                <input type="checkbox" checked={saved.draftContato.interno}
+                  onChange={e => setCont('interno', e.target.checked)} />
+                <span>Interno</span>
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+              <button style={btnIncluir} onClick={incluirContato}>Incluir</button>
+              <button style={btnLimpar} onClick={() => setSaved(s => ({ ...s, draftContato: emptyDraftContato() }))}>Limpar</button>
+            </div>
+            {saved.contatos.length > 0 && (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ fontSize: 11 }}>
+                  <thead>
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Contato</th>
+                      <th style={{ textAlign: 'center' }}>Receber prazos por email?</th>
+                      <th style={{ textAlign: 'center' }}>Receber inf. da distribuição por email?</th>
+                      <th style={{ textAlign: 'center' }}>Usar email para esquecimento de senha?</th>
+                      <th style={{ textAlign: 'center' }}>Confirmado?</th>
+                      <th style={{ textAlign: 'center' }}>Recebe comunicação via app de mensagens?</th>
+                      <th>Observação</th>
+                      <th style={{ textAlign: 'center' }}>Interno?</th>
+                      <th style={{ textAlign: 'center' }}>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {saved.contatos.map((c, i) => (
+                      <tr key={i}>
+                        <td>{c.tipo}</td>
+                        <td>{c.contato}</td>
+                        <td style={{ textAlign: 'center' }}>{c.receberPrazos ? 'Sim' : 'Não'}</td>
+                        <td style={{ textAlign: 'center' }}>{c.receberDistribuicao ? 'Sim' : 'Não'}</td>
+                        <td style={{ textAlign: 'center' }}>{c.usarEsquecimentoSenha ? 'Sim' : 'Não'}</td>
+                        <td style={{ textAlign: 'center' }}>{c.confirmado ? 'Sim' : 'Não'}</td>
+                        <td style={{ textAlign: 'center' }}>{c.receberMensageiros ? 'Sim' : 'Não'}</td>
+                        <td>{c.observacao || '—'}</td>
+                        <td style={{ textAlign: 'center' }}>{c.interno ? 'Sim' : 'Não'}</td>
+                        <td style={{ textAlign: 'center' }}>
+                          <button onClick={() => setSaved(s => ({ ...s, contatos: s.contatos.filter((_, j) => j !== i) }))}
+                            style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>✗</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1447,256 +1753,241 @@ export default function PeticaoInicialPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 2 — Assuntos
+            STEP 2 — Assuntos (layout 2 colunas idêntico ao PJe)
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 2 && (
           <div style={{ margin: 16 }}>
-            <StepPanel>
-              <div style={SECT_HEADER}>
-                {form.assuntos.length === 0 ? 'Selecionar Assunto Principal' : 'Selecionar Demais Assuntos'}
+            {errors.assuntos && (
+              <div style={{ marginBottom: 8, padding: '6px 10px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderRadius: 3 }}>
+                {errors.assuntos}
               </div>
+            )}
 
-              {/* Modo radio */}
-              <div style={{ padding: '8px 12px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#374151' }}>Modo de busca:</span>
-                {(['assunto', 'glossario'] as const).map(m => (
-                  <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 12 }}>
-                    <input type="radio" value={m} checked={assuntoModo === m} onChange={() => setAssuntoModo(m)} />
-                    {m === 'assunto' ? 'Assunto' : 'Glossário'}
-                  </label>
-                ))}
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '55% 45%', gap: 16 }}>
+              {/* ── Coluna esquerda: Árvore de assuntos ── */}
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 10 }}>
+                  {form.assuntos.length === 0 ? 'Selecionar Assunto Principal' : 'Selecionar Demais Assuntos'}
+                </div>
 
-              {/* Decorative toolbar */}
-              <div style={{
-                padding: '6px 12px', borderBottom: '1px solid #e5e7eb',
-                background: '#f8fafc', display: 'flex', gap: 6, alignItems: 'center',
-              }}>
-                <button
-                  style={TOOLBAR_BTN}
-                  onClick={() => { /* filtrar — já ocorre via estado */ }}
-                >
-                  🔎 Filtrar
-                </button>
-                <button
-                  style={TOOLBAR_BTN}
-                  onClick={() => {
-                    const q = assuntoSearch;
-                    setAssuntoSearch('');
-                    setTimeout(() => setAssuntoSearch(q), 0);
-                  }}
-                >
-                  🔍 Pesquisar
-                </button>
-                <button
-                  style={TOOLBAR_BTN}
-                  onClick={() => { setAssuntoSearch(''); setSelectedLeaf(null); }}
-                >
-                  ✕ Limpar
-                </button>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <Search size={13} style={{ color: '#9ca3af' }} />
+                {/* Modo radio */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
+                  {(['assunto', 'glossario'] as const).map(m => (
+                    <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', fontSize: 13 }}>
+                      <input type="radio" value={m} checked={assuntoModo === m} onChange={() => setAssuntoModo(m)} />
+                      {m === 'assunto' ? 'Assunto' : 'Glossário'}
+                    </label>
+                  ))}
+                </div>
+
+                {/* Search bar + buttons */}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
                   <input
                     type="text"
-                    placeholder={assuntoModo === 'assunto' ? 'Buscar por assunto ou código...' : 'Buscar por glossário...'}
+                    placeholder="Informe o assunto ou o código para busca"
                     className="form-field"
                     value={assuntoSearch}
                     onChange={e => setAssuntoSearch(e.target.value)}
-                    style={{ maxWidth: 300, fontSize: 12 }}
+                    style={{ flex: 1, fontSize: 13 }}
                   />
-                </div>
-              </div>
-
-              {errors.assuntos && (
-                <div style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderBottom: '1px solid #fecaca' }}>
-                  {errors.assuntos}
-                </div>
-              )}
-
-              {/* Tree */}
-              <div style={{ maxHeight: 400, overflowY: 'auto', borderBottom: '1px solid #e5e7eb' }}>
-                {filteredLeaves ? (
-                  filteredLeaves.length === 0 ? (
-                    <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>
-                      Nenhum assunto encontrado para "{assuntoSearch}"
-                    </div>
-                  ) : filteredLeaves.map(n => (
-                    <AssuntoNode key={n.codigo} node={n} level={0}
-                      selected={form.assuntos} onToggle={toggleAssunto}
-                      onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
-                  ))
-                ) : (
-                  arvoreAssuntos.map(n => (
-                    <AssuntoNode key={n.codigo} node={n} level={0}
-                      selected={form.assuntos} onToggle={toggleAssunto}
-                      onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
-                  ))
-                )}
-              </div>
-
-              {/* Leaf detail panel — Norma / Artigo / Glossário */}
-              {selectedLeaf && (
-                <div style={{
-                  padding: '12px 16px', borderBottom: '1px solid #e5e7eb',
-                  fontSize: 13,
-                }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                    {/* Left column */}
-                    <div>
-                      <div style={{ marginBottom: 10 }}>
-                        <span style={{ fontWeight: 700, color: '#374151', marginRight: 12 }}>Assunto pode ser principal?</span>
-                        <label style={{ marginRight: 10, color: '#374151' }}>
-                          <input type="radio" checked={selectedLeaf.podePrincipal === true} readOnly style={{ marginRight: 4 }} />
-                          Sim
-                        </label>
-                        <label style={{ color: '#374151' }}>
-                          <input type="radio" checked={selectedLeaf.podePrincipal !== true} readOnly style={{ marginRight: 4 }} />
-                          Não
-                        </label>
-                      </div>
-                      <div style={{ marginBottom: 8 }}>
-                        <label style={{ fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Norma:</label>
-                        <textarea
-                          readOnly
-                          value={selectedLeaf.norma || ''}
-                          style={{
-                            width: '100%', minHeight: 60, resize: 'vertical',
-                            border: '1px solid #d1d5db', borderRadius: 3, padding: '6px 8px',
-                            fontSize: 13, background: '#f3f4f6', color: '#374151',
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Artigo:</label>
-                        <textarea
-                          readOnly
-                          value={selectedLeaf.artigo || ''}
-                          style={{
-                            width: '100%', minHeight: 36, resize: 'vertical',
-                            border: '1px solid #d1d5db', borderRadius: 3, padding: '6px 8px',
-                            fontSize: 13, background: '#f3f4f6', color: '#374151',
-                          }}
-                        />
-                      </div>
-                    </div>
-                    {/* Right column — Glossário */}
-                    <div>
-                      <label style={{ fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Glossário:</label>
-                      <textarea
-                        readOnly
-                        value={selectedLeaf.glossario || ''}
-                        style={{
-                          width: '100%', minHeight: 160, resize: 'vertical',
-                          border: '1px solid #d1d5db', borderRadius: 3, padding: '6px 8px',
-                          fontSize: 13, background: '#f3f4f6', color: '#374151',
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </StepPanel>
-
-            {/* ── Assuntos selecionados ── */}
-            <StepPanel>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-                Assuntos selecionados
-              </div>
-              <div style={{ padding: '12px 16px' }}>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Outro Assunto:</label>
-                  <input
-                    type="text"
-                    readOnly
-                    className="form-field"
-                    value={pendingAssunto ? buildAncestryLabel(arvoreAssuntos, pendingAssunto.codigo) : ''}
-                    placeholder="Selecione o assunto na árvore e clique em 'Incluir'"
-                    style={{ width: '100%', background: '#f9fafb', fontSize: 13 }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                   <button
-                    type="button"
-                    onClick={() => {
-                      if (pendingAssunto && !form.assuntos.some(a => a.codigo === pendingAssunto.codigo)) {
-                        toggleAssunto({ codigo: pendingAssunto.codigo, descricao: pendingAssunto.descricao, area: pendingAssunto.area });
-                      }
-                      setPendingAssunto(null);
-                      setSelectedLeaf(null);
-                    }}
                     style={{
-                      background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
-                      padding: '4px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
+                      background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                      borderRadius: 3, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                     }}
+                    onClick={() => { /* filtrar — já ocorre via estado */ }}
                   >
-                    Incluir
+                    Filtrar
                   </button>
                   <button
-                    type="button"
-                    onClick={() => { setPendingAssunto(null); setSelectedLeaf(null); }}
                     style={{
                       background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
-                      padding: '4px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
+                      padding: '5px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
                     }}
+                    onClick={() => {
+                      const q = assuntoSearch;
+                      setAssuntoSearch('');
+                      setTimeout(() => setAssuntoSearch(q), 0);
+                    }}
+                  >
+                    Pesquisar
+                  </button>
+                  <button
+                    style={{
+                      background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
+                      padding: '5px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
+                    }}
+                    onClick={() => { setAssuntoSearch(''); setSelectedLeaf(null); }}
                   >
                     Limpar
                   </button>
                 </div>
 
-                {/* Tabela de assuntos incluídos */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ background: '#e8ecf0' }}>
-                      <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#374151' }}>Assunto Principal</th>
-                      <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#374151', width: 70 }}>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {form.assuntos.length === 0 ? (
-                      <tr>
-                        <td colSpan={2} style={{ padding: '12px 10px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic', fontSize: 12 }}>
-                          Nenhum assunto incluído ainda.
-                        </td>
-                      </tr>
-                    ) : (
-                      form.assuntos.map((a) => (
-                        <tr key={a.codigo} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                          <td style={{ padding: '8px 10px' }}>
-                            <span>{buildAncestryLabel(arvoreAssuntos, a.codigo)}</span>
-                            {' '}
-                            <Info size={14} style={{ display: 'inline', verticalAlign: 'middle', color: '#2c77ba', cursor: 'pointer' }} />
-                          </td>
-                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
-                            <button
-                              onClick={() => toggleAssunto(a)}
-                              style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', fontSize: 16, fontWeight: 700 }}
-                              title="Remover assunto"
-                            >
-                              ✗
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                {/* Decorative icon bar */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, alignItems: 'center', marginBottom: 6, fontSize: 16, color: '#6b7280' }}>
+                  <span title="Expandir todos" style={{ cursor: 'pointer' }}>📄</span>
+                  <span title="Recolher todos" style={{ cursor: 'pointer' }}>📄</span>
+                  <span style={{ color: '#d1d5db' }}>|</span>
+                  <span title="Favoritos" style={{ cursor: 'pointer' }}>⭐</span>
+                  <span style={{ color: '#d1d5db' }}>|</span>
+                  <span title="Visualizar" style={{ cursor: 'pointer' }}>📋</span>
+                  <span title="Ordenar" style={{ cursor: 'pointer' }}>📊</span>
+                </div>
 
-                {/* Competência */}
-                <div style={{ marginTop: 16 }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Competência:</label>
-                  <select
-                    className="form-field"
-                    value={competencia}
-                    onChange={e => setCompetencia(e.target.value)}
-                    style={{ width: '100%', fontSize: 13 }}
-                  >
-                    <option value="">-- Selecione uma competência --</option>
-                    <option value="Cível">Cível</option>
-                    <option value="Cível Relação de Consumo">Cível Relação de Consumo</option>
-                  </select>
+                {/* Tree panel */}
+                <div style={{ border: '1px solid #d1d5db', borderRadius: 4, maxHeight: 520, overflowY: 'auto', background: '#fff' }}>
+                  {filteredLeaves ? (
+                    filteredLeaves.length === 0 ? (
+                      <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>
+                        Nenhum assunto encontrado para "{assuntoSearch}"
+                      </div>
+                    ) : filteredLeaves.map(n => (
+                      <AssuntoNode key={n.codigo} node={n} level={0}
+                        selected={form.assuntos} onToggle={toggleAssunto}
+                        onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
+                    ))
+                  ) : (
+                    arvoreAssuntos.map(n => (
+                      <AssuntoNode key={n.codigo} node={n} level={0}
+                        selected={form.assuntos} onToggle={toggleAssunto}
+                        onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
+                    ))
+                  )}
                 </div>
               </div>
-            </StepPanel>
+
+              {/* ── Coluna direita: Instruções + Assuntos selecionados ── */}
+              <div>
+                {/* Instruções */}
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 10 }}>
+                  Instruções
+                </div>
+                <div style={{
+                  border: '1px solid #d1d5db', borderRadius: 4, padding: 14, marginBottom: 16,
+                  background: '#f9fafb', fontSize: 13, color: '#374151', lineHeight: 1.6,
+                }}>
+                  <p style={{ margin: '0 0 6px' }}>- Cadastre por primeiro o assunto principal. É o direito material descrito nos fatos, fundamentos e pedido.</p>
+                  <p style={{ margin: '0 0 6px' }}>- Procure cadastrar os assuntos o mais específico possível. Se necessário, utilize os assuntos complementares para melhor classificação do processo.</p>
+                  <p style={{ margin: '0 0 6px' }}>- Utilize o assunto do ramo do direito adequado ao contexto do processo, especialmente quando houver diferentes assuntos com termos ou expressões idênticas.</p>
+                  <p style={{ margin: 0 }}>- Na dúvida consulte as informações dos glossários disponíveis em cada assunto.</p>
+                </div>
+
+                {/* Assuntos selecionados */}
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 10 }}>
+                  Assuntos selecionados
+                </div>
+                <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 14, background: '#fff' }}>
+                  <div style={{ marginBottom: 8 }}>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Outro Assunto:</label>
+                    <input
+                      type="text"
+                      readOnly
+                      className="form-field"
+                      value={pendingAssunto ? buildAncestryLabel(arvoreAssuntos, pendingAssunto.codigo) : ''}
+                      placeholder="Selecione o assunto na árvore e clique em 'Incluir'"
+                      style={{ width: '100%', background: '#f9fafb', fontSize: 13 }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (pendingAssunto && !form.assuntos.some(a => a.codigo === pendingAssunto.codigo)) {
+                          toggleAssunto({ codigo: pendingAssunto.codigo, descricao: pendingAssunto.descricao, area: pendingAssunto.area });
+                        }
+                        setPendingAssunto(null);
+                        setSelectedLeaf(null);
+                      }}
+                      style={{
+                        background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
+                        padding: '4px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
+                      }}
+                    >
+                      Incluir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPendingAssunto(null); setSelectedLeaf(null); }}
+                      style={{
+                        background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
+                        padding: '4px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
+                      }}
+                    >
+                      Limpar
+                    </button>
+                  </div>
+
+                  {/* Tabela de assuntos incluídos */}
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: '#e8ecf0' }}>
+                        <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#374151' }}>Assunto Principal</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#374151', width: 70 }}>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {form.assuntos.length === 0 ? (
+                        <tr>
+                          <td colSpan={2} style={{ padding: '12px 10px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic', fontSize: 12 }}>
+                            Nenhum assunto incluído ainda.
+                          </td>
+                        </tr>
+                      ) : (
+                        form.assuntos.map((a) => (
+                          <tr key={a.codigo} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                            <td style={{ padding: '8px 10px' }}>
+                              <span>{buildAncestryLabel(arvoreAssuntos, a.codigo)}</span>
+                              {' '}
+                              <Info size={14} style={{ display: 'inline', verticalAlign: 'middle', color: '#2c77ba', cursor: 'pointer' }} />
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                              <button
+                                onClick={() => toggleAssunto(a)}
+                                style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', fontSize: 16, fontWeight: 700 }}
+                                title="Remover assunto"
+                              >
+                                ✗
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Bottom nav buttons — right-aligned */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16, alignItems: 'center' }}>
+                  <button
+                    onClick={back}
+                    style={{
+                      background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
+                      padding: '5px 14px', fontSize: 13, cursor: 'pointer', color: '#374151',
+                    }}
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    onClick={next}
+                    style={{
+                      background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                      borderRadius: 3, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    Próxima &gt;
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    style={{
+                      background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
+                      padding: '5px 14px', fontSize: 13, cursor: 'pointer', color: '#374151',
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1846,7 +2137,7 @@ export default function PeticaoInicialPage() {
               {/* Cadastro inline */}
               {showCadastroAutora && (
                 <div style={{ padding: '0 12px' }}>
-                  {renderCadastroForm(draftAutora, setDraftAutora, incluirAutoraCadastro, 'autora')}
+                  {renderCadastroForm(draftAutora, setDraftAutora, incluirAutoraCadastro, 'autora', savedAutora, setSavedAutora)}
                 </div>
               )}
             </StepPanel>
@@ -1958,168 +2249,172 @@ export default function PeticaoInicialPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            STEP 4 — Partes Requeridas
+            STEP 4 — Partes Requeridas (layout idêntico ao PJe)
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 4 && (
           <div style={{ margin: 16 }}>
+            {errors.reu && (
+              <div style={{ marginBottom: 8, padding: '6px 10px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderRadius: 3 }}>
+                {errors.reu}
+              </div>
+            )}
+
             <StepPanel>
-              <div style={SECT_HEADER}>Polo Passivo — Partes Requeridas</div>
-
-              {errors.reu && (
-                <div style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderBottom: '1px solid #fecaca' }}>
-                  {errors.reu}
-                </div>
-              )}
-
-              {/* Consulta form */}
-              <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a4f72', marginBottom: 8 }}>
+              {/* Consulta form — idêntico ao Step 3 */}
+              <div style={{ padding: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 12 }}>
                   Consulta
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '160px 200px', gap: 8, alignItems: 'end', marginBottom: 8 }}>
-                  <div>
-                    <label style={FORM_LABEL}>Tipo Pessoa:</label>
-                    <select className="form-field" value={queryReu.tipoPessoa}
-                      onChange={e => setQueryReu(q => ({ ...q, tipoPessoa: e.target.value }))}>
-                      {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={FORM_LABEL}>CPF:</label>
-                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <div style={{ border: '1px solid #d1d5db', borderRadius: 4, padding: 16 }}>
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'end', marginBottom: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Tipo Pessoa:</label>
+                      <select className="form-field" value={queryReu.tipoPessoa}
+                        onChange={e => setQueryReu(q => ({ ...q, tipoPessoa: e.target.value }))}>
+                        {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ ...FORM_LABEL, fontWeight: 700 }}>CPF:</label>
                       <input
                         type="text"
                         className="form-field"
                         value={queryReu.cpf}
                         onChange={e => setQueryReu(q => ({ ...q, cpf: formatCpfCnpj(e.target.value) }))}
-                        placeholder="000.000.000-00"
+                        placeholder=""
                         maxLength={14}
                         disabled={queryReu.semCpf}
-                        style={{ flex: 1, background: queryReu.semCpf ? '#f9fafb' : undefined }}
+                        style={{ width: 180, background: queryReu.semCpf ? '#f9fafb' : undefined }}
                       />
                     </div>
-                    <label className="pje-checkbox" style={{ fontSize: 11, marginTop: 2 }}>
-                      <input type="checkbox" checked={queryReu.semCpf}
-                        onChange={e => setQueryReu(q => ({ ...q, semCpf: e.target.checked, cpf: '' }))} />
-                      <span>Sem CPF</span>
-                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingBottom: 6 }}>
+                      <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                        <input type="checkbox" checked={queryReu.semCpf}
+                          onChange={e => setQueryReu(q => ({ ...q, semCpf: e.target.checked, cpf: '' }))} />
+                        <span style={{ fontWeight: 700 }}>Sem CPF:</span>
+                      </label>
+                    </div>
+                    <div style={{ paddingBottom: 2 }}>
+                      <select className="form-field" disabled style={{ background: '#e5e7eb', width: 120 }}>
+                        <option value=""></option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Outros Documentos:</label>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <select className="form-field" value={queryReu.outroDocTipo}
+                          onChange={e => setQueryReu(q => ({ ...q, outroDocTipo: e.target.value }))}>
+                          <option value="">Escolha o Tipo</option>
+                          {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                        <input type="text" className="form-field" value={queryReu.outroDocNum}
+                          onChange={e => setQueryReu(q => ({ ...q, outroDocNum: e.target.value }))}
+                          style={{ width: 160 }} />
+                      </div>
+                    </div>
                   </div>
-                </div>
-
-                <div style={{ marginBottom: 8 }}>
-                  <label style={FORM_LABEL}>Outros Documentos:</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                    <select className="form-field" value={queryReu.outroDocTipo}
-                      onChange={e => setQueryReu(q => ({ ...q, outroDocTipo: e.target.value }))}>
-                      <option value="">Escolha o Tipo</option>
-                      {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                    <input type="text" className="form-field" value={queryReu.outroDocNum}
-                      onChange={e => setQueryReu(q => ({ ...q, outroDocNum: e.target.value }))} />
-                  </div>
-                </div>
-                <div style={{ marginBottom: 8 }}>
-                  <label style={FORM_LABEL}>Pesquisar pelo nome:</label>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <input type="text" className="form-field" value={queryReu.nome}
-                      onChange={e => setQueryReu(q => ({ ...q, nome: e.target.value }))}
-                      style={{ flex: 1 }} />
-                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12 }}
-                      onClick={() => {
-                        setConsultaReuEstado('nao_encontrado');
-                        setResultadosReu([]);
-                      }}>
-                      Consultar
-                    </button>
-                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12, background: '#16a34a' }}
-                      onClick={() => {
-                        setConsultaReuEstado('novo_cadastro');
-                        setShowCadastroReu(true);
-                        setDraftReu(p => ({ ...p, tipo_pessoa: queryReu.tipoPessoa, cpf_cnpj: queryReu.cpf }));
-                      }}>
-                      Novo
-                    </button>
+                  <div>
+                    <label style={{ ...FORM_LABEL, fontWeight: 700 }}>Pesquisar pelo nome:</label>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="text" className="form-field" value={queryReu.nome}
+                        onChange={e => setQueryReu(q => ({ ...q, nome: e.target.value }))}
+                        style={{ flex: 1 }} />
+                      <button
+                        style={{
+                          background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                          borderRadius: 3, padding: '5px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                        }}
+                        onClick={consultarReu}
+                      >
+                        Consultar
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
 
+              {/* Resultado da busca */}
               {consultaReuEstado === 'nao_encontrado' && (
                 <div style={{ padding: '10px 12px', background: '#fffbeb', borderBottom: '1px solid #fde68a', fontSize: 12, color: '#92400e' }}>
                   Nenhuma pessoa encontrada. Clique em <strong>Novo</strong> para cadastrar.
                 </div>
               )}
-
               {consultaReuEstado === 'resultado' && resultadosReu.length > 0 && (
-                <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
-                    Resultado da consulta
+                <div style={{ padding: '16px 12px', borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#374151' }}>
+                      Resultado(s) da busca:
+                    </div>
+                    <div style={{ fontSize: 13, color: '#374151' }}>
+                      Partes localizadas {resultadosReu.length}.
+                    </div>
                   </div>
-                  <table className="data-table">
+                  <table className="data-table" style={{ fontSize: 13 }}>
                     <thead>
                       <tr>
-                        <th>Pessoa</th>
-                        <th>CPF</th>
-                        <th>Nome</th>
-                        <th>Info. Extras</th>
-                        <th>Qualificação</th>
-                        <th></th>
+                        <th style={{ textAlign: 'center' }}>Pessoa</th>
+                        <th style={{ textAlign: 'center' }}>CPF / CNPJ</th>
+                        <th style={{ textAlign: 'center' }}>Nome / Razão Social</th>
+                        <th style={{ textAlign: 'center' }}>Informações Extras</th>
+                        <th style={{ textAlign: 'center' }}>Principal</th>
+                        <th style={{ textAlign: 'center' }}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {resultadosReu.map(r => {
-                        // mask CPF: show first 4 digits then ***
-                        const cpfMasked = r.cpf.length >= 4
-                          ? r.cpf.slice(0, 4) + r.cpf.slice(4).replace(/\d/g, '*')
-                          : r.cpf;
-                        return (
-                          <tr key={r.id}>
-                            <td>Física</td>
-                            <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{cpfMasked}</td>
-                            <td style={{ fontWeight: 600 }}>{r.nome}</td>
-                            <td style={{ fontSize: 11, color: '#6b7280' }}>{r.infoExtras}</td>
-                            <td>
-                              <select style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}>
-                                <option>REQUERIDO ▼</option>
-                                <option>RÉSTAURADO</option>
-                              </select>
-                            </td>
-                            <td>
-                              <button
-                                style={{ ...BTN_PRIMARY, height: 24, padding: '0 8px', fontSize: 11 }}
-                                onClick={() => incluirReuFromResultado(r)}
-                              >
-                                Incluir
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {resultadosReu.map(r => (
+                        <tr key={r.id}>
+                          <td style={{ textAlign: 'center' }}>Física</td>
+                          <td style={{ textAlign: 'center' }}>{r.cpf}</td>
+                          <td>{r.nome}</td>
+                          <td style={{ fontSize: 12, color: '#6b7280' }}>{r.infoExtras}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <select style={{ fontSize: 12, padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: 2 }}>
+                              <option value="Sim">Sim</option>
+                              <option value="Não">Não</option>
+                            </select>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              style={{
+                                background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                                borderRadius: 3, padding: '4px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                              }}
+                              onClick={() => incluirReuFromResultado(r)}
+                            >
+                              Incluir
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               )}
 
+              {/* Cadastro inline */}
               {showCadastroReu && (
                 <div style={{ padding: '0 12px' }}>
-                  {renderCadastroForm(draftReu, setDraftReu, incluirReuCadastro, 'reu')}
+                  {renderCadastroForm(draftReu, setDraftReu, incluirReuCadastro, 'reu', savedReu, setSavedReu)}
                 </div>
               )}
+            </StepPanel>
 
-              {/* Partes (requeridas) a utilizar neste ajuizamento */}
-              <div style={{ padding: 12 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
-                  Partes (<span style={{ textDecoration: 'underline' }}>requeridas</span>) a utilizar neste ajuizamento
-                </div>
-                <table className="data-table" style={{ fontSize: 12 }}>
+            {/* Partes (réus) a utilizar neste ajuizamento */}
+            <div style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+                Partes (<span style={{ textDecoration: 'underline' }}>réus</span>) a utilizar neste ajuizamento
+              </div>
+              <StepPanel>
+                <table className="data-table" style={{ fontSize: 13 }}>
                   <thead>
                     <tr>
                       <th>Nome</th>
-                      <th>CPF / CNPJ</th>
-                      <th>Tipo de Parte</th>
-                      <th>Principal?</th>
-                      <th>Tipo Representação</th>
-                      <th>Qualificação</th>
-                      <th>Ações</th>
+                      <th style={{ textAlign: 'center' }}>CPF / CNPJ</th>
+                      <th style={{ textAlign: 'center' }}>Tipo de Parte</th>
+                      <th style={{ textAlign: 'center' }}>Principal?</th>
+                      <th style={{ textAlign: 'center' }}>Tipo Representação</th>
+                      <th style={{ textAlign: 'center' }}>Adicionar Endereço</th>
+                      <th style={{ textAlign: 'center' }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2130,59 +2425,69 @@ export default function PeticaoInicialPage() {
                         </td>
                       </tr>
                     ) : (
-                      form.partesReus.map((p, i) => {
-                        const cpfMasked = p.cpf_cnpj && p.cpf_cnpj.length >= 4
-                          ? p.cpf_cnpj.slice(0, 4) + p.cpf_cnpj.slice(4).replace(/\d/g, '*')
-                          : p.cpf_cnpj;
-                        return (
-                          <tr key={i}>
-                            <td style={{ fontWeight: 600 }}>{p.nome}</td>
-                            <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{cpfMasked || '—'}</td>
-                            <td>{p.tipo_pessoa}</td>
-                            <td>{i === 0 ? 'Sim' : 'Não'}</td>
-                            <td>—</td>
-                            <td>
-                              <select
-                                style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}
-                                value={p.qualificacao}
-                                onChange={e => {
-                                  const arr = [...form.partesReus];
-                                  arr[i] = { ...arr[i], qualificacao: e.target.value };
-                                  update('partesReus', arr);
-                                }}
-                              >
-                                <option value="REQUERIDO">REQUERIDO</option>
-                                <option value="INTIMADO">INTIMADO</option>
-                              </select>
-                            </td>
-                            <td>
-                              <button onClick={() => removerReu(i)}
-                                style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}>
-                                <Trash2 size={13} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
+                      form.partesReus.map((p, i) => (
+                        <tr key={i}>
+                          <td style={{ fontWeight: 600 }}>{p.nome}</td>
+                          <td style={{ textAlign: 'center' }}>{p.cpf_cnpj || '—'}</td>
+                          <td style={{ textAlign: 'center' }}>RÉU</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{ color: '#2c77ba', cursor: 'pointer', textDecoration: 'underline' }}>
+                              {i === 0 ? 'Sim' : 'Não'}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <span style={{ color: '#2c77ba', cursor: 'pointer', textDecoration: 'underline' }}>Definir</span>
+                            {' '}<span style={{ color: '#9ca3af' }}>(Opcional)</span>
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <Home size={16} style={{ color: '#2c77ba', cursor: 'pointer' }} />
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button onClick={() => removerReu(i)}
+                              style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', fontSize: 16, fontWeight: 700 }}>
+                              ✗
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
-              </div>
+              </StepPanel>
+            </div>
 
-              {/* Footer links */}
-              <div style={{
-                padding: '8px 12px', borderTop: '1px solid #e5e7eb',
-                fontSize: 12,
-              }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2c77ba', fontSize: 12 }}>
-                  Ver totalizador de partes
-                </button>
-              </div>
-              <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Custas Processuais:</div>
-                <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
-              </div>
-            </StepPanel>
+            {/* Footer links */}
+            <div style={{ padding: '8px 0', fontSize: 12 }}>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2c77ba', fontSize: 12 }}>
+                Ver totalizador de partes
+              </button>
+            </div>
+            <div style={{ padding: '8px 0' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Custas Processuais:</div>
+              <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
+            </div>
+
+            {/* Bottom action buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+              <button style={{ ...TOOLBAR_BTN }} onClick={() => navigate('/meus-processos')}>Consultar</button>
+              <button style={{ ...TOOLBAR_BTN }} onClick={resetForm}>Novo</button>
+              <button style={{ ...TOOLBAR_BTN }} onClick={back}>&lt; Anterior</button>
+              <button
+                style={{
+                  background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                  borderRadius: 3, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+                onClick={next}
+              >
+                Próxima &gt;
+              </button>
+              <button
+                style={{ background: 'none', border: '1px solid #c7d2de', borderRadius: 3, padding: '5px 14px', fontSize: 13, cursor: 'pointer', color: '#374151' }}
+                onClick={() => navigate('/dashboard')}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
