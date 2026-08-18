@@ -152,8 +152,31 @@ const CLASSES_GENERICAS = [
   'NOTIFICAÇÃO',
 ];
 
-export const areasPJe: AreaPJe[] = [
+const CLASSES_JEC = [
+  'PROCEDIMENTO DO JUIZADO ESPECIAL CÍVEL',
+  'EXECUÇÃO DE TÍTULO EXTRAJUDICIAL',
+  'EXECUÇÃO CONTRA A FAZENDA PÚBLICA',
+  'CUMPRIMENTO DE SENTENÇA',
+  'EMBARGOS À EXECUÇÃO',
+];
+
+const CLASSES_JE_FAZENDA = [
+  'PROCEDIMENTO DO JUIZADO ESPECIAL DA FAZENDA PÚBLICA',
+  'EXECUÇÃO CONTRA A FAZENDA PÚBLICA',
+  'CUMPRIMENTO DE SENTENÇA',
+];
+
+const CLASSES_TURMA_RECURSAL = [
+  'RECURSO INOMINADO CÍVEL',
+  'MANDADO DE SEGURANÇA CÍVEL',
+  'EMBARGOS DE DECLARAÇÃO',
+  'AGRAVO DE INSTRUMENTO TR',
+];
+
+// Áreas do Rito "Juízo Comum"
+const AREAS_JUIZO_COMUM: AreaPJe[] = [
   { nome: 'Agrária', classes: CLASSES_AGRARIA },
+  { nome: 'Carta de Ordem Cível', classes: ['CARTA DE ORDEM CÍVEL'] },
   { nome: 'Carta Precatória Cível', classes: ['CARTA PRECATÓRIA CÍVEL'] },
   { nome: 'Cível', classes: CLASSES_CIVEL },
   { nome: 'Empresarial', classes: CLASSES_EMPRESARIAL },
@@ -165,6 +188,23 @@ export const areasPJe: AreaPJe[] = [
   { nome: 'Registros Públicos', classes: CLASSES_REGISTROS },
   { nome: 'Sucessões e Ausências', classes: CLASSES_SUCESSOES },
 ];
+
+// Áreas do Rito "Juizado Especial Estadual"
+const AREAS_JUIZADO_ESPECIAL: AreaPJe[] = [
+  { nome: 'Carta Precatória Cível', classes: ['CARTA PRECATÓRIA CÍVEL'] },
+  { nome: 'Juizado Especial Cível', classes: CLASSES_JEC },
+  { nome: 'Juizado Especial da Fazenda Pública', classes: CLASSES_JE_FAZENDA },
+  { nome: 'Pré-Processual', classes: ['RECLAMAÇÃO PRÉ-PROCESSUAL'] },
+  { nome: 'Turma Recursal Cível', classes: CLASSES_TURMA_RECURSAL },
+];
+
+export const areasPorRito: Record<string, AreaPJe[]> = {
+  'JUÍZO COMUM': AREAS_JUIZO_COMUM,
+  'JUIZADO ESPECIAL ESTADUAL': AREAS_JUIZADO_ESPECIAL,
+};
+
+// Compatibilidade (lista padrão = Juízo Comum)
+export const areasPJe = AREAS_JUIZO_COMUM;
 
 // Comarcas de Minas Gerais (lista para o campo "Desejo entrar com a ação em")
 export const comarcasMG: string[] = [

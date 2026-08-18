@@ -5,6 +5,8 @@ export interface DadosIniciais {
   jurisdicao: string;
   competencia: string;
   classeJudicial: string;
+  rito: string;
+  area: string;
 }
 
 export interface Assunto {

@@ -73,6 +73,35 @@ export const mockJurisdicoes = [
   "São Paulo",
 ];
 
+export const mockRitos = [
+  "JUÍZO COMUM",
+  "JUIZADO ESPECIAL ESTADUAL",
+];
+
+export const mockAreasByRito: Record<string, string[]> = {
+  "JUÍZO COMUM": [
+    "Agrária",
+    "Carta de Ordem Cível",
+    "Carta Precatória Cível",
+    "Cível",
+    "Empresarial",
+    "Família",
+    "Fazenda Pública",
+    "Infância e Juventude Cível",
+    "Pré-Processual",
+    "Regional do Barreiro",
+    "Registros Públicos",
+    "Sucessões e Ausências",
+  ],
+  "JUIZADO ESPECIAL ESTADUAL": [
+    "Carta Precatória Cível",
+    "Juizado Especial Cível",
+    "Juizado Especial da Fazenda Pública",
+    "Pré-Processual",
+    "Turma Recursal Cível",
+  ],
+};
+
 export const mockCompetencias = [
   "Cível",
   "Família",

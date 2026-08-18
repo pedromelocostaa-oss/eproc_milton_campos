@@ -104,6 +104,14 @@ const StepResumo = () => {
             <span className="text-[11px]">{data.dadosIniciais?.jurisdicao || "—"}</span>
           </div>
           <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Rito</span>
+            <span className="text-[11px]">{data.dadosIniciais?.rito || "—"}</span>
+          </div>
+          <div>
+            <span className="text-[10px] font-bold text-muted-foreground block">Área</span>
+            <span className="text-[11px]">{data.dadosIniciais?.area || "—"}</span>
+          </div>
+          <div>
             <span className="text-[10px] font-bold text-muted-foreground block">Classe</span>
             <span className="text-[11px]">{data.dadosIniciais?.classeJudicial || "—"}</span>
           </div>

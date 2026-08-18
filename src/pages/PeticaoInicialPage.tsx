@@ -10,7 +10,7 @@ import {
   arvoreAssuntos,
 } from '@/data/classesAssuntos';
 import type { AssuntoCNJ, NodoAssunto } from '@/data/classesAssuntos';
-import { comarcasMG, ritosPJe, areasPJe, niveisSigiloPJe } from '@/data/peticaoInicialPJe';
+import { comarcasMG, ritosPJe, areasPorRito, niveisSigiloPJe } from '@/data/peticaoInicialPJe';
 import { sortearVara } from '@/data/varas';
 import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } from '@/lib/masks';
 import { generateProcessNumber } from '@/lib/cnj';
@@ -362,6 +362,33 @@ function AssuntoNode({
   );
 }
 
+function AjudaApoioIA() {
+  const [hover, setHover] = useState(false);
+  return (
+    <span
+      style={{ position: 'relative', display: 'inline-flex' }}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
+      <span style={{ color: '#94a3b8', cursor: 'help' }}>ⓘ</span>
+      {hover && (
+        <div
+          role="tooltip"
+          style={{
+            position: 'absolute', left: 'calc(100% + 10px)', top: '50%', transform: 'translateY(-50%)',
+            width: 280, background: '#fdf6dd', border: '1px solid #efe1ab', color: '#3f3f46',
+            padding: '10px 14px', borderRadius: 6, fontSize: 13, lineHeight: 1.5, zIndex: 60,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.12)',
+          }}
+        >
+          Na etapa 1 do peticionamento, passa a solicitar o upload da INICIAL antes do preenchimento
+          para que o sistema possa sugerir o conteúdo de alguns campos.
+        </div>
+      )}
+    </span>
+  );
+}
+
 function StepPanel({ children }: { children: React.ReactNode }) {
   return <div style={{ background: '#fff', border: '1px solid #d1d5db' }}>{children}</div>;
 }
@@ -441,10 +468,15 @@ export default function PeticaoInicialPage() {
     scrollTop();
   };
 
-  // ── Área → Classe cascade ──
+  // ── Rito → Área → Classe cascade ──
+  const areasDoRito = areasPorRito[form.rito] ?? [];
   const areaClasses = form.area
-    ? (areasPJe.find(a => a.nome === form.area)?.classes ?? [])
+    ? (areasDoRito.find(a => a.nome === form.area)?.classes ?? [])
     : [];
+
+  const handleRitoChange = (newRito: string) => {
+    setForm(f => ({ ...f, rito: newRito, area: '', classe: '' }));
+  };
 
   const handleAreaChange = (newArea: string) => {
     setForm(f => ({ ...f, area: newArea, classe: '' }));
@@ -1128,7 +1160,7 @@ export default function PeticaoInicialPage() {
               </button>
               <span style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 Apoio por Inteligência Artificial
-                <span title="Recurso ilustrativo — não disponível neste simulador" style={{ color: '#94a3b8', cursor: 'help' }}>ⓘ</span>
+                <AjudaApoioIA />
               </span>
             </div>
 
@@ -1149,7 +1181,7 @@ export default function PeticaoInicialPage() {
 
                   <div style={{ padding: '8px 12px' }}>
                     <label style={FORM_LABEL}>Rito:</label>
-                    <select className="form-field" value={form.rito} onChange={e => update('rito', e.target.value)} style={{ maxWidth: '100%' }}>
+                    <select className="form-field" value={form.rito} onChange={e => handleRitoChange(e.target.value)} style={{ maxWidth: '100%' }}>
                       {ritosPJe.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
@@ -1158,7 +1190,7 @@ export default function PeticaoInicialPage() {
                     <label style={FORM_LABEL}>Área:</label>
                     <select className={fieldCls(errors.area)} value={form.area} onChange={e => handleAreaChange(e.target.value)} style={{ maxWidth: '100%' }}>
                       <option value="">-- Selecione uma área --</option>
-                      {areasPJe.map(a => <option key={a.nome} value={a.nome}>{a.nome}</option>)}
+                      {areasDoRito.map(a => <option key={a.nome} value={a.nome}>{a.nome}</option>)}
                     </select>
                     {errors.area && <div className="form-error">{errors.area}</div>}
                   </div>
