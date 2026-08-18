@@ -1167,7 +1167,7 @@ export default function PeticaoInicialPage() {
         )}
 
         {/* ── Toolbar (steps 1–4 & 6) ── */}
-        {!isReceipt && step !== 5 && (
+        {!isReceipt && step !== 5 && step > 1 && (
           <div style={{
             background: '#dde3ea', borderBottom: '1px solid #b0b8c4',
             padding: '6px 16px', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap',
@@ -1176,9 +1176,8 @@ export default function PeticaoInicialPage() {
             <button style={TOOLBAR_BTN} onClick={resetForm}>Novo</button>
             <div style={{ width: 1, height: 22, background: '#b0b8c4', margin: '0 4px' }} />
             <button
-              style={step <= 1 ? TOOLBAR_BTN_DISABLED : TOOLBAR_BTN}
-              onClick={step > 1 ? back : undefined}
-              disabled={step <= 1}
+              style={TOOLBAR_BTN}
+              onClick={back}
             >
               ◀ Anterior
             </button>
@@ -1199,28 +1198,49 @@ export default function PeticaoInicialPage() {
           </div>
         )}
 
-        {/* ── Breadcrumb ── */}
+        {/* ── Breadcrumb + top nav buttons ── */}
         {!isReceipt && !isConfirm && (
           <div style={{
             background: '#fff', borderBottom: '1px solid #e5e7eb',
-            padding: '6px 16px', fontSize: 11, display: 'flex', gap: 4, flexWrap: 'wrap',
+            padding: '6px 16px', fontSize: 11, display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center',
           }}>
-            {STEP_NAMES.slice(0, 5).map((name, i) => {
-              const sNum = i + 1;
-              const active = sNum === step;
-              const done = sNum < step;
-              return (
-                <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  {i > 0 && <span style={{ color: '#9ca3af' }}>&gt;&gt;</span>}
-                  <span style={{
-                    fontWeight: active ? 700 : done ? 600 : 400,
-                    color: active ? 'hsl(205,60%,28%)' : done ? '#16a34a' : '#6b7280',
-                  }}>
-                    {done && '✓ '}{name}
+            <div style={{ flex: 1, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {STEP_NAMES.slice(0, 5).map((name, i) => {
+                const sNum = i + 1;
+                const active = sNum === step;
+                const done = sNum < step;
+                return (
+                  <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {i > 0 && <span style={{ color: '#9ca3af' }}>&gt;&gt;</span>}
+                    <span style={{
+                      fontWeight: active ? 700 : done ? 600 : 400,
+                      color: active ? 'hsl(205,60%,28%)' : done ? '#16a34a' : '#6b7280',
+                    }}>
+                      {done && '✓ '}{name}
+                    </span>
                   </span>
-                </span>
-              );
-            })}
+                );
+              })}
+            </div>
+            {step === 1 && (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={next}
+                  style={{
+                    background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                    borderRadius: 4, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  Próxima &gt;
+                </button>
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  style={{ background: 'none', border: 'none', color: '#374151', fontSize: 13, cursor: 'pointer' }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -1263,10 +1283,12 @@ export default function PeticaoInicialPage() {
             </div>
 
             <StepPanel>
-              <div style={SECT_HEADER}>Informações Preliminares</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                Informações Preliminares
+              </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
-                {/* Coluna esquerda: comarca, rito, área, classe, sigilo */}
+                {/* Coluna esquerda */}
                 <div style={{ borderRight: '1px solid #e5e7eb', padding: '4px 0' }}>
                   <div style={{ padding: '8px 12px' }}>
                     <label style={FORM_LABEL}>Desejo entrar com a ação em:</label>
@@ -1311,13 +1333,35 @@ export default function PeticaoInicialPage() {
                       {niveisSigiloPJe.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
+
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>Processo Originário:</label>
+                    <input
+                      type="text"
+                      className="form-field"
+                      value={form.processoOriginario || ''}
+                      onChange={e => update('processoOriginario', e.target.value)}
+                      style={{ maxWidth: '100%' }}
+                    />
+                  </div>
+
+                  <div style={{ padding: '8px 12px' }}>
+                    <label style={FORM_LABEL}>Juízo:</label>
+                    <input
+                      type="text"
+                      className="form-field"
+                      disabled
+                      value=""
+                      style={{ maxWidth: '100%', background: '#e5e7eb' }}
+                    />
+                  </div>
                 </div>
 
-                {/* Coluna direita: valor da causa, previsão de custas, advogados */}
+                {/* Coluna direita */}
                 <div style={{ padding: '4px 0' }}>
                   <div style={{ padding: '8px 12px' }}>
                     <label style={FORM_LABEL}>
-                      Valor da Causa: (R$) <span style={{ fontWeight: 400, color: '#6b7280' }}>(Somente números)</span>
+                      <span style={{ textDecoration: 'underline' }}>V</span>alor da Causa: (R$) <span style={{ fontWeight: 400, color: '#6b7280' }}>(Somente números)</span>
                     </label>
                     <input
                       type="text"
@@ -1329,14 +1373,12 @@ export default function PeticaoInicialPage() {
                     />
                     {errors.valorCausa && <div className="form-error">{errors.valorCausa}</div>}
 
-                    {/* Previsão de custas — aparece ao digitar o valor (igual ao PJe) */}
-                    {form.valorCausa && !form.valorNaoSeAplica && (
-                      <div style={{ fontSize: 13, marginTop: 6, color: '#374151' }}>
-                        <strong>Previsão de Custas:</strong> <span style={{ color: '#6b7280' }}>Não foi possível calcular as custas</span>
-                      </div>
-                    )}
+                    <div style={{ fontSize: 13, marginTop: 10, color: '#374151' }}>
+                      <strong>Previsão de Custas:</strong>{' '}
+                      <span style={{ fontWeight: 400 }}>Não há sinalização de custas iniciais.</span>
+                    </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 10 }}>
                       <label className="pje-checkbox" style={{ fontSize: 13 }}>
                         <input type="checkbox" checked={form.valorNaoSeAplica} onChange={e => update('valorNaoSeAplica', e.target.checked)} />
                         <span>Não se aplica</span>
@@ -1346,14 +1388,29 @@ export default function PeticaoInicialPage() {
                         <span>Valor de Alçada</span>
                       </label>
                     </div>
-
-                    <button type="button" style={{ marginTop: 14, background: 'transparent', border: 'none', color: '#2c77ba', fontSize: 14, cursor: 'pointer', padding: 0 }}>
-                      + Incluir outros advogados
-                    </button>
                   </div>
                 </div>
               </div>
             </StepPanel>
+
+            {/* Bottom nav buttons — right-aligned */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16, alignItems: 'center' }}>
+              <button
+                onClick={next}
+                style={{
+                  background: '#2c77ba', color: '#fff', border: '1px solid #1e5f96',
+                  borderRadius: 4, padding: '5px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                Próxima &gt;
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                style={{ background: 'none', border: 'none', color: '#374151', fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
