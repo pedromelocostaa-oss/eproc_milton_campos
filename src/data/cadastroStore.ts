@@ -138,11 +138,20 @@ const SEED: AlunoCadastro[] = [
   { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T09:00:00Z' },
   { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T10:30:00Z' },
   { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T08:15:00Z' },
+  { id: 'cad-real-1', cpf: '150.665.876-83', nome: 'Giulia Name Vieira', senha: 'eproc2026', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T00:00:00Z' },
+  { id: 'cad-real-2', cpf: '097.446.776-60', nome: 'Pedro Luis Melo Correa da Costa', senha: 'eproc2026', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T00:00:00Z' },
+  { id: 'cad-real-3', cpf: '149.534.096-12', nome: 'Henrique Vale Duarte', senha: 'eproc2026', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T00:00:00Z' },
 ];
 
 export function garantirSeedCadastros(): void {
   try {
-    if (localStorage.getItem(KEY) !== null) return;
-    writeAll(SEED);
+    const existing = readAll();
+    if (existing.length === 0) {
+      writeAll(SEED);
+      return;
+    }
+    const existingIds = new Set(existing.map(c => c.id));
+    const missing = SEED.filter(s => !existingIds.has(s.id));
+    if (missing.length > 0) writeAll([...existing, ...missing]);
   } catch { /* noop */ }
 }
