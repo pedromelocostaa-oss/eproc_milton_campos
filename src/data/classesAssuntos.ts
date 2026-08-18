@@ -179,21 +179,25 @@ export const siglosDocumento: string[] = [
 // ─── Pessoas e Documentos ────────────────────────────────────────────────────
 
 export const tiposPessoa: string[] = [
+  'Entidade',
   'Pessoa Física',
   'Pessoa Jurídica',
-  'Órgão Público',
-  'Ente Despersonalizado',
 ];
 
 export const tiposDocOutros: string[] = [
-  'RG',
-  'CNH',
-  'Passaporte',
-  'CTPS',
   'Certidão de Nascimento',
-  'Certidão de Casamento',
+  'Carteira Nacional de Habilitação',
+  'Conselho Regional de Administração',
+  'Carteira de Trabalho e Previdência Social',
+  'Inscrição Estadual',
+  'Inscrição Municipal',
+  'Ordem dos Advogados do Brasil',
+  'Passaporte',
+  'PIS/PASEP',
+  'Registro Geral',
+  'Registro Nacional de Estrangeiro',
+  'Registro de Procuradores',
   'Título de Eleitor',
-  'Outro',
 ];
 
 // ─── Dados Pessoais ───────────────────────────────────────────────────────────
@@ -205,29 +209,33 @@ export const sexos: string[] = [
 ];
 
 export const estadosCivis: string[] = [
-  'Solteiro(a)',
-  'Casado(a)',
-  'Divorciado(a)',
-  'Viúvo(a)',
+  'Casado',
+  'Companheiro',
+  'Divorciado',
+  'Não Informado',
+  'Separado',
+  'Solteiro',
   'União Estável',
-  'Separado(a)',
-  'Não informado',
+  'Viúvo',
 ];
 
 export const identidadesGenero: string[] = [
-  'Cisgênero',
-  'Transgênero',
-  'Não-binário',
-  'Outro',
-  'Prefiro não informar',
+  'Não informado',
+  'Mulher Cisgênero',
+  'Homem Cisgênero',
+  'Mulher Trans',
+  'Homem Trans',
+  'Travesti',
+  'Intersexo',
+  'Pessoa Não-Binário',
 ];
 
 export const orientacoesSexuais: string[] = [
-  'Heterossexual',
-  'Homossexual',
-  'Bissexual',
-  'Outro',
-  'Prefiro não informar',
+  'Não informado',
+  'Assexual',
+  'Bissexual/Pansexual (ou Biafetiva/Panafetiva)',
+  'Heterossexual (ou Heteroafetiva)',
+  'Homossexual (ou Homoafetiva) - Lésbica/Gay',
 ];
 
 export const racasEtnia: string[] = [
@@ -241,23 +249,55 @@ export const racasEtnia: string[] = [
 
 export const tiposDeficiencia: string[] = [
   'Auditiva',
+  'Física',
+  'Intelectual',
+  'Mental',
   'Visual',
-  'Motora',
-  'Mental/Intelectual',
-  'Múltipla',
-  'Outra',
 ];
 
 export const niveisEscolaridade: string[] = [
-  'Sem escolaridade',
-  'Fundamental incompleto',
-  'Fundamental completo',
-  'Médio incompleto',
-  'Médio completo',
-  'Superior incompleto',
-  'Superior completo',
-  'Pós-graduação',
-  'Não informado',
+  'Analfabeto',
+  'Ens. Fund. Completo',
+  'Ens. Fund. Incompleto',
+  'Ens. Médio Completo',
+  'Ens. Médio Incompleto',
+  'Ens. Sup. Completo',
+  'Ens. Sup. Incompleto',
+];
+
+export const formasContato: string[] = [
+  'Telefone',
+  'E-mail',
+  'Celular',
+  'Celular/AppMensagens',
+];
+
+export const nacionalidades: string[] = [
+  'Brasileira',
+  'Afegã', 'Albanesa', 'Alemã', 'Americana', 'Andorrana', 'Angolana', 'Antiguense', 'Árabe', 'Argelina',
+  'Argentina', 'Armênia', 'Australiana', 'Austríaca', 'Azerbaijana', 'Bahamense', 'Bangladesa', 'Barbadiana',
+  'Belga', 'Belizenha', 'Beninense', 'Bielorrussa', 'Birmanesa', 'Boliviana', 'Bósnia', 'Botsuanesa',
+  'Bruneíana', 'Búlgara', 'Burquinense', 'Burundesa', 'Butanesa', 'Cabo-verdiana', 'Camaronesa',
+  'Cambojana', 'Canadense', 'Catarense', 'Cazaque', 'Chadiana', 'Chilena', 'Chinesa', 'Cipriota',
+  'Colombiana', 'Comorense', 'Congolesa', 'Costa-riquenha', 'Croata', 'Cubana', 'Curda', 'Dinamarquesa',
+  'Djiboutiana', 'Dominicana', 'Egípcia', 'Equatoriana', 'Eritreia', 'Eslovaca', 'Eslovena', 'Espanhola',
+  'Estoniana', 'Etíope', 'Fijiana', 'Filipina', 'Finlandesa', 'Francesa', 'Gabonesa', 'Gambiana',
+  'Ganesa', 'Georgiana', 'Granadina', 'Grega', 'Guatemalteca', 'Guianense', 'Guineana', 'Guineense',
+  'Haitiana', 'Holandesa', 'Hondurenha', 'Húngara', 'Iemenita', 'Indiana', 'Indonésia', 'Iraniana',
+  'Iraquiana', 'Irlandesa', 'Islandesa', 'Israelense', 'Italiana', 'Jamaicana', 'Japonesa', 'Jordaniana',
+  'Kuwaitiana', 'Laosiana', 'Leonesa', 'Letã', 'Libanesa', 'Liberiana', 'Líbia', 'Lituana',
+  'Luxemburguesa', 'Macedônia', 'Madagascarense', 'Malaia', 'Malauiana', 'Maldiva', 'Malinesa',
+  'Maltesa', 'Marfinense', 'Marroquina', 'Mauriciana', 'Mauritana', 'Mexicana', 'Moçambicana',
+  'Moldava', 'Monegasca', 'Mongol', 'Montenegrina', 'Namibiana', 'Nauruense', 'Nepalesa',
+  'Neozelandesa', 'Nicaraguense', 'Nigerina', 'Nigeriana', 'Norte-coreana', 'Norueguesa',
+  'Omanense', 'Palestina', 'Panamenha', 'Papua', 'Paquistanesa', 'Paraguaia', 'Peruana', 'Polonesa',
+  'Portuguesa', 'Queniana', 'Quirguiz', 'Romena', 'Ruandesa', 'Russa', 'Salomônica', 'Salvadorenha',
+  'Samoana', 'Santa-lucense', 'São-cristovense', 'São-tomense', 'São-vicentina', 'Saudita',
+  'Senegalesa', 'Sérvia', 'Seichelense', 'Singapurense', 'Síria', 'Somali', 'Sri-lankesa',
+  'Suazi', 'Sudanesa', 'Sueca', 'Suíça', 'Sul-africana', 'Sul-coreana', 'Surinamesa',
+  'Tailandesa', 'Taiwanesa', 'Tajique', 'Tanzaniana', 'Timorense', 'Togolesa', 'Tonganesa',
+  'Trinidadiana', 'Tunisiana', 'Turca', 'Turcomena', 'Tuvaluana', 'Ucraniana', 'Ugandesa',
+  'Uruguaia', 'Uzbeque', 'Vanuatuense', 'Venezuelana', 'Vietnamita', 'Zambiana', 'Zimbabuense',
 ];
 
 // ─── Justiça Gratuita ─────────────────────────────────────────────────────────

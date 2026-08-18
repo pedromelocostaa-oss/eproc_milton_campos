@@ -7,6 +7,7 @@ import {
   tiposPessoa, tiposDocOutros, sexos, estadosCivis,
   identidadesGenero, orientacoesSexuais, racasEtnia,
   tiposDeficiencia, niveisEscolaridade, justicaGratuitaOpcoes,
+  formasContato, nacionalidades,
   arvoreAssuntos,
 } from '@/data/classesAssuntos';
 import type { AssuntoCNJ, NodoAssunto } from '@/data/classesAssuntos';
@@ -16,11 +17,28 @@ import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } 
 import { generateProcessNumber } from '@/lib/cnj';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { saveDemoProcesso, saveDemoPartes, saveDemoMovimentacao, getDemoTarefas } from '@/data/demoStore';
-import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, Folder } from 'lucide-react';
+import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, Folder, Info } from 'lucide-react';
 
 function countLeaves(node: NodoAssunto): number {
   if (!node.subitens || node.subitens.length === 0) return 1;
   return node.subitens.reduce((acc, s) => acc + countLeaves(s), 0);
+}
+
+function buildAncestryLabel(tree: NodoAssunto[], targetCode: string): string {
+  function search(nodes: NodoAssunto[], path: string[]): string[] | null {
+    for (const node of nodes) {
+      if (node.codigo === targetCode) return [...path, node.descricao];
+      if (node.subitens) {
+        const found = search(node.subitens, [...path, node.descricao]);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+  const path = search(tree, []);
+  if (!path || path.length === 0) return targetCode;
+  const padded = targetCode.padStart(6, '0');
+  return `${padded} - ${path.join(', ')}`;
 }
 
 function ConsultarInativoBtn() {
@@ -106,18 +124,21 @@ interface Parte {
   estadoCivil: string;
   dataNascimento: string;
   profissao: string;
-  ehLGBTI: boolean;
+  ehLGBTI: string;
   identidadeGenero: string;
   orientacaoSexual: string;
+  nacionalidade: string;
   naturalidade: string;
   nomeMae: string;
   nomePai: string;
   temDeficiencia: boolean;
   tipoDeficiencia: string;
   gestante: boolean;
+  dataParto: string;
   escolaridade: string;
   racaEtnia: string;
   dependentes: string;
+  formaContato: string;
   cep: string;
   logradouro: string;
   numero: string;
@@ -234,10 +255,10 @@ const emptyParte = (polo: 'ativo' | 'passivo'): Parte => ({
   nome: '', cpf_cnpj: '', semCpf: false,
   outroDocTipo: '', outroDocNum: '',
   nomeSocial: '', sexo: '', estadoCivil: '', dataNascimento: '', profissao: '',
-  ehLGBTI: false, identidadeGenero: '', orientacaoSexual: '',
-  naturalidade: '', nomeMae: '', nomePai: '',
-  temDeficiencia: false, tipoDeficiencia: '', gestante: false,
-  escolaridade: '', racaEtnia: '', dependentes: '',
+  ehLGBTI: 'Não', identidadeGenero: 'Não informado', orientacaoSexual: 'Não informado',
+  nacionalidade: 'Brasileira', naturalidade: '', nomeMae: '', nomePai: '',
+  temDeficiencia: false, tipoDeficiencia: '', gestante: false, dataParto: '',
+  escolaridade: '', racaEtnia: '', dependentes: '', formaContato: '',
   cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: 'MG',
   email: '', telefone: '',
   justicaGratuita: 'Não',
@@ -306,7 +327,7 @@ function AssuntoNode({
   if (isLeaf) {
     return (
       <div
-        onClick={() => { onSelectLeaf(node); onToggle({ codigo: node.codigo, descricao: node.descricao, area: node.area }); }}
+        onClick={() => { onSelectLeaf(node); }}
         style={{
           paddingLeft: pl, paddingTop: 5, paddingBottom: 5, paddingRight: 8,
           cursor: 'pointer', fontSize: 12, borderBottom: '1px solid #f3f4f6',
@@ -422,6 +443,8 @@ export default function PeticaoInicialPage() {
   const [assuntoSearch, setAssuntoSearch] = useState('');
   const [assuntoModo, setAssuntoModo] = useState<'assunto' | 'glossario'>('assunto');
   const [selectedLeaf, setSelectedLeaf] = useState<NodoAssunto | null>(null);
+  const [pendingAssunto, setPendingAssunto] = useState<NodoAssunto | null>(null);
+  const [competencia, setCompetencia] = useState('');
 
   // Step 3 state
   const [queryAutora, setQueryAutora] = useState<ConsultaQuery>(emptyQuery());
@@ -837,145 +860,220 @@ export default function PeticaoInicialPage() {
     const set = (k: keyof Parte, v: unknown) => setDraft(d => ({ ...d, [k]: v }));
     return (
       <div style={{ border: '1px solid #c7d2fe', borderRadius: 4, margin: '12px 0', background: '#f8faff' }}>
-        <div style={{ background: 'hsl(205,60%,28%)', color: '#fff', padding: '6px 12px', fontSize: 12, fontWeight: 700 }}>
-          Cadastro de Pessoa Física — Novo Registro
+        <div style={{ background: 'hsl(205,60%,28%)', color: '#fff', padding: '8px 16px', fontSize: 14, fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Cadastro de Pessoa Física</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button style={{ ...BTN_PRIMARY, height: 28, padding: '0 14px', fontSize: 12 }} onClick={onIncluir}>Salvar</button>
+            <button
+              type="button"
+              onClick={() => { setDraft(emptyParte(draft.polo)); }}
+              style={{ height: 28, padding: '0 14px', fontSize: 12, background: '#fff', color: '#374151', border: '1px solid #c7d2de', borderRadius: 3, cursor: 'pointer' }}
+            >Voltar</button>
+          </div>
         </div>
-        <div style={{ padding: 12 }}>
+        <div style={{ padding: 16 }}>
           {errors[errKey] && (
             <div style={{ marginBottom: 8, padding: '6px 10px', background: '#fef2f2', color: '#dc2626', fontSize: 12, borderRadius: 3 }}>
               {errors[errKey]}
             </div>
           )}
 
-          {/* Nome e Nome Social */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-            <div>
-              <label style={FORM_LABEL}>Nome Completo *</label>
+          {/* CPF + Nome + Incluir nome social */}
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: 4, padding: 12, marginBottom: 12 }}>
+            {draft.cpf_cnpj && (
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>CPF: {draft.cpf_cnpj}</div>
+            )}
+            <div style={{ marginBottom: 8 }}>
+              <label style={FORM_LABEL}>Nome:</label>
               <input type="text" className="form-field" value={draft.nome}
-                onChange={e => set('nome', e.target.value)} />
+                onChange={e => set('nome', e.target.value)} style={{ textTransform: 'uppercase' }} />
             </div>
-            <div>
-              <label style={FORM_LABEL}>Nome Social</label>
-              <input type="text" className="form-field" value={draft.nomeSocial}
-                onChange={e => set('nomeSocial', e.target.value)} />
+            <div style={{ textAlign: 'right' }}>
+              <button type="button" style={{ background: 'none', border: 'none', color: '#2c77ba', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
+                Incluir nome social
+              </button>
             </div>
           </div>
 
-          {/* Dados pessoais */}
+          {/* Sexo, Estado Civil, Data de Nascimento, Profissão */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 8 }}>
             <div>
-              <label style={FORM_LABEL}>Sexo</label>
+              <label style={FORM_LABEL}>Sexo:</label>
               <select className="form-field" value={draft.sexo} onChange={e => set('sexo', e.target.value)}>
                 <option value="">--</option>
                 {sexos.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label style={FORM_LABEL}>Estado Civil</label>
+              <label style={FORM_LABEL}>Estado Civil:</label>
               <select className="form-field" value={draft.estadoCivil} onChange={e => set('estadoCivil', e.target.value)}>
                 <option value="">--</option>
                 {estadosCivis.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label style={FORM_LABEL}>Data de Nascimento</label>
+              <label style={FORM_LABEL}>Data de Nascimento:</label>
               <input type="date" className="form-field" value={draft.dataNascimento}
                 onChange={e => set('dataNascimento', e.target.value)} />
             </div>
             <div>
-              <label style={FORM_LABEL}>Profissão</label>
+              <label style={FORM_LABEL}>Profissão:</label>
               <input type="text" className="form-field" value={draft.profissao}
                 onChange={e => set('profissao', e.target.value)} />
             </div>
           </div>
 
-          {/* LGBTI */}
-          <div style={{ marginBottom: 8, padding: '8px 10px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 3 }}>
-            <label className="pje-checkbox" style={{ fontSize: 12 }}>
-              <input type="checkbox" checked={draft.ehLGBTI} onChange={e => set('ehLGBTI', e.target.checked)} />
-              <span style={{ fontWeight: 600 }}>LGBTI+</span>
-            </label>
-            {draft.ehLGBTI && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
-                <div>
-                  <label style={FORM_LABEL}>Identidade de Gênero</label>
-                  <select className="form-field" value={draft.identidadeGenero} onChange={e => set('identidadeGenero', e.target.value)}>
-                    <option value="">--</option>
-                    {identidadesGenero.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={FORM_LABEL}>Orientação Sexual</label>
-                  <select className="form-field" value={draft.orientacaoSexual} onChange={e => set('orientacaoSexual', e.target.value)}>
-                    <option value="">--</option>
-                    {orientacoesSexuais.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Naturalidade, Mãe, Pai */}
+          {/* Auto Declarado LGBTI, Identidade de Gênero, Orientação Sexual */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
             <div>
-              <label style={FORM_LABEL}>Naturalidade</label>
-              <input type="text" className="form-field" value={draft.naturalidade}
-                onChange={e => set('naturalidade', e.target.value)} placeholder="Cidade — UF" />
+              <label style={FORM_LABEL}>Auto Declarado LGBTI:</label>
+              <select className="form-field" value={draft.ehLGBTI} onChange={e => set('ehLGBTI', e.target.value)}>
+                <option value="SELECIONE ...">SELECIONE ...</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+              </select>
             </div>
             <div>
-              <label style={FORM_LABEL}>Nome da Mãe</label>
-              <input type="text" className="form-field" value={draft.nomeMae}
-                onChange={e => set('nomeMae', e.target.value)} />
+              <label style={FORM_LABEL}>Identidade de Gênero:</label>
+              <select className="form-field" value={draft.identidadeGenero} onChange={e => set('identidadeGenero', e.target.value)}>
+                <option value="">SELECIONE ...</option>
+                {identidadesGenero.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
             <div>
-              <label style={FORM_LABEL}>Nome do Pai</label>
-              <input type="text" className="form-field" value={draft.nomePai}
-                onChange={e => set('nomePai', e.target.value)} />
+              <label style={FORM_LABEL}>Orientação Sexual:</label>
+              <select className="form-field" value={draft.orientacaoSexual} onChange={e => set('orientacaoSexual', e.target.value)}>
+                <option value="">SELECIONE ...</option>
+                {orientacoesSexuais.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
           </div>
 
-          {/* Deficiência, Gestante, Escolaridade, Raça */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+          {/* Nacionalidade, Naturalidade (UF) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
             <div>
-              <label style={FORM_LABEL}>Deficiência</label>
-              <select className="form-field" value={draft.tipoDeficiencia}
-                onChange={e => { set('tipoDeficiencia', e.target.value); set('temDeficiencia', e.target.value !== ''); }}>
-                <option value="">Nenhuma</option>
-                {tiposDeficiencia.map(s => <option key={s} value={s}>{s}</option>)}
+              <label style={FORM_LABEL}>Nacionalidade:</label>
+              <select className="form-field" value={draft.nacionalidade} onChange={e => set('nacionalidade', e.target.value)}>
+                {nacionalidades.map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+            <div>
+              <label style={FORM_LABEL}>Naturalidade:</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 4 }}>
+                <select className="form-field" value={draft.naturalidade} onChange={e => set('naturalidade', e.target.value)}>
+                  <option value="">--</option>
+                  {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                </select>
+                <select className="form-field" disabled>
+                  <option value="">--</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Nome Mãe, Nome Pai */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>Nome Mãe:</label>
+              <input type="text" className="form-field" value={draft.nomeMae}
+                onChange={e => set('nomeMae', e.target.value)} style={{ textTransform: 'uppercase' }} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Nome Pai:</label>
+              <input type="text" className="form-field" value={draft.nomePai}
+                onChange={e => set('nomePai', e.target.value)} style={{ textTransform: 'uppercase' }} />
+            </div>
+          </div>
+
+          {/* Pessoa com deficiência, Tipo de deficiência, Gestante/Puérpera/Lactante, Data do Parto */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginBottom: 8, alignItems: 'end' }}>
+            <div>
               <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                <input type="checkbox" checked={draft.gestante} onChange={e => set('gestante', e.target.checked)} />
-                <span>Gestante</span>
+                <input type="checkbox" checked={draft.temDeficiencia}
+                  onChange={e => { set('temDeficiencia', e.target.checked); if (!e.target.checked) set('tipoDeficiencia', ''); }} />
+                <span>Pessoa com deficiência</span>
               </label>
             </div>
             <div>
-              <label style={FORM_LABEL}>Escolaridade</label>
+              <label style={FORM_LABEL}>Tipo de deficiência:</label>
+              <select className="form-field" value={draft.tipoDeficiencia}
+                disabled={!draft.temDeficiencia}
+                onChange={e => set('tipoDeficiencia', e.target.value)}
+                style={{ background: !draft.temDeficiencia ? '#f3f4f6' : undefined }}>
+                <option value="">Escolha o tipo de deficiência</option>
+                {tiposDeficiencia.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="pje-checkbox" style={{ fontSize: 12 }}>
+                <input type="checkbox" checked={draft.gestante} onChange={e => set('gestante', e.target.checked)} />
+                <span>Gestante/Puérpera/Lactante</span>
+              </label>
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Data do Parto:</label>
+              <input type="date" className="form-field" value={draft.dataParto}
+                disabled={!draft.gestante}
+                onChange={e => set('dataParto', e.target.value)}
+                style={{ background: !draft.gestante ? '#f3f4f6' : undefined }} />
+            </div>
+          </div>
+
+          {/* Escolaridade, Complemento */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+            <div>
+              <label style={FORM_LABEL}>Escolaridade:</label>
               <select className="form-field" value={draft.escolaridade} onChange={e => set('escolaridade', e.target.value)}>
-                <option value="">--</option>
+                <option value="">Escolha o nível de escolaridade</option>
                 {niveisEscolaridade.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label style={FORM_LABEL}>Raça / Etnia</label>
-              <select className="form-field" value={draft.racaEtnia} onChange={e => set('racaEtnia', e.target.value)}>
-                <option value="">--</option>
-                {racasEtnia.map(s => <option key={s} value={s}>{s}</option>)}
+              <label style={FORM_LABEL}>Complemento:</label>
+              <input type="text" className="form-field" value={draft.complemento}
+                onChange={e => set('complemento', e.target.value)} />
+            </div>
+          </div>
+
+          {/* Identificação Étnica */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
+            Identificação Etnica
+          </div>
+          <div style={{ marginBottom: 8, maxWidth: 200 }}>
+            <label style={FORM_LABEL}>Raça/Etnia</label>
+            <select className="form-field" value={draft.racaEtnia} onChange={e => set('racaEtnia', e.target.value)}>
+              <option value="">Selecione</option>
+              {racasEtnia.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* Dependentes */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
+            Dependentes
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 160px 160px', gap: 8, marginBottom: 8, alignItems: 'end' }}>
+            <div>
+              <label style={FORM_LABEL}>CPF:</label>
+              <input type="text" className="form-field" value="" disabled placeholder="" style={{ background: '#f3f4f6' }} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Nome:</label>
+              <input type="text" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Data de Nascimento:</label>
+              <input type="date" className="form-field" value="" disabled style={{ background: '#f3f4f6' }} />
+            </div>
+            <div>
+              <label style={FORM_LABEL}>Possui deficiência?</label>
+              <select className="form-field" disabled style={{ background: '#f3f4f6' }}>
+                <option value="Não">Não</option>
               </select>
             </div>
           </div>
 
-          {/* Dependentes */}
-          <div style={{ marginBottom: 8 }}>
-            <label style={FORM_LABEL}>Dependentes (quantidade)</label>
-            <input type="number" className="form-field" value={draft.dependentes}
-              onChange={e => set('dependentes', e.target.value)}
-              style={{ maxWidth: 100 }} min={0} />
-          </div>
-
           {/* Endereço */}
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#1a4f72', marginBottom: 4, marginTop: 8, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
             Endereço
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 80px', gap: 8, marginBottom: 8 }}>
@@ -999,11 +1097,6 @@ export default function PeticaoInicialPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 80px', gap: 8, marginBottom: 8 }}>
             <div>
-              <label style={FORM_LABEL}>Complemento</label>
-              <input type="text" className="form-field" value={draft.complemento}
-                onChange={e => set('complemento', e.target.value)} />
-            </div>
-            <div>
               <label style={FORM_LABEL}>Bairro</label>
               <input type="text" className="form-field" value={draft.bairro}
                 onChange={e => set('bairro', e.target.value)} />
@@ -1019,29 +1112,34 @@ export default function PeticaoInicialPage() {
                 {UFS.map(uf => <option key={uf} value={uf}>{uf}</option>)}
               </select>
             </div>
+            <div />
           </div>
 
-          {/* Contato */}
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#1a4f72', marginBottom: 4, textTransform: 'uppercase' }}>
+          {/* Forma de Contato */}
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, marginTop: 12, borderBottom: '1px solid #e5e7eb', paddingBottom: 4 }}>
             Contato
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 8, marginBottom: 8 }}>
             <div>
-              <label style={FORM_LABEL}>E-mail</label>
-              <input type="email" className="form-field" value={draft.email}
-                onChange={e => set('email', e.target.value)} />
+              <label style={FORM_LABEL}>Forma de Contato:</label>
+              <select className="form-field" value={draft.formaContato} onChange={e => set('formaContato', e.target.value)}>
+                <option value="">Escolha o Tipo</option>
+                {formasContato.map(f => <option key={f} value={f}>{f}</option>)}
+              </select>
             </div>
             <div>
-              <label style={FORM_LABEL}>Telefone</label>
-              <input type="text" className="form-field" value={draft.telefone}
-                onChange={e => set('telefone', formatPhone(e.target.value))}
-                placeholder="(00) 00000-0000" maxLength={15} />
+              <label style={FORM_LABEL}>&nbsp;</label>
+              <input type="text" className="form-field"
+                value={draft.formaContato === 'E-mail' ? draft.email : draft.telefone}
+                onChange={e => {
+                  if (draft.formaContato === 'E-mail') set('email', e.target.value);
+                  else set('telefone', formatPhone(e.target.value));
+                }}
+                placeholder={draft.formaContato === 'E-mail' ? 'email@exemplo.com' : '(00) 00000-0000'}
+                maxLength={draft.formaContato === 'E-mail' ? undefined : 15}
+              />
             </div>
           </div>
-
-          <button style={{ ...BTN_PRIMARY, height: 36, padding: '0 20px', fontSize: 13 }} onClick={onIncluir}>
-            <Plus size={14} /> Incluir Parte
-          </button>
         </div>
       </div>
     );
@@ -1326,106 +1424,160 @@ export default function PeticaoInicialPage() {
                 </div>
               )}
 
-              {/* Main content: tree left, table right */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px' }}>
-                {/* Tree / search results */}
-                <div style={{ borderRight: '1px solid #e5e7eb' }}>
-                  <div style={{ maxHeight: 400, overflowY: 'auto' }}>
-                    {filteredLeaves ? (
-                      filteredLeaves.length === 0 ? (
-                        <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>
-                          Nenhum assunto encontrado para "{assuntoSearch}"
-                        </div>
-                      ) : filteredLeaves.map(n => (
-                        <AssuntoNode key={n.codigo} node={n} level={0}
-                          selected={form.assuntos} onToggle={toggleAssunto}
-                          onSelectLeaf={setSelectedLeaf} selectedLeaf={selectedLeaf} />
-                      ))
-                    ) : (
-                      arvoreAssuntos.map(n => (
-                        <AssuntoNode key={n.codigo} node={n} level={0}
-                          selected={form.assuntos} onToggle={toggleAssunto}
-                          onSelectLeaf={setSelectedLeaf} selectedLeaf={selectedLeaf} />
-                      ))
+              {/* Tree */}
+              <div style={{ maxHeight: 400, overflowY: 'auto', borderBottom: '1px solid #e5e7eb' }}>
+                {filteredLeaves ? (
+                  filteredLeaves.length === 0 ? (
+                    <div style={{ padding: 20, textAlign: 'center', color: '#9ca3af', fontSize: 12 }}>
+                      Nenhum assunto encontrado para "{assuntoSearch}"
+                    </div>
+                  ) : filteredLeaves.map(n => (
+                    <AssuntoNode key={n.codigo} node={n} level={0}
+                      selected={form.assuntos} onToggle={toggleAssunto}
+                      onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
+                  ))
+                ) : (
+                  arvoreAssuntos.map(n => (
+                    <AssuntoNode key={n.codigo} node={n} level={0}
+                      selected={form.assuntos} onToggle={toggleAssunto}
+                      onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
+                  ))
+                )}
+              </div>
+
+              {/* Leaf detail panel */}
+              {selectedLeaf && (
+                <div style={{
+                  padding: '8px 12px', borderBottom: '1px solid #e5e7eb',
+                  background: '#eff6ff', fontSize: 12,
+                }}>
+                  <div style={{ fontWeight: 700, color: '#1a4f72', marginBottom: 4 }}>
+                    {selectedLeaf.descricao} <span style={{ fontFamily: 'monospace', fontWeight: 400, color: '#6b7280' }}>({selectedLeaf.codigo})</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                    <div>
+                      <span style={{ color: '#6b7280' }}>Pode ser principal: </span>
+                      <strong>{selectedLeaf.podePrincipal ? 'Sim' : 'Não'}</strong>
+                    </div>
+                    {selectedLeaf.norma && (
+                      <div>
+                        <span style={{ color: '#6b7280' }}>Norma: </span>
+                        <strong>{selectedLeaf.norma}</strong>
+                      </div>
+                    )}
+                    {selectedLeaf.artigo && (
+                      <div>
+                        <span style={{ color: '#6b7280' }}>Artigo: </span>
+                        <strong>{selectedLeaf.artigo}</strong>
+                      </div>
                     )}
                   </div>
-
-                  {/* Leaf detail panel */}
-                  {selectedLeaf && (
-                    <div style={{
-                      borderTop: '1px solid #e5e7eb', padding: '8px 12px',
-                      background: '#eff6ff', fontSize: 12,
-                    }}>
-                      <div style={{ fontWeight: 700, color: '#1a4f72', marginBottom: 4 }}>
-                        {selectedLeaf.descricao} <span style={{ fontFamily: 'monospace', fontWeight: 400, color: '#6b7280' }}>({selectedLeaf.codigo})</span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                        <div>
-                          <span style={{ color: '#6b7280' }}>Pode ser principal: </span>
-                          <strong>{selectedLeaf.podePrincipal ? 'Sim' : 'Não'}</strong>
-                        </div>
-                        {selectedLeaf.norma && (
-                          <div>
-                            <span style={{ color: '#6b7280' }}>Norma: </span>
-                            <strong>{selectedLeaf.norma}</strong>
-                          </div>
-                        )}
-                        {selectedLeaf.artigo && (
-                          <div>
-                            <span style={{ color: '#6b7280' }}>Artigo: </span>
-                            <strong>{selectedLeaf.artigo}</strong>
-                          </div>
-                        )}
-                      </div>
-                      {selectedLeaf.glossario && (
-                        <div style={{ marginTop: 4, color: '#374151', fontStyle: 'italic' }}>
-                          Glossário: {selectedLeaf.glossario}
-                        </div>
-                      )}
+                  {selectedLeaf.glossario && (
+                    <div style={{ marginTop: 4, color: '#374151', fontStyle: 'italic' }}>
+                      Glossário: {selectedLeaf.glossario}
                     </div>
                   )}
                 </div>
+              )}
+            </StepPanel>
 
-                {/* Right: assuntos incluídos */}
-                <div style={{ padding: 10 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
-                    Assuntos selecionados ({form.assuntos.length})
-                  </div>
-                  {form.assuntos.length === 0 ? (
-                    <div style={{ fontSize: 12, color: '#9ca3af', fontStyle: 'italic', padding: '12px 0' }}>
-                      Nenhum assunto incluído ainda.
-                    </div>
-                  ) : (
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                      <thead>
-                        <tr style={{ background: '#dbeafe' }}>
-                          <th style={{ padding: '4px 6px', textAlign: 'left' }}>#</th>
-                          <th style={{ padding: '4px 6px', textAlign: 'left' }}>Assunto</th>
-                          <th style={{ padding: '4px 6px', textAlign: 'left' }}>Função</th>
-                          <th style={{ width: 24 }}></th>
+            {/* ── Assuntos selecionados ── */}
+            <StepPanel>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
+                Assuntos selecionados
+              </div>
+              <div style={{ padding: '12px 16px' }}>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Outro Assunto:</label>
+                  <input
+                    type="text"
+                    readOnly
+                    className="form-field"
+                    value={pendingAssunto ? buildAncestryLabel(arvoreAssuntos, pendingAssunto.codigo) : ''}
+                    placeholder="Selecione o assunto na árvore e clique em 'Incluir'"
+                    style={{ width: '100%', background: '#f9fafb', fontSize: 13 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (pendingAssunto && !form.assuntos.some(a => a.codigo === pendingAssunto.codigo)) {
+                        toggleAssunto({ codigo: pendingAssunto.codigo, descricao: pendingAssunto.descricao, area: pendingAssunto.area });
+                      }
+                      setPendingAssunto(null);
+                      setSelectedLeaf(null);
+                    }}
+                    style={{
+                      background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
+                      padding: '4px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
+                    }}
+                  >
+                    Incluir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPendingAssunto(null); setSelectedLeaf(null); }}
+                    style={{
+                      background: '#fff', border: '1px solid #c7d2de', borderRadius: 3,
+                      padding: '4px 14px', fontSize: 13, color: '#2c77ba', cursor: 'pointer',
+                    }}
+                  >
+                    Limpar
+                  </button>
+                </div>
+
+                {/* Tabela de assuntos incluídos */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#e8ecf0' }}>
+                      <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#374151' }}>Assunto Principal</th>
+                      <th style={{ padding: '6px 10px', textAlign: 'center', fontWeight: 700, color: '#374151', width: 70 }}>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.assuntos.length === 0 ? (
+                      <tr>
+                        <td colSpan={2} style={{ padding: '12px 10px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic', fontSize: 12 }}>
+                          Nenhum assunto incluído ainda.
+                        </td>
+                      </tr>
+                    ) : (
+                      form.assuntos.map((a) => (
+                        <tr key={a.codigo} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <td style={{ padding: '8px 10px' }}>
+                            <span>{buildAncestryLabel(arvoreAssuntos, a.codigo)}</span>
+                            {' '}
+                            <Info size={14} style={{ display: 'inline', verticalAlign: 'middle', color: '#2c77ba', cursor: 'pointer' }} />
+                          </td>
+                          <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                            <button
+                              onClick={() => toggleAssunto(a)}
+                              style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', fontSize: 16, fontWeight: 700 }}
+                              title="Remover assunto"
+                            >
+                              ✗
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {form.assuntos.map((a, i) => (
-                          <tr key={a.codigo} style={{ borderBottom: '1px solid #bfdbfe' }}>
-                            <td style={{ padding: '3px 6px', color: '#6b7280' }}>{i + 1}</td>
-                            <td style={{ padding: '3px 6px' }}>{a.descricao}</td>
-                            <td style={{ padding: '3px 6px', fontWeight: 600, color: i === 0 ? 'hsl(205,60%,28%)' : '#374151' }}>
-                              {i === 0 ? 'Principal' : 'Secundário'}
-                            </td>
-                            <td style={{ padding: '3px 4px', textAlign: 'center' }}>
-                              <button
-                                onClick={() => toggleAssunto(a)}
-                                style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}
-                              >
-                                <X size={12} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
+                      ))
+                    )}
+                  </tbody>
+                </table>
+
+                {/* Competência */}
+                <div style={{ marginTop: 16 }}>
+                  <label style={{ fontSize: 13, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>Competência:</label>
+                  <select
+                    className="form-field"
+                    value={competencia}
+                    onChange={e => setCompetencia(e.target.value)}
+                    style={{ width: '100%', fontSize: 13 }}
+                  >
+                    <option value="">-- Selecione uma competência --</option>
+                    <option value="Cível">Cível</option>
+                    <option value="Cível Relação de Consumo">Cível Relação de Consumo</option>
+                  </select>
                 </div>
               </div>
             </StepPanel>
@@ -1453,76 +1605,67 @@ export default function PeticaoInicialPage() {
 
               {/* Consulta form */}
               <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 8 }}>
-                  Consultar Pessoa
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 10 }}>
+                  Consulta
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr', gap: 8, alignItems: 'end', marginBottom: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '130px 200px auto 200px auto', gap: 8, alignItems: 'end', marginBottom: 8 }}>
                   <div>
-                    <label style={FORM_LABEL}>Tipo de Pessoa</label>
+                    <label style={FORM_LABEL}>Tipo Pessoa:</label>
                     <select className="form-field" value={queryAutora.tipoPessoa}
                       onChange={e => setQueryAutora(q => ({ ...q, tipoPessoa: e.target.value }))}>
                       {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={FORM_LABEL}>CPF</label>
+                    <label style={FORM_LABEL}>CPF:</label>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <input
                         type="text"
                         className="form-field"
                         value={queryAutora.cpf}
                         onChange={e => setQueryAutora(q => ({ ...q, cpf: formatCpfCnpj(e.target.value) }))}
-                        placeholder="000.000.000-00"
+                        placeholder=""
                         maxLength={14}
                         disabled={queryAutora.semCpf}
                         style={{ flex: 1, background: queryAutora.semCpf ? '#f9fafb' : undefined }}
                       />
                     </div>
-                    <label className="pje-checkbox" style={{ fontSize: 11, marginTop: 2 }}>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingBottom: 4 }}>
+                    <label className="pje-checkbox" style={{ fontSize: 12 }}>
                       <input type="checkbox" checked={queryAutora.semCpf}
                         onChange={e => setQueryAutora(q => ({ ...q, semCpf: e.target.checked, cpf: '' }))} />
-                      <span>Sem CPF</span>
+                      <span>Sem CPF:</span>
                     </label>
                   </div>
                   <div>
-                    <label style={FORM_LABEL}>Nome (opcional)</label>
-                    <input type="text" className="form-field" value={queryAutora.nome}
-                      onChange={e => setQueryAutora(q => ({ ...q, nome: e.target.value }))}
-                      placeholder="Parte do nome para filtrar" />
-                  </div>
-                </div>
-
-                {/* Outros documentos */}
-                {queryAutora.semCpf && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 8, marginBottom: 8 }}>
-                    <div>
-                      <label style={FORM_LABEL}>Outros Documentos</label>
+                    <label style={FORM_LABEL}>Outros Documentos:</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
                       <select className="form-field" value={queryAutora.outroDocTipo}
                         onChange={e => setQueryAutora(q => ({ ...q, outroDocTipo: e.target.value }))}>
-                        <option value="">-- Selecione --</option>
+                        <option value="">Escolha o Tipo</option>
                         {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
-                    </div>
-                    <div>
-                      <label style={FORM_LABEL}>Número</label>
                       <input type="text" className="form-field" value={queryAutora.outroDocNum}
                         onChange={e => setQueryAutora(q => ({ ...q, outroDocNum: e.target.value }))} />
                     </div>
                   </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <ConsultarInativoBtn />
-                  <button
-                    style={TOOLBAR_BTN}
-                    onClick={() => {
-                      setConsultaAutoraEstado('novo_cadastro');
-                      setShowCadastroAutora(true);
-                      setDraftAutora(p => ({ ...p, tipo_pessoa: queryAutora.tipoPessoa, cpf_cnpj: queryAutora.cpf }));
-                    }}
-                  >
-                    <Plus size={12} /> Novo
-                  </button>
+                  <div />
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={FORM_LABEL}>Pesquisar pelo nome:</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="text" className="form-field" value={queryAutora.nome}
+                      onChange={e => setQueryAutora(q => ({ ...q, nome: e.target.value }))}
+                      style={{ flex: 1 }} />
+                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12 }} onClick={consultarAutora}>
+                      Consultar
+                    </button>
+                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12, background: '#16a34a' }}
+                      onClick={() => { setConsultaAutoraEstado('novo_cadastro'); setShowCadastroAutora(true); }}>
+                      Novo
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1582,30 +1725,39 @@ export default function PeticaoInicialPage() {
                 </div>
               )}
 
-              {/* Partes incluídas */}
-              {form.partesAutoras.length > 0 && (
-                <div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
-                    Partes requerentes incluídas ({form.partesAutoras.length}):
-                  </div>
-                  <table className="data-table">
-                    <thead>
+              {/* Partes (requerentes) a utilizar neste ajuizamento */}
+              <div style={{ padding: 12 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+                  Partes (<span style={{ textDecoration: 'underline' }}>requerentes</span>) a utilizar neste ajuizamento
+                </div>
+                <table className="data-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>CPF / CNPJ</th>
+                      <th>Tipo de Parte</th>
+                      <th>Principal?</th>
+                      <th>Tipo Representação</th>
+                      <th>Justiça Gratuita</th>
+                      <th>Adicionar Endereço</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.partesAutoras.length === 0 ? (
                       <tr>
-                        <th>#</th>
-                        <th>Nome</th>
-                        <th>CPF</th>
-                        <th>Tipo</th>
-                        <th>Justiça Gratuita</th>
-                        <th></th>
+                        <td colSpan={8} style={{ textAlign: 'center', color: '#9ca3af', fontStyle: 'italic', padding: '12px 8px' }}>
+                          Nenhuma parte incluída.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {form.partesAutoras.map((p, i) => (
+                    ) : (
+                      form.partesAutoras.map((p, i) => (
                         <tr key={i}>
-                          <td>{i + 1}</td>
                           <td style={{ fontWeight: 600 }}>{p.nome}</td>
                           <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{p.cpf_cnpj || '—'}</td>
                           <td>{p.tipo_pessoa}</td>
+                          <td>{i === 0 ? 'Sim' : 'Não'}</td>
+                          <td>—</td>
                           <td>
                             <select
                               style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}
@@ -1619,6 +1771,7 @@ export default function PeticaoInicialPage() {
                               {justicaGratuitaOpcoes.map(o => <option key={o} value={o}>{o}</option>)}
                             </select>
                           </td>
+                          <td>—</td>
                           <td>
                             <button onClick={() => removerAutora(i)}
                               style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none' }}>
@@ -1626,23 +1779,24 @@ export default function PeticaoInicialPage() {
                             </button>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
               {/* Footer links */}
               <div style={{
                 padding: '8px 12px', borderTop: '1px solid #e5e7eb',
-                fontSize: 12, display: 'flex', gap: 16,
+                fontSize: 12,
               }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2c77ba', fontSize: 12 }}>
                   Ver totalizador de partes
                 </button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
-                  Custas Processuais
-                </button>
+              </div>
+              <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Custas Processuais:</div>
+                <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
               </div>
             </StepPanel>
           </div>
@@ -1664,19 +1818,19 @@ export default function PeticaoInicialPage() {
 
               {/* Consulta form */}
               <div style={{ padding: 12, borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 8 }}>
-                  Consultar Pessoa
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a4f72', marginBottom: 8 }}>
+                  Consulta
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '160px 200px 1fr', gap: 8, alignItems: 'end', marginBottom: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '160px 200px', gap: 8, alignItems: 'end', marginBottom: 8 }}>
                   <div>
-                    <label style={FORM_LABEL}>Tipo de Pessoa</label>
+                    <label style={FORM_LABEL}>Tipo Pessoa:</label>
                     <select className="form-field" value={queryReu.tipoPessoa}
                       onChange={e => setQueryReu(q => ({ ...q, tipoPessoa: e.target.value }))}>
                       {tiposPessoa.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={FORM_LABEL}>CPF</label>
+                    <label style={FORM_LABEL}>CPF:</label>
                     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <input
                         type="text"
@@ -1695,44 +1849,42 @@ export default function PeticaoInicialPage() {
                       <span>Sem CPF</span>
                     </label>
                   </div>
-                  <div>
-                    <label style={FORM_LABEL}>Nome (opcional)</label>
-                    <input type="text" className="form-field" value={queryReu.nome}
-                      onChange={e => setQueryReu(q => ({ ...q, nome: e.target.value }))}
-                      placeholder="Parte do nome para filtrar" />
-                  </div>
                 </div>
 
-                {queryReu.semCpf && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: 8, marginBottom: 8 }}>
-                    <div>
-                      <label style={FORM_LABEL}>Outros Documentos</label>
-                      <select className="form-field" value={queryReu.outroDocTipo}
-                        onChange={e => setQueryReu(q => ({ ...q, outroDocTipo: e.target.value }))}>
-                        <option value="">-- Selecione --</option>
-                        {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label style={FORM_LABEL}>Número</label>
-                      <input type="text" className="form-field" value={queryReu.outroDocNum}
-                        onChange={e => setQueryReu(q => ({ ...q, outroDocNum: e.target.value }))} />
-                    </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={FORM_LABEL}>Outros Documentos:</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                    <select className="form-field" value={queryReu.outroDocTipo}
+                      onChange={e => setQueryReu(q => ({ ...q, outroDocTipo: e.target.value }))}>
+                      <option value="">Escolha o Tipo</option>
+                      {tiposDocOutros.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    <input type="text" className="form-field" value={queryReu.outroDocNum}
+                      onChange={e => setQueryReu(q => ({ ...q, outroDocNum: e.target.value }))} />
                   </div>
-                )}
-
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <ConsultarInativoBtn />
-                  <button
-                    style={TOOLBAR_BTN}
-                    onClick={() => {
-                      setConsultaReuEstado('novo_cadastro');
-                      setShowCadastroReu(true);
-                      setDraftReu(p => ({ ...p, tipo_pessoa: queryReu.tipoPessoa, cpf_cnpj: queryReu.cpf }));
-                    }}
-                  >
-                    <Plus size={12} /> Novo
-                  </button>
+                </div>
+                <div style={{ marginBottom: 8 }}>
+                  <label style={FORM_LABEL}>Pesquisar pelo nome:</label>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input type="text" className="form-field" value={queryReu.nome}
+                      onChange={e => setQueryReu(q => ({ ...q, nome: e.target.value }))}
+                      style={{ flex: 1 }} />
+                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12 }}
+                      onClick={() => {
+                        setConsultaReuEstado('nao_encontrado');
+                        setResultadosReu([]);
+                      }}>
+                      Consultar
+                    </button>
+                    <button style={{ ...BTN_PRIMARY, height: 32, padding: '0 16px', fontSize: 12, background: '#16a34a' }}
+                      onClick={() => {
+                        setConsultaReuEstado('novo_cadastro');
+                        setShowCadastroReu(true);
+                        setDraftReu(p => ({ ...p, tipo_pessoa: queryReu.tipoPessoa, cpf_cnpj: queryReu.cpf }));
+                      }}>
+                      Novo
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1798,33 +1950,42 @@ export default function PeticaoInicialPage() {
                 </div>
               )}
 
-              {form.partesReus.length > 0 && (
-                <div style={{ padding: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1a4f72', marginBottom: 6 }}>
-                    Partes requeridas incluídas ({form.partesReus.length}):
-                  </div>
-                  <table className="data-table">
-                    <thead>
+              {/* Partes (requeridas) a utilizar neste ajuizamento */}
+              <div style={{ padding: 12 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#374151', marginBottom: 8 }}>
+                  Partes (<span style={{ textDecoration: 'underline' }}>requeridas</span>) a utilizar neste ajuizamento
+                </div>
+                <table className="data-table" style={{ fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>CPF / CNPJ</th>
+                      <th>Tipo de Parte</th>
+                      <th>Principal?</th>
+                      <th>Tipo Representação</th>
+                      <th>Qualificação</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.partesReus.length === 0 ? (
                       <tr>
-                        <th>#</th>
-                        <th>Nome</th>
-                        <th>CPF</th>
-                        <th>Tipo</th>
-                        <th>Qualificação</th>
-                        <th></th>
+                        <td colSpan={7} style={{ textAlign: 'center', color: '#9ca3af', fontStyle: 'italic', padding: '12px 8px' }}>
+                          Nenhuma parte incluída.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {form.partesReus.map((p, i) => {
+                    ) : (
+                      form.partesReus.map((p, i) => {
                         const cpfMasked = p.cpf_cnpj && p.cpf_cnpj.length >= 4
                           ? p.cpf_cnpj.slice(0, 4) + p.cpf_cnpj.slice(4).replace(/\d/g, '*')
                           : p.cpf_cnpj;
                         return (
                           <tr key={i}>
-                            <td>{i + 1}</td>
                             <td style={{ fontWeight: 600 }}>{p.nome}</td>
                             <td style={{ fontFamily: 'monospace', fontSize: 11 }}>{cpfMasked || '—'}</td>
                             <td>{p.tipo_pessoa}</td>
+                            <td>{i === 0 ? 'Sim' : 'Não'}</td>
+                            <td>—</td>
                             <td>
                               <select
                                 style={{ fontSize: 11, padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 2 }}
@@ -1836,7 +1997,6 @@ export default function PeticaoInicialPage() {
                                 }}
                               >
                                 <option value="REQUERIDO">REQUERIDO</option>
-                                <option value="RÉSTAURADO">RÉSTAURADO</option>
                                 <option value="INTIMADO">INTIMADO</option>
                               </select>
                             </td>
@@ -1848,19 +2008,24 @@ export default function PeticaoInicialPage() {
                             </td>
                           </tr>
                         );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-              <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb', fontSize: 12, display: 'flex', gap: 16 }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
+              {/* Footer links */}
+              <div style={{
+                padding: '8px 12px', borderTop: '1px solid #e5e7eb',
+                fontSize: 12,
+              }}>
+                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2c77ba', fontSize: 12 }}>
                   Ver totalizador de partes
                 </button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(205,60%,28%)', fontSize: 12, textDecoration: 'underline' }}>
-                  Custas Processuais
-                </button>
+              </div>
+              <div style={{ padding: '8px 12px', borderTop: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#374151' }}>Custas Processuais:</div>
+                <div style={{ fontSize: 12, color: '#dc2626' }}>Não há registro de guias geradas para este processo</div>
               </div>
             </StepPanel>
           </div>
