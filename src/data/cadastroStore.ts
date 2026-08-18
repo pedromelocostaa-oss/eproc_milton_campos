@@ -3,7 +3,7 @@
 // solicitação. Ela cai para o professor dono daquela turma, que aceita ou
 // recusa. Persistido em localStorage (modo demo).
 
-import { demoTurmas } from './demoStore';
+import { demoTurmas, professoresPorTurma } from './demoStore';
 import { formatCpf } from '@/lib/masks';
 import type { Turma } from '@/integrations/supabase/types';
 
@@ -61,25 +61,28 @@ export function cadastroPorCpf(cpf: string): AlunoCadastro | null {
   return readAll().find(c => c.cpf === f) ?? null;
 }
 
-function professorDaTurma(turmaId: string): string | undefined {
-  return demoTurmas.find(t => t.id === turmaId)?.professor_id;
+function professoresDaTurma(turmaId: string): string[] {
+  const extra = professoresPorTurma[turmaId];
+  if (extra && extra.length > 0) return extra;
+  const turma = demoTurmas.find(t => t.id === turmaId);
+  return turma ? [turma.professor_id] : [];
 }
 
 export function turmasDoProfessor(professorId: string): Turma[] {
-  return demoTurmas.filter(t => t.professor_id === professorId);
+  return demoTurmas.filter(t => professoresPorTurma[t.id]?.includes(professorId) || t.professor_id === professorId);
 }
 
 /** Solicitações pendentes das turmas de um professor. */
 export function solicitacoesDoProfessor(professorId: string): AlunoCadastro[] {
   return readAll()
-    .filter(c => c.status === 'pendente' && professorDaTurma(c.turmaId) === professorId)
+    .filter(c => c.status === 'pendente' && professoresDaTurma(c.turmaId).includes(professorId))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 /** Alunos de um professor por status (ex.: aprovados). */
 export function alunosDoProfessor(professorId: string, status?: StatusCadastro): AlunoCadastro[] {
   return readAll()
-    .filter(c => professorDaTurma(c.turmaId) === professorId && (!status || c.status === status))
+    .filter(c => professoresDaTurma(c.turmaId).includes(professorId) && (!status || c.status === status))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
@@ -90,8 +93,9 @@ export function registrarAluno(dados: { cpf: string; nome: string; senha: string
   if (!dados.nome.trim()) return { ok: false, erro: 'Informe seu nome completo.' };
   if (dados.senha.length < 4) return { ok: false, erro: 'A senha deve ter ao menos 4 caracteres.' };
   if (!dados.turmaId) return { ok: false, erro: 'Selecione a matéria que você está cursando.' };
-  // CPF reservado dos usuários demo
-  if (cpf === '121.572.976-69' || cpf === '000.000.000-01') return { ok: false, erro: 'Este CPF já está em uso.' };
+  // CPFs reservados (demo aluno + professores)
+  const RESERVED = ['121.572.976-69', '000.000.000-01', '150.665.876-83', '097.446.776-60', '149.534.096-12'];
+  if (RESERVED.includes(cpf)) return { ok: false, erro: 'Este CPF já está em uso.' };
   const existente = cadastroPorCpf(cpf);
   if (existente) {
     if (existente.status === 'recusado') {
@@ -138,9 +142,6 @@ const SEED: AlunoCadastro[] = [
   { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T09:00:00Z' },
   { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T10:30:00Z' },
   { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T08:15:00Z' },
-  { id: 'cad-real-1', cpf: '150.665.876-83', nome: 'Giulia Name Vieira', senha: 'eproc2026', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T00:00:00Z' },
-  { id: 'cad-real-2', cpf: '097.446.776-60', nome: 'Pedro Luis Melo Correa da Costa', senha: 'eproc2026', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T00:00:00Z' },
-  { id: 'cad-real-3', cpf: '149.534.096-12', nome: 'Henrique Vale Duarte', senha: 'eproc2026', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T00:00:00Z' },
 ];
 
 export function garantirSeedCadastros(): void {

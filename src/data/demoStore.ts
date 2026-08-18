@@ -69,6 +69,10 @@ export const demoTurmas: Turma[] = [
   { id: 'demo-turma-1', nome: 'Processo judicial eletrônico aplicado', professor_id: 'demo-prof-1', semestre: '2025.2', ano: 2025, created_at: '2025-02-01T00:00:00Z' },
 ];
 
+export const professoresPorTurma: Record<string, string[]> = {
+  'demo-turma-1': ['demo-prof-1', 'demo-prof-2', 'demo-prof-3', 'demo-prof-4'],
+};
+
 // ---------- ALUNOS (lista para exibição na Área do Professor) ----------
 // Apenas Luiz Cordeiro (demo-aluno-1) faz login. Os demais são fictícios,
 // para o professor visualizar uma turma cheia ao testar o sistema.
