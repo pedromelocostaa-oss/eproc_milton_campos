@@ -235,7 +235,7 @@ const CLASSES_TURMA_RECURSAL = [
 // Áreas do Rito "Juízo Comum"
 const AREAS_JUIZO_COMUM: AreaPJe[] = [
   { nome: 'Carta de Ordem Cível', classes: ['CARTA DE ORDEM'] },
-  { nome: 'Carta Precatória Cível', classes: ['CARTA PRECATÓRIA CÍVEL'] },
+  { nome: 'Carta Precatória Cível', classes: ['CARTA PRECATÓRIA CÍVEL', 'CARTA PRECATÓRIA INFÂNCIA E JUVENTUDE'] },
   { nome: 'Cível', classes: CLASSES_CIVEL },
   { nome: 'Empresarial', classes: CLASSES_EMPRESARIAL },
   { nome: 'Família', classes: CLASSES_FAMILIA },
