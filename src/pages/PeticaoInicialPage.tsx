@@ -1488,10 +1488,14 @@ export default function PeticaoInicialPage() {
             background: 'hsl(205,60%,28%)', color: '#fff',
             padding: '8px 16px', fontSize: 13, fontWeight: 700,
             borderBottom: '2px solid hsl(205,60%,22%)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            {isConfirm
-              ? 'Peticionamento Eletrônico — Confirmar Ajuizamento'
-              : `Peticionamento Eletrônico (${step} de 5) — ${STEP_NAMES[step - 1]}`}
+            <span>
+              {isConfirm
+                ? 'Peticionamento Eletrônico - Confirmar Ajuizamento'
+                : `Peticionamento Eletrônico (${step} de 5) - ${STEP_NAMES[step - 1]}`}
+            </span>
+            <span title="Ajuda" style={{ cursor: 'help', fontSize: 18, lineHeight: 1 }}>&#9432;</span>
           </div>
         )}
 
@@ -1534,18 +1538,22 @@ export default function PeticaoInicialPage() {
             padding: '6px 16px', fontSize: 11, display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center',
           }}>
             <div style={{ flex: 1, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {STEP_NAMES.slice(0, 5).map((name, i) => {
-                const sNum = i + 1;
-                const active = sNum === step;
-                const done = sNum < step;
+              {[
+                { label: 'Informações do processo', steps: [1] },
+                { label: 'Assuntos', steps: [2] },
+                { label: 'Partes Autoras', steps: [3, 4] },
+                { label: 'Documentos', steps: [5] },
+              ].map((bc, i) => {
+                const active = bc.steps.includes(step);
+                const done = bc.steps.every(s => s < step);
                 return (
-                  <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span key={bc.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     {i > 0 && <span style={{ color: '#9ca3af' }}>&gt;&gt;</span>}
                     <span style={{
                       fontWeight: active ? 700 : done ? 600 : 400,
                       color: active ? 'hsl(205,60%,28%)' : done ? '#16a34a' : '#6b7280',
                     }}>
-                      {done && '✓ '}{name}
+                      {done && '✓ '}{bc.label}
                     </span>
                   </span>
                 );
@@ -1610,7 +1618,7 @@ export default function PeticaoInicialPage() {
             STEP 1 — Informações do Processo
         ═══════════════════════════════════════════════════════════════════ */}
         {step === 1 && (
-          <div style={{ margin: 16 }}>
+          <div style={{ margin: '16px 16px 0' }}>
             {/* Apoio por IA */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <button
@@ -1630,86 +1638,63 @@ export default function PeticaoInicialPage() {
               </span>
             </div>
 
-            <StepPanel>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-                Informações Preliminares
-              </div>
+            {/* Fieldset — Informações Preliminares */}
+            <fieldset style={{ border: '1px solid #999', margin: 0, padding: '12px 16px 16px' }}>
+              <legend style={{ fontSize: 13, fontWeight: 700, color: '#333', padding: '0 4px' }}>Informações Preliminares</legend>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
                 {/* Coluna esquerda */}
-                <div style={{ borderRight: '1px solid #e5e7eb', padding: '4px 0' }}>
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>Desejo entrar com a ação em:</label>
-                    <select className={fieldCls(errors.comarca)} value={form.comarca} onChange={e => update('comarca', e.target.value)} style={{ maxWidth: '100%' }}>
+                <div style={{ paddingRight: 24 }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 3 }}>Desejo entrar com a ação em:</label>
+                    <select className={fieldCls(errors.comarca)} value={form.comarca} onChange={e => update('comarca', e.target.value)} style={{ width: '100%' }}>
                       <option value=""></option>
                       {comarcasMG.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     {errors.comarca && <div className="form-error">{errors.comarca}</div>}
                   </div>
 
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>Rito:</label>
-                    <select className="form-field" value={form.rito} onChange={e => handleRitoChange(e.target.value)} style={{ maxWidth: '100%' }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 3 }}>Rito:</label>
+                    <select className="form-field" value={form.rito} onChange={e => handleRitoChange(e.target.value)} style={{ width: '100%' }}>
                       {ritosPJe.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
 
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>Área:</label>
-                    <select className={fieldCls(errors.area)} value={form.area} onChange={e => handleAreaChange(e.target.value)} style={{ maxWidth: '100%' }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 3 }}>Área:</label>
+                    <select className={fieldCls(errors.area)} value={form.area} onChange={e => handleAreaChange(e.target.value)} style={{ width: '100%' }}>
                       <option value="">-- Selecione uma área --</option>
                       {areasDoRito.map(a => <option key={a.nome} value={a.nome}>{a.nome}</option>)}
                     </select>
                     {errors.area && <div className="form-error">{errors.area}</div>}
                   </div>
 
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>Classe processual:</label>
-                    <select className={fieldCls(errors.classe)} value={form.classe} onChange={e => update('classe', e.target.value)} disabled={!form.area} style={{ maxWidth: '100%' }}>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 3 }}>Classe processual:</label>
+                    <select className={fieldCls(errors.classe)} value={form.classe} onChange={e => update('classe', e.target.value)} disabled={!form.area} style={{ width: '100%' }}>
                       <option value=""></option>
                       {areaClasses.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     {errors.classe && <div className="form-error">{errors.classe}</div>}
                   </div>
 
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>
+                  <div style={{ marginBottom: 0 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 3 }}>
                       Nível de Sigilo do Processo:{' '}
-                      <span title="Sem Sigilo: processo público. Segredo de Justiça: acesso restrito às partes." style={{ color: '#94a3b8', cursor: 'help' }}>ⓘ</span>
+                      <span title="Sem Sigilo: processo público. Segredo de Justiça: acesso restrito às partes." style={{ color: '#666', cursor: 'help', fontWeight: 400 }}>&#9432;</span>
                     </label>
-                    <select className="form-field" value={form.nivelSigilo} onChange={e => update('nivelSigilo', e.target.value)} style={{ maxWidth: '100%' }}>
+                    <select className="form-field" value={form.nivelSigilo} onChange={e => update('nivelSigilo', e.target.value)} style={{ width: '100%' }}>
                       {niveisSigiloPJe.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
-                  </div>
-
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>Processo Originário:</label>
-                    <input
-                      type="text"
-                      className="form-field"
-                      value={form.processoOriginario || ''}
-                      onChange={e => update('processoOriginario', e.target.value)}
-                      style={{ maxWidth: '100%' }}
-                    />
-                  </div>
-
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>Juízo:</label>
-                    <input
-                      type="text"
-                      className="form-field"
-                      disabled
-                      value=""
-                      style={{ maxWidth: '100%', background: '#e5e7eb' }}
-                    />
                   </div>
                 </div>
 
                 {/* Coluna direita */}
-                <div style={{ padding: '4px 0' }}>
-                  <div style={{ padding: '8px 12px' }}>
-                    <label style={FORM_LABEL}>
-                      <span style={{ textDecoration: 'underline' }}>V</span>alor da Causa: (R$) <span style={{ fontWeight: 400, color: '#6b7280' }}>(Somente números)</span>
+                <div>
+                  <div style={{ marginBottom: 4 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 3 }}>
+                      Valor da Causa: (R$) <span style={{ fontWeight: 400, fontStyle: 'italic', color: '#666' }}>(Somente números)</span>
                     </label>
                     <input
                       type="text"
@@ -1717,32 +1702,27 @@ export default function PeticaoInicialPage() {
                       value={form.valorCausa}
                       onChange={e => update('valorCausa', formatCurrency(e.target.value))}
                       disabled={form.valorNaoSeAplica}
-                      style={{ maxWidth: 260, background: form.valorNaoSeAplica ? '#f1f5f9' : undefined }}
+                      style={{ width: 220, background: form.valorNaoSeAplica ? '#f1f5f9' : undefined }}
                     />
                     {errors.valorCausa && <div className="form-error">{errors.valorCausa}</div>}
+                  </div>
 
-                    <div style={{ fontSize: 13, marginTop: 10, color: '#374151' }}>
-                      <strong>Previsão de Custas:</strong>{' '}
-                      <span style={{ fontWeight: 400 }}>Não há sinalização de custas iniciais.</span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginTop: 10 }}>
-                      <label className="pje-checkbox" style={{ fontSize: 13 }}>
-                        <input type="checkbox" checked={form.valorNaoSeAplica} onChange={e => update('valorNaoSeAplica', e.target.checked)} />
-                        <span>Não se aplica</span>
-                      </label>
-                      <label className="pje-checkbox" style={{ fontSize: 13 }}>
-                        <input type="checkbox" checked={form.valorAlcada} onChange={e => update('valorAlcada', e.target.checked)} />
-                        <span>Valor de Alçada</span>
-                      </label>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8 }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#333', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={form.valorNaoSeAplica} onChange={e => update('valorNaoSeAplica', e.target.checked)} />
+                      Não se aplica
+                    </label>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#333', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={form.valorAlcada} onChange={e => update('valorAlcada', e.target.checked)} />
+                      Valor de Alçada
+                    </label>
                   </div>
                 </div>
               </div>
-            </StepPanel>
+            </fieldset>
 
             {/* Bottom nav buttons — right-aligned */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16, alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16, marginBottom: 16, alignItems: 'center' }}>
               <button
                 onClick={next}
                 style={{
