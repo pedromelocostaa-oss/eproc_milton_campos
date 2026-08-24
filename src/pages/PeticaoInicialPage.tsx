@@ -364,57 +364,61 @@ function AssuntoNode({
   const isLeaf = !node.subitens || node.subitens.length === 0;
   const isSelected = isLeaf && selected.some(s => s.codigo === node.codigo);
   const isDetailActive = selectedLeaf?.codigo === node.codigo;
-  const pl = level * 18 + 8;
+  const pl = level * 20 + 6;
 
   if (isLeaf) {
     return (
       <div
         onClick={() => { onSelectLeaf(node); }}
         style={{
-          paddingLeft: pl, paddingTop: 5, paddingBottom: 5, paddingRight: 8,
-          cursor: 'pointer', fontSize: 12, borderBottom: '1px solid #f3f4f6',
-          background: isDetailActive ? '#eff6ff' : isSelected ? '#dbeafe' : 'transparent',
-          color: isSelected ? 'hsl(205,60%,28%)' : '#374151',
+          paddingLeft: pl + 20, paddingTop: 4, paddingBottom: 4, paddingRight: 8,
+          cursor: 'pointer', fontSize: 13, borderBottom: '1px solid #f3f4f6',
+          background: isDetailActive ? '#3b82f6' : isSelected ? '#dbeafe' : 'transparent',
+          color: isDetailActive ? '#fff' : isSelected ? '#1e3a5f' : '#333',
           display: 'flex', alignItems: 'center', gap: 6,
         }}
       >
-        <span style={{ width: 14, fontWeight: 700, color: isSelected ? 'hsl(205,60%,28%)' : '#9ca3af' }}>
-          {isSelected ? '✓' : '○'}
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 13, height: 13, border: '1px solid ' + (isDetailActive ? '#fff' : '#999'),
+          borderRadius: 2, fontSize: 10, lineHeight: 1, flexShrink: 0,
+          background: isSelected ? (isDetailActive ? '#fff' : '#3b82f6') : 'transparent',
+          color: isSelected ? (isDetailActive ? '#3b82f6' : '#fff') : 'transparent',
+        }}>
+          {isSelected ? '✓' : ''}
         </span>
         <span style={{ flex: 1 }}>{node.descricao}</span>
+        {isDetailActive && (
+          <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', flexShrink: 0, fontSize: 12 }}>
+            <span title="Favorito" style={{ cursor: 'pointer', opacity: 0.8 }}>☆</span>
+            <span title="Informações" style={{ cursor: 'pointer', opacity: 0.8 }}>ⓘ</span>
+            <span title="Navegar" style={{ cursor: 'pointer', opacity: 0.8 }}>⇅</span>
+          </span>
+        )}
       </div>
     );
   }
 
   const isTop = level === 0;
-  const leafCount = isTop ? countLeaves(node) : 0;
 
   return (
     <div>
       <div
         onClick={() => setExpanded(e => !e)}
         style={{
-          paddingLeft: pl, paddingTop: isTop ? 7 : 6, paddingBottom: isTop ? 7 : 6, paddingRight: 8,
-          cursor: 'pointer', fontWeight: isTop ? 700 : 600, fontSize: 12,
-          background: isTop ? '#fff' : '#f9fafb',
-          borderBottom: '1px solid #e5e7eb',
-          display: 'flex', alignItems: 'center', gap: 6,
-          color: '#1a4f72',
-          letterSpacing: isTop ? 0.2 : 0,
+          paddingLeft: pl, paddingTop: 5, paddingBottom: 5, paddingRight: 8,
+          cursor: 'pointer', fontWeight: isTop ? 700 : 600, fontSize: 13,
+          background: 'transparent',
+          borderBottom: '1px solid #eee',
+          display: 'flex', alignItems: 'center', gap: 5,
+          color: '#333',
         }}
       >
-        {expanded
-          ? <ChevronDown size={12} style={{ flexShrink: 0, color: '#6b7280' }} />
-          : <ChevronRight size={12} style={{ flexShrink: 0, color: '#6b7280' }} />}
-        {isTop && <Folder size={13} style={{ flexShrink: 0, color: '#ca8a04', fill: '#fde68a' }} />}
-        <span>
-          {isTop ? node.descricao.toUpperCase() : node.descricao}
-          {isTop && (
-            <span style={{ color: '#6b7280', fontWeight: 400, marginLeft: 6 }}>
-              ({String(leafCount).padStart(2, '0')})
-            </span>
-          )}
+        <span style={{ fontSize: 10, flexShrink: 0, color: '#555', width: 10, textAlign: 'center' }}>
+          {expanded ? '▾' : '▸'}
         </span>
+        <Folder size={14} style={{ flexShrink: 0, color: '#ca8a04', fill: '#fde68a' }} />
+        <span>{isTop ? node.descricao.toUpperCase() : node.descricao}</span>
       </div>
       {expanded && node.subitens?.map(sub => (
         <AssuntoNode key={sub.codigo} node={sub} level={level + 1}
@@ -1755,10 +1759,10 @@ export default function PeticaoInicialPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '55% 45%', gap: 16 }}>
               {/* ── Coluna esquerda: Árvore de assuntos ── */}
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#374151', marginBottom: 10 }}>
+              <fieldset style={{ border: '1px solid #c7d2de', borderRadius: 0, padding: '12px 10px 10px', margin: 0 }}>
+                <legend style={{ fontSize: 14, fontWeight: 700, color: '#333', padding: '0 4px' }}>
                   {form.assuntos.length === 0 ? 'Selecionar Assunto Principal' : 'Selecionar Demais Assuntos'}
-                </div>
+                </legend>
 
                 {/* Modo radio */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 8 }}>
@@ -1813,15 +1817,15 @@ export default function PeticaoInicialPage() {
                   </button>
                 </div>
 
-                {/* Decorative icon bar */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, alignItems: 'center', marginBottom: 6, fontSize: 16, color: '#6b7280' }}>
-                  <span title="Expandir todos" style={{ cursor: 'pointer' }}>📄</span>
-                  <span title="Recolher todos" style={{ cursor: 'pointer' }}>📄</span>
-                  <span style={{ color: '#d1d5db' }}>|</span>
-                  <span title="Favoritos" style={{ cursor: 'pointer' }}>⭐</span>
-                  <span style={{ color: '#d1d5db' }}>|</span>
-                  <span title="Visualizar" style={{ cursor: 'pointer' }}>📋</span>
-                  <span title="Ordenar" style={{ cursor: 'pointer' }}>📊</span>
+                {/* Icon toolbar (decorative, matching PJe) */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 3, alignItems: 'center', marginBottom: 6, fontSize: 14 }}>
+                  <span title="Expandir todos" style={{ cursor: 'pointer', color: '#dc2626' }}>📄</span>
+                  <span title="Recolher todos" style={{ cursor: 'pointer', color: '#2c77ba' }}>📄</span>
+                  <span style={{ color: '#d1d5db', margin: '0 2px' }}>|</span>
+                  <span title="Favoritos" style={{ cursor: 'pointer', color: '#ca8a04' }}>⭐</span>
+                  <span style={{ color: '#d1d5db', margin: '0 2px' }}>|</span>
+                  <span title="Visualizar" style={{ cursor: 'pointer', color: '#2c77ba' }}>📋</span>
+                  <span title="Ordenar" style={{ cursor: 'pointer', color: '#2c77ba' }}>📊</span>
                 </div>
 
                 {/* Tree panel */}
@@ -1844,7 +1848,7 @@ export default function PeticaoInicialPage() {
                     ))
                   )}
                 </div>
-              </div>
+              </fieldset>
 
               {/* ── Coluna direita: Instruções + Assuntos selecionados ── */}
               <div>
