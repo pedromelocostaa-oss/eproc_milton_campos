@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
@@ -8,8 +8,8 @@ import {
   identidadesGenero, orientacoesSexuais, racasEtnia,
   tiposDeficiencia, niveisEscolaridade, justicaGratuitaOpcoes,
   formasContato, nacionalidades,
-  arvoreAssuntos,
 } from '@/data/classesAssuntos';
+import { assuntosPorClasse } from '@/data/assuntosPorClasse';
 import type { AssuntoCNJ, NodoAssunto } from '@/data/classesAssuntos';
 import { comarcasMG, ritosPJe, areasPorRito, niveisSigiloPJe } from '@/data/peticaoInicialPJe';
 import { sortearVara } from '@/data/varas';
@@ -37,8 +37,7 @@ function buildAncestryLabel(tree: NodoAssunto[], targetCode: string): string {
   }
   const path = search(tree, []);
   if (!path || path.length === 0) return targetCode;
-  const padded = targetCode.padStart(6, '0');
-  return `${padded} - ${path.join(', ')}`;
+  return `${targetCode} - ${path.join(', ')}`;
 }
 
 function ConsultarInativoBtn() {
@@ -362,7 +361,8 @@ function AssuntoNode({
 }) {
   const [expanded, setExpanded] = useState(false);
   const isLeaf = !node.subitens || node.subitens.length === 0;
-  const isSelected = isLeaf && selected.some(s => s.codigo === node.codigo);
+  const isSelectable = isLeaf || (node.podePrincipal === true);
+  const isSelected = isSelectable && selected.some(s => s.codigo === node.codigo);
   const isDetailActive = selectedLeaf?.codigo === node.codigo;
   const pl = level * 20 + 6;
 
@@ -400,25 +400,52 @@ function AssuntoNode({
   }
 
   const isTop = level === 0;
+  const canSelectAsSubject = node.podePrincipal === true;
 
   return (
     <div>
       <div
-        onClick={() => setExpanded(e => !e)}
         style={{
           paddingLeft: pl, paddingTop: 5, paddingBottom: 5, paddingRight: 8,
           cursor: 'pointer', fontWeight: isTop ? 700 : 600, fontSize: 13,
-          background: 'transparent',
+          background: isDetailActive ? '#3b82f6' : isSelected ? '#dbeafe' : 'transparent',
           borderBottom: '1px solid #eee',
           display: 'flex', alignItems: 'center', gap: 5,
-          color: '#333',
+          color: isDetailActive ? '#fff' : '#333',
         }}
       >
-        <span style={{ fontSize: 10, flexShrink: 0, color: '#555', width: 10, textAlign: 'center' }}>
+        <span
+          onClick={() => setExpanded(e => !e)}
+          style={{ fontSize: 10, flexShrink: 0, color: isDetailActive ? '#fff' : '#555', width: 10, textAlign: 'center' }}
+        >
           {expanded ? '▾' : '▸'}
         </span>
-        <Folder size={14} style={{ flexShrink: 0, color: '#ca8a04', fill: '#fde68a' }} />
-        <span>{isTop ? node.descricao.toUpperCase() : node.descricao}</span>
+        {canSelectAsSubject && (
+          <span
+            onClick={(e) => { e.stopPropagation(); onSelectLeaf(node); }}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 13, height: 13, border: '1px solid ' + (isDetailActive ? '#fff' : '#999'),
+              borderRadius: 2, fontSize: 10, lineHeight: 1, flexShrink: 0,
+              background: isSelected ? (isDetailActive ? '#fff' : '#3b82f6') : 'transparent',
+              color: isSelected ? (isDetailActive ? '#3b82f6' : '#fff') : 'transparent',
+              cursor: 'pointer',
+            }}
+          >
+            {isSelected ? '✓' : ''}
+          </span>
+        )}
+        <span onClick={() => setExpanded(e => !e)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, flex: 1 }}>
+          <Folder size={14} style={{ flexShrink: 0, color: '#ca8a04', fill: '#fde68a' }} />
+          <span>{isTop ? node.descricao.toUpperCase() : node.descricao}</span>
+        </span>
+        {canSelectAsSubject && isDetailActive && (
+          <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', flexShrink: 0, fontSize: 12 }}>
+            <span title="Favorito" style={{ cursor: 'pointer', opacity: 0.8 }}>☆</span>
+            <span title="Informações" style={{ cursor: 'pointer', opacity: 0.8 }}>ⓘ</span>
+            <span title="Navegar" style={{ cursor: 'pointer', opacity: 0.8 }}>⇅</span>
+          </span>
+        )}
       </div>
       {expanded && node.subitens?.map(sub => (
         <AssuntoNode key={sub.codigo} node={sub} level={level + 1}
@@ -566,14 +593,23 @@ export default function PeticaoInicialPage() {
     : [];
 
   const handleRitoChange = (newRito: string) => {
-    setForm(f => ({ ...f, rito: newRito, area: '', classe: '' }));
+    setForm(f => ({ ...f, rito: newRito, area: '', classe: '', assuntos: [] }));
+    setPendingAssunto(null);
+    setSelectedLeaf(null);
   };
 
   const handleAreaChange = (newArea: string) => {
-    setForm(f => ({ ...f, area: newArea, classe: '' }));
+    setForm(f => ({ ...f, area: newArea, classe: '', assuntos: [] }));
+    setPendingAssunto(null);
+    setSelectedLeaf(null);
   };
 
   // ── Assuntos ──
+  const arvoreDaClasse = useMemo(
+    () => assuntosPorClasse(form.classe),
+    [form.classe],
+  );
+
   const toggleAssunto = (a: AssuntoCNJ) => {
     setForm(f => {
       const exists = f.assuntos.some(s => s.codigo === a.codigo);
@@ -582,9 +618,13 @@ export default function PeticaoInicialPage() {
   };
 
   function flattenLeaves(nodes: NodoAssunto[]): NodoAssunto[] {
-    return nodes.flatMap(n => n.subitens ? flattenLeaves(n.subitens) : [n]);
+    return nodes.flatMap(n => {
+      if (!n.subitens || n.subitens.length === 0) return [n];
+      const children = flattenLeaves(n.subitens);
+      return n.podePrincipal ? [n, ...children] : children;
+    });
   }
-  const allLeaves = flattenLeaves(arvoreAssuntos);
+  const allLeaves = flattenLeaves(arvoreDaClasse);
   const filteredLeaves = assuntoSearch.length >= 2
     ? allLeaves.filter(n => {
         const q = assuntoSearch.toLowerCase();
@@ -1676,7 +1716,7 @@ export default function PeticaoInicialPage() {
 
                   <div style={{ marginBottom: 12 }}>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#333', marginBottom: 3 }}>Classe processual:</label>
-                    <select className={fieldCls(errors.classe)} value={form.classe} onChange={e => update('classe', e.target.value)} disabled={!form.area} style={{ width: '100%' }}>
+                    <select className={fieldCls(errors.classe)} value={form.classe} onChange={e => { setForm(f => ({ ...f, classe: e.target.value, assuntos: [] })); setPendingAssunto(null); setSelectedLeaf(null); }} disabled={!form.area} style={{ width: '100%' }}>
                       <option value=""></option>
                       {areaClasses.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -1841,7 +1881,7 @@ export default function PeticaoInicialPage() {
                         onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
                     ))
                   ) : (
-                    arvoreAssuntos.map(n => (
+                    arvoreDaClasse.map(n => (
                       <AssuntoNode key={n.codigo} node={n} level={0}
                         selected={form.assuntos} onToggle={toggleAssunto}
                         onSelectLeaf={(leaf) => { setSelectedLeaf(leaf); setPendingAssunto(leaf); }} selectedLeaf={selectedLeaf} />
@@ -1877,7 +1917,7 @@ export default function PeticaoInicialPage() {
                       type="text"
                       readOnly
                       className="form-field"
-                      value={pendingAssunto ? buildAncestryLabel(arvoreAssuntos, pendingAssunto.codigo) : ''}
+                      value={pendingAssunto ? buildAncestryLabel(arvoreDaClasse, pendingAssunto.codigo) : ''}
                       placeholder="Selecione o assunto na árvore e clique em 'Incluir'"
                       style={{ width: '100%', background: '#f9fafb', fontSize: 13 }}
                     />
@@ -1930,7 +1970,7 @@ export default function PeticaoInicialPage() {
                         form.assuntos.map((a) => (
                           <tr key={a.codigo} style={{ borderBottom: '1px solid #e5e7eb' }}>
                             <td style={{ padding: '8px 10px' }}>
-                              <span>{buildAncestryLabel(arvoreAssuntos, a.codigo)}</span>
+                              <span>{buildAncestryLabel(arvoreDaClasse, a.codigo)}</span>
                               {' '}
                               <Info size={14} style={{ display: 'inline', verticalAlign: 'middle', color: '#2c77ba', cursor: 'pointer' }} />
                             </td>

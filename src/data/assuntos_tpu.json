@@ -100,6 +100,17 @@
     "podePrincipal": false,
     "subitens": [
       {
+        "codigo": "10470",
+        "descricao": "Bem de Família Legal",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10471", "descricao": "Impenhorabilidade", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.009/90", "artigo": "art. 1º" },
+          { "codigo": "10472", "descricao": "Exceções à Impenhorabilidade", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.009/90", "artigo": "art. 3º" },
+          { "codigo": "10473", "descricao": "Instituição Voluntária", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1.711" }
+        ]
+      },
+      {
         "codigo": "10431",
         "descricao": "Obrigações",
         "area": "Cível",
@@ -108,7 +119,19 @@
           { "codigo": "7681", "descricao": "Inadimplemento", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 389" },
           { "codigo": "7682", "descricao": "Espécies de Contratos", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 421" },
           { "codigo": "7683", "descricao": "Pagamento em Consignação", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 334" },
-          { "codigo": "7767", "descricao": "Cláusula Penal", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 408" }
+          { "codigo": "7767", "descricao": "Cláusula Penal", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 408" },
+          {
+            "codigo": "9593",
+            "descricao": "Locação de Imóvel",
+            "area": "Cível",
+            "podePrincipal": true,
+            "norma": "Lei 8.245/91",
+            "subitens": [
+              { "codigo": "9594", "descricao": "Locação Residencial", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.245/91" },
+              { "codigo": "9595", "descricao": "Locação Comercial", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.245/91" },
+              { "codigo": "9596", "descricao": "Locação por Temporada", "area": "Cível", "podePrincipal": true, "norma": "Lei 8.245/91" }
+            ]
+          }
         ]
       },
       {
@@ -149,6 +172,19 @@
         ]
       },
       {
+        "codigo": "10480",
+        "descricao": "Fatos Jurídicos",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10481", "descricao": "Negócio Jurídico", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 104" },
+          { "codigo": "10482", "descricao": "Ato Ilícito", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 186" },
+          { "codigo": "10483", "descricao": "Prescrição e Decadência", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 189" },
+          { "codigo": "10484", "descricao": "Nulidade", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 166" },
+          { "codigo": "10485", "descricao": "Anulabilidade", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 171" }
+        ]
+      },
+      {
         "codigo": "10460",
         "descricao": "Coisas",
         "area": "Cível",
@@ -158,6 +194,29 @@
           { "codigo": "10462", "descricao": "Usucapião", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1.238" },
           { "codigo": "10463", "descricao": "Posse", "area": "Cível", "podePrincipal": true },
           { "codigo": "10464", "descricao": "Condomínio", "area": "Cível", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "10490",
+        "descricao": "Empresas",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10491", "descricao": "Sociedade", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 981" },
+          { "codigo": "10492", "descricao": "Estabelecimento Empresarial", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1.142" },
+          { "codigo": "10493", "descricao": "Títulos de Crédito", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 887" },
+          { "codigo": "10494", "descricao": "Registro Empresarial", "area": "Cível", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "10500",
+        "descricao": "Pessoa Natural",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "10501", "descricao": "Capacidade", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 1º" },
+          { "codigo": "10502", "descricao": "Direitos da Personalidade", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 11" },
+          { "codigo": "10503", "descricao": "Domicílio", "area": "Cível", "podePrincipal": true, "norma": "Código Civil", "artigo": "art. 70" }
         ]
       }
     ]
@@ -342,6 +401,122 @@
           { "codigo": "9161", "descricao": "Tutela de Urgência", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 300" },
           { "codigo": "9162", "descricao": "Tutela de Evidência", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 311" },
           { "codigo": "9163", "descricao": "Arresto / Sequestro", "area": "Cível", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "9200",
+        "descricao": "Formação, Suspensão e Extinção do Processo",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9201", "descricao": "Condições da Ação", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 17" },
+          { "codigo": "9202", "descricao": "Pressupostos Processuais", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 485" },
+          { "codigo": "9203", "descricao": "Extinção do Processo sem Resolução de Mérito", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 485" }
+        ]
+      },
+      {
+        "codigo": "9210",
+        "descricao": "Partes e Procuradores",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9211", "descricao": "Capacidade Processual", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 70" },
+          { "codigo": "9212", "descricao": "Litisconsórcio", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 113" },
+          { "codigo": "9213", "descricao": "Intervenção de Terceiros", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 119" }
+        ]
+      },
+      {
+        "codigo": "9220",
+        "descricao": "Atos Processuais",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9221", "descricao": "Citação", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 238" },
+          { "codigo": "9222", "descricao": "Intimação", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 269" },
+          { "codigo": "9223", "descricao": "Nulidade", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 276" },
+          { "codigo": "9224", "descricao": "Prazos", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 218" }
+        ]
+      },
+      {
+        "codigo": "9230",
+        "descricao": "Antecipação de Tutela / Tutela Específica",
+        "area": "Cível",
+        "podePrincipal": true,
+        "norma": "CPC",
+        "artigo": "art. 294"
+      },
+      {
+        "codigo": "9240",
+        "descricao": "Sentença e Coisa Julgada",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9241", "descricao": "Sentença", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 487" },
+          { "codigo": "9242", "descricao": "Coisa Julgada", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 502" }
+        ]
+      },
+      {
+        "codigo": "9250",
+        "descricao": "Recurso",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9251", "descricao": "Apelação", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 1.009" },
+          { "codigo": "9252", "descricao": "Agravo de Instrumento", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 1.015" },
+          { "codigo": "9253", "descricao": "Embargos de Declaração", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 1.022" }
+        ]
+      },
+      {
+        "codigo": "9260",
+        "descricao": "Jurisdição e Competência",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9261", "descricao": "Competência", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 42" },
+          { "codigo": "9262", "descricao": "Conflito de Competência", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 66" }
+        ]
+      },
+      {
+        "codigo": "9270",
+        "descricao": "Provas",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9271", "descricao": "Perícia", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 464" },
+          { "codigo": "9272", "descricao": "Prova Testemunhal", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 442" },
+          { "codigo": "9273", "descricao": "Prova Documental", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 405" }
+        ]
+      },
+      {
+        "codigo": "9280",
+        "descricao": "Procedimentos Especiais",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9281", "descricao": "Ação de Consignação em Pagamento", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 539" },
+          { "codigo": "9282", "descricao": "Ação Monitória", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 700" },
+          { "codigo": "9283", "descricao": "Ação de Exigir Contas", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 550" }
+        ]
+      },
+      {
+        "codigo": "9290",
+        "descricao": "Nulidade / Incidente Processual",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9291", "descricao": "Exceção de Incompetência", "area": "Cível", "podePrincipal": true },
+          { "codigo": "9292", "descricao": "Impugnação ao Valor da Causa", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 293" },
+          { "codigo": "9293", "descricao": "Conflito de Jurisdição", "area": "Cível", "podePrincipal": true }
+        ]
+      },
+      {
+        "codigo": "9300",
+        "descricao": "Honorários",
+        "area": "Cível",
+        "podePrincipal": false,
+        "subitens": [
+          { "codigo": "9301", "descricao": "Honorários Advocatícios", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 85" },
+          { "codigo": "9302", "descricao": "Honorários Periciais", "area": "Cível", "podePrincipal": true, "norma": "CPC", "artigo": "art. 465" }
         ]
       }
     ]
