@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, FolderOpen,
   Settings, Users, BookOpen, ClipboardList,
-  List, Globe, Search, ExternalLink,
+  List, Globe, Search,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -87,21 +87,6 @@ function SubItem({ label, path, active, disabled, soon }: { label: string; path?
       <span className="flex-1 text-left">{label}</span>
       {soon && <SoonTag />}
     </button>
-  );
-}
-
-function ExternalLinkItem({ label, href }: { label: string; href: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="pje-sidebar-subitem w-full flex items-center gap-2"
-      style={{ textDecoration: 'none', color: 'inherit' }}
-    >
-      <span className="flex-1 text-left">{label}</span>
-      <ExternalLink size={11} style={{ opacity: 0.5 }} />
-    </a>
   );
 }
 
@@ -203,18 +188,7 @@ export default function EprocSidebar({ collapsed, intimacoesCount = 0 }: EprocSi
           <SidebarItem label="Fale Conosco" disabled />
           <SidebarItem label="Fórum de Conciliação" disabled />
 
-          <ExpandableItem label="Legislação">
-            <ExternalLinkItem label="Constituição Federal" href="https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm" />
-            <ExternalLinkItem label="Código Civil" href="https://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm" />
-            <ExternalLinkItem label="Código Penal" href="https://www.planalto.gov.br/ccivil_03/decreto-lei/del2848compilado.htm" />
-            <ExternalLinkItem label="Código de Processo Civil" href="https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13105.htm" />
-            <ExternalLinkItem label="Código de Processo Penal" href="https://www.planalto.gov.br/ccivil_03/decreto-lei/del3689compilado.htm" />
-            <ExternalLinkItem label="Código de Defesa do Consumidor" href="https://www.planalto.gov.br/ccivil_03/leis/l8078compilado.htm" />
-            <ExternalLinkItem label="CLT" href="https://www.planalto.gov.br/ccivil_03/decreto-lei/del5452compilado.htm" />
-            <ExternalLinkItem label="Estatuto da Criança e do Adolescente" href="https://www.planalto.gov.br/ccivil_03/leis/l8069.htm" />
-            <ExternalLinkItem label="Lei de Execução Penal" href="https://www.planalto.gov.br/ccivil_03/leis/l7210.htm" />
-            <ExternalLinkItem label="Lei Maria da Penha" href="https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11340.htm" />
-          </ExpandableItem>
+          <SidebarItem label="Legislação" path="/legislacao" active={at('/legislacao')} />
 
           <SidebarItem label="Sessões de Julgamento" disabled />
           <SidebarItem label="Tutoriais" disabled />
