@@ -35,6 +35,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registroEnviado, setRegistroEnviado] = useState(false);
+  const [primeiroAcesso, setPrimeiroAcesso] = useState(false);
 
   const changeFont = (delta: number) => {
     const root = document.documentElement;
@@ -49,65 +50,58 @@ export default function LoginPage() {
     if (!usuario || !senha) { setError('Preencha usuário e senha.'); return; }
 
     if (papel === 'aluno') {
-      if (!turmaId) { setError('Selecione a matéria.'); return; }
-
       setLoading(true);
 
-      // 1. Check if student already registered via cadastroStore
-      const cadExistente = cadastroPorCpf(usuario);
-      if (cadExistente && cadExistente.status === 'aprovado') {
-        const cadAuth = autenticarCadastro(usuario, senha);
-        if (cadAuth) {
+      if (!primeiroAcesso) {
+        // Returning student login — only CPF and senha required
+        const cadExistente = cadastroPorCpf(usuario);
+        if (cadExistente && cadExistente.status === 'aprovado') {
+          const cadAuth = autenticarCadastro(usuario, senha);
+          if (cadAuth) {
+            const { error: loginError, user } = await loginComoAluno(usuario, senha);
+            setLoading(false);
+            if (!loginError && user) { navigate('/dashboard'); return; }
+            setError('Erro ao autenticar.');
+            return;
+          }
+          setLoading(false);
+          setError('CPF ou senha inválidos.');
+          return;
+        }
+        if (cadExistente && cadExistente.status === 'pendente') {
+          setLoading(false);
+          setError('Seu cadastro ainda está aguardando aprovação do professor.');
+          return;
+        }
+
+        // Try hardcoded demo user (Luiz Cordeiro)
+        const cpfFmt = usuario.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        if (cpfFmt === '121.572.976-69') {
           const { error: loginError, user } = await loginComoAluno(usuario, senha);
           setLoading(false);
           if (!loginError && user) { navigate('/dashboard'); return; }
-          setError('Erro ao autenticar.');
+          setError('CPF ou senha inválidos.');
           return;
         }
+
         setLoading(false);
-        setError('CPF ou senha inválidos.');
-        return;
-      }
-      if (cadExistente && cadExistente.status === 'pendente') {
-        setLoading(false);
-        setError('Seu cadastro ainda está aguardando aprovação do professor.');
+        setError('CPF não encontrado. Se é seu primeiro acesso, clique em "Meu primeiro acesso" abaixo.');
         return;
       }
 
-      // 2. Try hardcoded demo user (Luiz Cordeiro)
-      const cpfFmt = usuario.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-      if (cpfFmt === '121.572.976-69') {
-        const { error: loginError, user } = await loginComoAluno(usuario, senha);
-        setLoading(false);
-        if (!loginError && user) { navigate('/dashboard'); return; }
-        setError('CPF ou senha inválidos.');
-        return;
-      }
-
-      // 3. Professor entering as student — check if they have a professor account
-      const isProf = isProfessorCpf(usuario);
-      if (isProf && !cadExistente) {
-        // Professor needs to register as student first
-        if (!nome.trim()) { setLoading(false); setError('Informe seu nome completo para o primeiro acesso.'); return; }
-        if (!email.trim()) { setLoading(false); setError('Informe seu e-mail.'); return; }
-
-        const result = registrarAluno({ cpf: usuario, nome: nome.trim(), email: email.trim(), endereco: endereco.trim(), telefone: telefone.trim(), senha, turmaId });
-        if (!result.ok) { setLoading(false); setError(result.erro || 'Erro ao registrar.'); return; }
-
-        // Auto-approved — log in immediately as student
-        const { error: loginError, user } = await loginComoAluno(usuario, senha);
-        setLoading(false);
-        if (!loginError && user) { navigate('/dashboard'); return; }
-        setRegistroEnviado(true);
-        return;
-      }
-
-      // 4. New student registration
-      if (!nome.trim()) { setLoading(false); setError('Informe seu nome completo para o primeiro acesso.'); return; }
+      // First access — registration flow
+      if (!turmaId) { setLoading(false); setError('Selecione a matéria.'); return; }
+      if (!nome.trim()) { setLoading(false); setError('Informe seu nome completo.'); return; }
       if (!email.trim()) { setLoading(false); setError('Informe seu e-mail.'); return; }
 
       const result = registrarAluno({ cpf: usuario, nome: nome.trim(), email: email.trim(), endereco: endereco.trim(), telefone: telefone.trim(), senha, turmaId });
       if (!result.ok) { setLoading(false); setError(result.erro || 'Erro ao registrar.'); return; }
+
+      if (result.autoAprovado) {
+        const { error: loginError, user } = await loginComoAluno(usuario, senha);
+        setLoading(false);
+        if (!loginError && user) { navigate('/dashboard'); return; }
+      }
 
       setLoading(false);
       setRegistroEnviado(true);
@@ -136,14 +130,12 @@ export default function LoginPage() {
     setEndereco('');
     setTelefone('');
     setTurmaId('');
+    setPrimeiroAcesso(false);
     if (demoMode && p === 'professor') {
       setUsuario('000.000.000-01');
       setSenha('Milton@2025');
     }
   };
-
-  const existingCadastro = usuario.replace(/\D/g, '').length === 11 ? cadastroPorCpf(usuario) : null;
-  const isReturningStudent = existingCadastro != null || usuario === '121.572.976-69' || (demoMode && usuario === '121.572.976-69');
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -252,24 +244,6 @@ export default function LoginPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Matéria selector — only for students */}
-                {papel === 'aluno' && (
-                  <div>
-                    <label className="block text-[14px] text-foreground mb-1 font-medium">Matéria</label>
-                    <select
-                      className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500"
-                      style={{ borderColor: '#c7ccd1' }}
-                      value={turmaId}
-                      onChange={e => setTurmaId(e.target.value)}
-                    >
-                      <option value="">-- Selecione a matéria --</option>
-                      {demoTurmas.map(t => (
-                        <option key={t.id} value={t.id}>{t.nome}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
                 <div>
                   <label className="block text-[14px] text-foreground mb-1">
                     {papel === 'professor' ? 'CPF do Professor' : 'CPF do Aluno'}
@@ -310,12 +284,26 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Campos de cadastro — only for new students (not returning) */}
-                {papel === 'aluno' && !isReturningStudent && (
+                {/* Campos de primeiro acesso — expandidos ao clicar "Meu primeiro acesso" */}
+                {papel === 'aluno' && primeiroAcesso && (
                   <>
                     <div>
+                      <label className="block text-[14px] text-foreground mb-1 font-medium">Matéria</label>
+                      <select
+                        className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500"
+                        style={{ borderColor: '#c7ccd1' }}
+                        value={turmaId}
+                        onChange={e => setTurmaId(e.target.value)}
+                      >
+                        <option value="">-- Selecione a matéria --</option>
+                        {demoTurmas.map(t => (
+                          <option key={t.id} value={t.id}>{t.nome}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
                       <label className="block text-[14px] text-foreground mb-1">
-                        Nome Completo <span className="text-[12px] text-muted-foreground">(primeiro acesso)</span>
+                        Nome Completo
                       </label>
                       <input
                         type="text"
@@ -370,15 +358,23 @@ export default function LoginPage() {
                   style={{ background: papel === 'professor' ? '#1e40af' : '#2c77ba' }}
                   disabled={loading}
                 >
-                  {loading ? 'Aguarde...' : 'Entrar'}
+                  {loading ? 'Aguarde...' : primeiroAcesso ? 'Cadastrar e Enviar' : 'Entrar'}
                 </button>
               </form>
 
               {papel === 'aluno' && (
-                <div className="mt-4 p-3 rounded text-[12px]" style={{ background: '#f0f7ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
-                  <strong>Primeiro acesso?</strong> Selecione a matéria e preencha todos os campos (nome, e-mail, endereço e telefone).
-                  Sua solicitação será enviada ao professor da matéria para aprovação.
-                </div>
+                <button
+                  type="button"
+                  onClick={() => { setPrimeiroAcesso(p => !p); setError(''); }}
+                  className="w-full mt-3 py-2.5 text-[14px] font-semibold rounded border transition-colors"
+                  style={{
+                    borderColor: primeiroAcesso ? '#dc2626' : '#2c77ba',
+                    color: primeiroAcesso ? '#dc2626' : '#2c77ba',
+                    background: primeiroAcesso ? '#fef2f2' : '#f0f7ff',
+                  }}
+                >
+                  {primeiroAcesso ? 'Voltar ao login' : 'Meu primeiro acesso'}
+                </button>
               )}
 
               <div className="flex items-center justify-between mt-5 mb-2">
