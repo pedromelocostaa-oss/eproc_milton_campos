@@ -5,6 +5,7 @@ import ProfLayout from '@/components/layout/ProfLayout';
 import { HelpTooltip } from '@/components/prof/HelpTooltip';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getAllDemoProcessos } from '@/data/demoStore';
+import { listarCadastros } from '@/data/cadastroStore';
 import type { Processo } from '@/integrations/supabase/types';
 import { Search } from 'lucide-react';
 
@@ -45,7 +46,9 @@ export default function FilaPeticoesPage() {
   useEffect(() => {
     if (!user) return;
     if (DEMO_MODE) {
-      setProcessos(getAllDemoProcessos().map(p => ({ ...p, nome_aluno: 'Luiz Cordeiro' })));
+      const cadastros = listarCadastros();
+      const nomeMap = new Map(cadastros.map(c => [c.id, c.nome]));
+      setProcessos(getAllDemoProcessos().map(p => ({ ...p, nome_aluno: nomeMap.get(p.aluno_id) ?? 'Aluno' })));
       setLoading(false);
       return;
     }
