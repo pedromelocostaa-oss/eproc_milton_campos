@@ -74,18 +74,8 @@ export const professoresPorTurma: Record<string, string[]> = {
 };
 
 // ---------- ALUNOS (lista para exibição na Área do Professor) ----------
-// Apenas Luiz Cordeiro (demo-aluno-1) faz login. Os demais são fictícios,
-// para o professor visualizar uma turma cheia ao testar o sistema.
-export const demoAlunosLista = [
-  { id: 'demo-aluno-1', cpf: '121.572.976-69', nome: 'Luiz Cordeiro',            matricula: '2023.1.001234', turma: 'Processo judicial eletrônico aplicado' },
-  { id: 'demo-aluno-2', cpf: '222.333.444-05', nome: 'Ana Beatriz Nunes',        matricula: '2023.1.001235', turma: 'Processo judicial eletrônico aplicado' },
-  { id: 'demo-aluno-3', cpf: '333.444.555-16', nome: 'Bruno Henrique Farias',    matricula: '2023.1.001236', turma: 'Processo judicial eletrônico aplicado' },
-  { id: 'demo-aluno-4', cpf: '444.555.666-27', nome: 'Camila Rodrigues Pinto',   matricula: '2023.1.001237', turma: 'Processo judicial eletrônico aplicado' },
-  { id: 'demo-aluno-5', cpf: '555.666.777-38', nome: 'Diego Almeida Souza',      matricula: '2023.1.001238', turma: 'Processo judicial eletrônico aplicado' },
-  { id: 'demo-aluno-6', cpf: '666.777.888-49', nome: 'Elisa Martins Barbosa',    matricula: '2023.1.001239', turma: 'Processo judicial eletrônico aplicado' },
-  { id: 'demo-aluno-7', cpf: '777.888.999-50', nome: 'Felipe Costa Andrade',     matricula: '2023.1.001240', turma: 'Processo judicial eletrônico aplicado' },
-  { id: 'demo-aluno-8', cpf: '888.999.000-61', nome: 'Gabriela Nogueira Reis',   matricula: '2023.1.001241', turma: 'Processo judicial eletrônico aplicado' },
-];
+// Alunos reais se cadastram via auto-registro e são aprovados pelo professor.
+export const demoAlunosLista: { id: string; cpf: string; nome: string; matricula: string; turma: string }[] = [];
 
 // ---------- TAREFAS ----------
 const PETICAO_REFERENCIA_DEMO = `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) FEDERAL DA _ª VARA FEDERAL DE BELO HORIZONTE — MG
