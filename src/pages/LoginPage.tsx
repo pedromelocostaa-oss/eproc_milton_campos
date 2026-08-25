@@ -2,7 +2,7 @@ import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCpf } from '@/lib/masks';
-import { Eye, EyeOff, HelpCircle, Contrast, Hand, GraduationCap, BookOpen, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, Contrast, Hand, GraduationCap, BookOpen, CheckCircle, Menu, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { demoTurmas } from '@/data/demoStore';
 import { registrarAluno, cadastroPorCpf, autenticarCadastro, isProfessorCpf } from '@/data/cadastroStore';
 
@@ -15,6 +15,50 @@ function EprocLogo() {
       <circle cx="140" cy="95" r="26" fill="#bcdcf5" opacity="0.75" />
       <text x="100" y="72" textAnchor="middle" fill="#ffffff" fontSize="36" fontWeight="700" fontFamily="'Open Sans', Arial, sans-serif" letterSpacing="1">eproc</text>
     </svg>
+  );
+}
+
+function SidebarItem({ label, sub, disabled, active }: { label: string; sub?: boolean; disabled?: boolean; active?: boolean }) {
+  return (
+    <div
+      style={{
+        padding: sub ? '7px 12px 7px 28px' : '9px 12px',
+        cursor: disabled ? 'default' : 'pointer',
+        color: disabled ? '#78909c' : active ? '#fff' : '#cfd8dc',
+        background: active ? '#455a64' : 'transparent',
+        borderLeft: active ? '3px solid #4fc3f7' : '3px solid transparent',
+        fontSize: sub ? 12 : 13,
+        transition: 'background .15s',
+      }}
+      onMouseEnter={e => { if (!disabled) (e.currentTarget as HTMLElement).style.background = '#455a64'; }}
+      onMouseLeave={e => { if (!disabled && !active) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+    >
+      {label}
+    </div>
+  );
+}
+
+function SidebarGroup({ label, expanded, onToggle, disabled, children }: {
+  label: string; expanded: boolean; onToggle: () => void; disabled?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <>
+      <div
+        onClick={onToggle}
+        style={{
+          padding: '9px 12px', cursor: 'pointer',
+          color: disabled ? '#78909c' : '#cfd8dc',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          transition: 'background .15s',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#455a64'; }}
+        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+      >
+        <span style={{ fontSize: 13 }}>{label}</span>
+        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </div>
+      {expanded && children}
+    </>
   );
 }
 
@@ -36,6 +80,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [registroEnviado, setRegistroEnviado] = useState(false);
   const [primeiroAcesso, setPrimeiroAcesso] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [expandCadastro, setExpandCadastro] = useState(false);
+  const [expandAutenticidade, setExpandAutenticidade] = useState(false);
 
   const changeFont = (delta: number) => {
     const root = document.documentElement;
@@ -150,12 +197,78 @@ export default function LoginPage() {
       </div>
 
       {/* Header teal */}
-      <header className="tjmg-header">
-        <span className="tjmg-header-title" style={{ marginLeft: 16 }}>Tribunal de Justiça do Estado de Minas Gerais</span>
+      <header className="tjmg-header" style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(s => !s)}
+          style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: '8px 12px', display: 'flex', alignItems: 'center' }}
+          title="Menu"
+        >
+          <Menu size={22} />
+        </button>
+        <span className="tjmg-header-title">Tribunal de Justiça do Estado de Minas Gerais</span>
       </header>
 
-      {/* Conteúdo: card de login */}
-      <main className="flex-1 overflow-y-auto flex justify-center items-start px-4 py-10" style={{ backgroundColor: 'hsl(var(--bg-page))' }}>
+      {/* Layout com sidebar + conteúdo */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* Sidebar */}
+        {sidebarOpen && (
+          <nav style={{
+            width: 240, minWidth: 240, background: '#37474f', color: '#cfd8dc',
+            overflowY: 'auto', fontSize: 13, display: 'flex', flexDirection: 'column',
+          }}>
+            {/* Pesquisar no menu */}
+            <div style={{ padding: '10px 12px 6px' }}>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Pesquisar no Menu (Alt + m)"
+                  style={{
+                    width: '100%', padding: '6px 8px', fontSize: 12,
+                    background: '#455a64', border: '1px solid #546e7a', borderRadius: 3,
+                    color: '#cfd8dc', outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Menu items */}
+            <SidebarItem label="Acessibilidade" />
+            <SidebarItem label="Entrar no Sistema" active />
+
+            {/* Cadastre-se AQUI! */}
+            <SidebarGroup label="Cadastre-se AQUI!" expanded={expandCadastro} onToggle={() => setExpandCadastro(e => !e)}>
+              <SidebarItem label="Cadastrar Advogado" sub />
+              <SidebarItem label="Cadastrar Jus Postulandi" sub disabled />
+              <SidebarItem label="Cadastrar Representante Legal de PJ" sub disabled />
+            </SidebarGroup>
+
+            {/* Consulta Autenticidade */}
+            <SidebarGroup label="Consulta Autenticidade" expanded={expandAutenticidade} onToggle={() => setExpandAutenticidade(e => !e)} disabled>
+              <SidebarItem label="Certidão Narratória" sub disabled />
+              <SidebarItem label="Certidão de Execução" sub disabled />
+              <SidebarItem label="Documentos" sub disabled />
+            </SidebarGroup>
+
+            <SidebarItem label="Consulta Guia de Custas" disabled />
+            <SidebarItem label="Audiências" disabled />
+            <SidebarItem label="Consulta Pública de Processos" disabled />
+            <SidebarItem label="Consulta de Documento por Chave" disabled />
+            <SidebarItem label="Fale Conosco" disabled />
+            <SidebarItem label="Fórum de Conciliação" disabled />
+            <SidebarItem label="Legislação" disabled />
+            <SidebarItem label="Precedentes Qualificados" disabled />
+            <SidebarItem label="Sessões de Julgamento" disabled />
+            <SidebarItem label="Tutoriais" disabled />
+
+            <div style={{ padding: '12px', fontSize: 10, color: '#78909c', borderTop: '1px solid #455a64', marginTop: 'auto' }}>
+              Simulador Educacional<br />Não possui vínculo com o TJMG
+            </div>
+          </nav>
+        )}
+
+        {/* Conteúdo principal */}
+        <main className="flex-1 overflow-y-auto flex justify-center items-start px-4 py-10" style={{ backgroundColor: 'hsl(var(--bg-page))' }}>
         <div className="bg-white border border-border w-full max-w-[520px] px-8 py-8 rounded" style={{ boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div className="flex justify-center mb-6"><EprocLogo /></div>
 
@@ -403,6 +516,7 @@ export default function LoginPage() {
           </div>
         </div>
       </main>
+      </div>
 
       <footer className="edu-footer py-2">
         Simulador Educacional e-Proc — Não possui vínculo com a Justiça Federal, TRF1 ou TJMG · Faculdade Milton Campos / Grupo Anima Educação
