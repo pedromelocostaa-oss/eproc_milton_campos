@@ -136,14 +136,9 @@ export default function LoginPage() {
     setEndereco('');
     setTelefone('');
     setTurmaId('');
-    if (demoMode) {
-      if (p === 'aluno') {
-        setUsuario('121.572.976-69');
-        setSenha('Milton@2025');
-      } else {
-        setUsuario('000.000.000-01');
-        setSenha('Milton@2025');
-      }
+    if (demoMode && p === 'professor') {
+      setUsuario('000.000.000-01');
+      setSenha('Milton@2025');
     }
   };
 
