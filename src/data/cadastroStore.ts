@@ -13,6 +13,9 @@ export interface AlunoCadastro {
   id: string;
   cpf: string;         // formatado (000.000.000-00)
   nome: string;
+  email: string;
+  endereco: string;
+  telefone: string;
   senha: string;       // texto puro — apenas simulação educacional
   turmaId: string;
   status: StatusCadastro;
@@ -86,27 +89,37 @@ export function alunosDoProfessor(professorId: string, status?: StatusCadastro):
     .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
+// CPFs dos professores pré-cadastrados (acesso coringa: podem se registrar como aluno)
+const PROFESSOR_CPFS = ['000.000.000-01', '150.665.876-83', '097.446.776-60', '149.534.096-12'];
+
+export function isProfessorCpf(cpf: string): boolean {
+  const f = formatCpf(cpf.replace(/\D/g, ''));
+  return PROFESSOR_CPFS.includes(f);
+}
+
 // ---- ações ----
-export function registrarAluno(dados: { cpf: string; nome: string; senha: string; turmaId: string }): { ok: boolean; erro?: string } {
+export function registrarAluno(dados: { cpf: string; nome: string; email: string; endereco: string; telefone: string; senha: string; turmaId: string }): { ok: boolean; erro?: string; autoAprovado?: boolean } {
   const cpf = formatCpf(dados.cpf.replace(/\D/g, ''));
   if (dados.cpf.replace(/\D/g, '').length !== 11) return { ok: false, erro: 'Informe um CPF válido (11 dígitos).' };
   if (!dados.nome.trim()) return { ok: false, erro: 'Informe seu nome completo.' };
+  if (!dados.email.trim()) return { ok: false, erro: 'Informe seu e-mail.' };
   if (dados.senha.length < 4) return { ok: false, erro: 'A senha deve ter ao menos 4 caracteres.' };
   if (!dados.turmaId) return { ok: false, erro: 'Selecione a matéria que você está cursando.' };
-  // CPFs reservados (demo aluno + professores)
-  const RESERVED = ['121.572.976-69', '000.000.000-01', '150.665.876-83', '097.446.776-60', '149.534.096-12'];
-  if (RESERVED.includes(cpf)) return { ok: false, erro: 'Este CPF já está em uso.' };
+  // CPF reservado do aluno demo
+  if (cpf === '121.572.976-69') return { ok: false, erro: 'Este CPF já está em uso.' };
+  const isProf = PROFESSOR_CPFS.includes(cpf);
   const existente = cadastroPorCpf(cpf);
   if (existente) {
     if (existente.status === 'recusado') {
-      // permite reenviar após recusa
-      salvar({ ...existente, nome: dados.nome.trim(), senha: dados.senha, turmaId: dados.turmaId, status: 'pendente', createdAt: new Date().toISOString() });
-      return { ok: true };
+      const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
+      salvar({ ...existente, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
+      return { ok: true, autoAprovado: isProf };
     }
     return { ok: false, erro: 'Já existe um cadastro com este CPF.' };
   }
-  salvar({ id: uid(), cpf, nome: dados.nome.trim(), senha: dados.senha, turmaId: dados.turmaId, status: 'pendente', createdAt: new Date().toISOString() });
-  return { ok: true };
+  const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
+  salvar({ id: uid(), cpf, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
+  return { ok: true, autoAprovado: isProf };
 }
 
 function salvar(c: AlunoCadastro) {
@@ -144,9 +157,9 @@ export function statusCadastroPorId(id: string): StatusCadastro | null {
 
 // ---- seed: solicitações de exemplo para o professor testar ----
 const SEED: AlunoCadastro[] = [
-  { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T09:00:00Z' },
-  { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T10:30:00Z' },
-  { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T08:15:00Z' },
+  { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', email: 'rafael.teixeira@email.com', endereco: 'Rua das Flores, 100 - BH/MG', telefone: '(31) 99999-0001', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T09:00:00Z' },
+  { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', email: 'juliana.campos@email.com', endereco: 'Av. Brasil, 250 - BH/MG', telefone: '(31) 99999-0002', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T10:30:00Z' },
+  { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', email: 'marcos.andrade@email.com', endereco: 'Rua Sergipe, 80 - BH/MG', telefone: '(31) 99999-0003', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T08:15:00Z' },
 ];
 
 export function garantirSeedCadastros(): void {

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import type { Profile } from '@/integrations/supabase/types';
 import { formatCpf, cpfToEmail } from '@/lib/masks';
-import { autenticarCadastro, cadastroPorCpf, type StatusCadastro } from '@/data/cadastroStore';
+import { autenticarCadastro, cadastroPorCpf, isProfessorCpf, type StatusCadastro } from '@/data/cadastroStore';
 import { demoTurmas } from '@/data/demoStore';
 
 interface AuthUser extends Profile {
@@ -12,6 +12,7 @@ interface AuthUser extends Profile {
   instituicao?: string;
   statusCadastro?: StatusCadastro; // para alunos auto-cadastrados
   turmaNome?: string;
+  perfilAtivo?: 'aluno' | 'professor';
 }
 
 interface AuthContextType {
@@ -19,6 +20,8 @@ interface AuthContextType {
   loading: boolean;
   demoMode: boolean;
   login: (cpf: string, senha: string) => Promise<{ error: string | null; user?: AuthUser | null }>;
+  loginComoAluno: (cpf: string, senha: string) => Promise<{ error: string | null; user?: AuthUser | null }>;
+  trocarPerfil: (perfil: 'aluno' | 'professor') => void;
   logout: () => Promise<void>;
   trocarSenha: (novaSenha: string) => Promise<{ error: string | null }>;
   refreshUser: () => Promise<void>;
@@ -112,9 +115,9 @@ const DEMO_USERS: Record<string, AuthUser> = {
 };
 
 const DEMO_PASSWORDS: Record<string, string> = {
-  '150.665.876-83': 'eproc2026',
+  '150.665.876-83': 'Milton2026',
   '097.446.776-60': 'eproc2026',
-  '149.534.096-12': 'eproc2026',
+  '149.534.096-12': 'Milton2026',
 };
 const DEMO_PASSWORD = 'Milton@2025';
 
@@ -204,6 +207,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null, user: null };
   };
 
+  const loginComoAluno = async (cpf: string, senha: string): Promise<{ error: string | null; user?: AuthUser | null }> => {
+    if (DEMO_MODE) {
+      const normalized = formatCpf(cpf.replace(/\D/g, ''));
+      const cad = autenticarCadastro(normalized, senha);
+      if (cad) {
+        const studentUser = usuarioDoCadastro(cad);
+        studentUser.perfilAtivo = 'aluno';
+        setUser(studentUser);
+        localStorage.setItem('eproc-demo-user', JSON.stringify(studentUser));
+        return { error: null, user: studentUser };
+      }
+      const demoUser = getDemoUser(cpf, senha);
+      if (demoUser && (demoUser.perfil === 'professor' || demoUser.perfil === 'admin')) {
+        const alunoUser = { ...demoUser, perfilAtivo: 'aluno' as const };
+        setUser(alunoUser);
+        localStorage.setItem('eproc-demo-user', JSON.stringify(alunoUser));
+        return { error: null, user: alunoUser };
+      }
+      if (demoUser) {
+        setUser(demoUser);
+        localStorage.setItem('eproc-demo-user', JSON.stringify(demoUser));
+        return { error: null, user: demoUser };
+      }
+      return { error: 'CPF ou senha inválidos.', user: null };
+    }
+    return login(cpf, senha);
+  };
+
+  const trocarPerfil = (perfil: 'aluno' | 'professor') => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, perfilAtivo: perfil };
+      if (DEMO_MODE) localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const logout = async () => {
     if (DEMO_MODE) {
       localStorage.removeItem('eproc-demo-user');
@@ -250,7 +290,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, demoMode: DEMO_MODE, login, logout, trocarSenha, refreshUser, atualizarUsuario }}>
+    <AuthContext.Provider value={{ user, loading, demoMode: DEMO_MODE, login, loginComoAluno, trocarPerfil, logout, trocarSenha, refreshUser, atualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   );

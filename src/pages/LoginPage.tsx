@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { formatCpf } from '@/lib/masks';
 import { Eye, EyeOff, HelpCircle, Contrast, Hand, GraduationCap, BookOpen, CheckCircle } from 'lucide-react';
 import { demoTurmas } from '@/data/demoStore';
-import { registrarAluno, cadastroPorCpf, autenticarCadastro } from '@/data/cadastroStore';
+import { registrarAluno, cadastroPorCpf, autenticarCadastro, isProfessorCpf } from '@/data/cadastroStore';
 
 function EprocLogo() {
   return (
@@ -21,12 +21,15 @@ function EprocLogo() {
 type Papel = 'aluno' | 'professor';
 
 export default function LoginPage() {
-  const { login, demoMode } = useAuth();
+  const { login, loginComoAluno, demoMode } = useAuth();
   const navigate = useNavigate();
   const [papel, setPapel] = useState<Papel | null>(null);
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [endereco, setEndereco] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [turmaId, setTurmaId] = useState('');
   const [showSenha, setShowSenha] = useState(false);
   const [error, setError] = useState('');
@@ -50,37 +53,61 @@ export default function LoginPage() {
 
       setLoading(true);
 
-      // Try to authenticate first (existing user or hardcoded demo)
-      const { error: loginError, user } = await login(usuario, senha);
-
-      if (!loginError && user) {
-        setLoading(false);
-        navigate(user.perfil === 'professor' || user.perfil === 'admin' ? '/prof/dashboard' : '/dashboard');
-        return;
-      }
-
-      // Not a known user — try to register
-      const cpfLimpo = usuario.replace(/\D/g, '');
-      const cpfFmt = cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-      const RESERVED = ['121.572.976-69', '000.000.000-01', '150.665.876-83', '097.446.776-60', '149.534.096-12'];
-      if (RESERVED.includes(cpfFmt)) {
+      // 1. Check if student already registered via cadastroStore
+      const cadExistente = cadastroPorCpf(usuario);
+      if (cadExistente && cadExistente.status === 'aprovado') {
+        const cadAuth = autenticarCadastro(usuario, senha);
+        if (cadAuth) {
+          const { error: loginError, user } = await loginComoAluno(usuario, senha);
+          setLoading(false);
+          if (!loginError && user) { navigate('/dashboard'); return; }
+          setError('Erro ao autenticar.');
+          return;
+        }
         setLoading(false);
         setError('CPF ou senha inválidos.');
         return;
       }
-
-      if (!nome.trim()) {
+      if (cadExistente && cadExistente.status === 'pendente') {
         setLoading(false);
-        setError('Informe seu nome completo para o primeiro acesso.');
+        setError('Seu cadastro ainda está aguardando aprovação do professor.');
         return;
       }
 
-      const result = registrarAluno({ cpf: usuario, nome: nome.trim(), senha, turmaId });
-      if (!result.ok) {
+      // 2. Try hardcoded demo user (Luiz Cordeiro)
+      const cpfFmt = usuario.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+      if (cpfFmt === '121.572.976-69') {
+        const { error: loginError, user } = await loginComoAluno(usuario, senha);
         setLoading(false);
-        setError(result.erro || 'Erro ao registrar.');
+        if (!loginError && user) { navigate('/dashboard'); return; }
+        setError('CPF ou senha inválidos.');
         return;
       }
+
+      // 3. Professor entering as student — check if they have a professor account
+      const isProf = isProfessorCpf(usuario);
+      if (isProf && !cadExistente) {
+        // Professor needs to register as student first
+        if (!nome.trim()) { setLoading(false); setError('Informe seu nome completo para o primeiro acesso.'); return; }
+        if (!email.trim()) { setLoading(false); setError('Informe seu e-mail.'); return; }
+
+        const result = registrarAluno({ cpf: usuario, nome: nome.trim(), email: email.trim(), endereco: endereco.trim(), telefone: telefone.trim(), senha, turmaId });
+        if (!result.ok) { setLoading(false); setError(result.erro || 'Erro ao registrar.'); return; }
+
+        // Auto-approved — log in immediately as student
+        const { error: loginError, user } = await loginComoAluno(usuario, senha);
+        setLoading(false);
+        if (!loginError && user) { navigate('/dashboard'); return; }
+        setRegistroEnviado(true);
+        return;
+      }
+
+      // 4. New student registration
+      if (!nome.trim()) { setLoading(false); setError('Informe seu nome completo para o primeiro acesso.'); return; }
+      if (!email.trim()) { setLoading(false); setError('Informe seu e-mail.'); return; }
+
+      const result = registrarAluno({ cpf: usuario, nome: nome.trim(), email: email.trim(), endereco: endereco.trim(), telefone: telefone.trim(), senha, turmaId });
+      if (!result.ok) { setLoading(false); setError(result.erro || 'Erro ao registrar.'); return; }
 
       setLoading(false);
       setRegistroEnviado(true);
@@ -105,6 +132,9 @@ export default function LoginPage() {
     setUsuario('');
     setSenha('');
     setNome('');
+    setEmail('');
+    setEndereco('');
+    setTelefone('');
     setTurmaId('');
     if (demoMode) {
       if (p === 'aluno') {
@@ -164,7 +194,7 @@ export default function LoginPage() {
               </div>
               <button
                 type="button"
-                onClick={() => { setRegistroEnviado(false); setPapel(null); setUsuario(''); setSenha(''); setNome(''); setTurmaId(''); }}
+                onClick={() => { setRegistroEnviado(false); setPapel(null); setUsuario(''); setSenha(''); setNome(''); setEmail(''); setEndereco(''); setTelefone(''); setTurmaId(''); }}
                 style={{ background: '#2c77ba', color: '#fff', border: 'none', borderRadius: 4, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
               >
                 Voltar ao login
@@ -285,21 +315,56 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Nome completo — only for new students (not returning) */}
+                {/* Campos de cadastro — only for new students (not returning) */}
                 {papel === 'aluno' && !isReturningStudent && (
-                  <div>
-                    <label className="block text-[14px] text-foreground mb-1">
-                      Nome Completo <span className="text-[12px] text-muted-foreground">(primeiro acesso)</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500"
-                      style={{ borderColor: '#c7ccd1' }}
-                      value={nome}
-                      onChange={e => setNome(e.target.value)}
-                      placeholder="Seu nome completo"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-[14px] text-foreground mb-1">
+                        Nome Completo <span className="text-[12px] text-muted-foreground">(primeiro acesso)</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500"
+                        style={{ borderColor: '#c7ccd1' }}
+                        value={nome}
+                        onChange={e => setNome(e.target.value)}
+                        placeholder="Seu nome completo"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[14px] text-foreground mb-1">E-mail</label>
+                      <input
+                        type="email"
+                        className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500"
+                        style={{ borderColor: '#c7ccd1' }}
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="seu.email@exemplo.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[14px] text-foreground mb-1">Endereço</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500"
+                        style={{ borderColor: '#c7ccd1' }}
+                        value={endereco}
+                        onChange={e => setEndereco(e.target.value)}
+                        placeholder="Rua, número, bairro, cidade/UF"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[14px] text-foreground mb-1">Telefone</label>
+                      <input
+                        type="tel"
+                        className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500"
+                        style={{ borderColor: '#c7ccd1' }}
+                        value={telefone}
+                        onChange={e => setTelefone(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {error && <div className="alert-error">{error}</div>}
@@ -316,7 +381,7 @@ export default function LoginPage() {
 
               {papel === 'aluno' && (
                 <div className="mt-4 p-3 rounded text-[12px]" style={{ background: '#f0f7ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
-                  <strong>Primeiro acesso?</strong> Preencha todos os campos, incluindo seu nome completo.
+                  <strong>Primeiro acesso?</strong> Selecione a matéria e preencha todos os campos (nome, e-mail, endereço e telefone).
                   Sua solicitação será enviada ao professor da matéria para aprovação.
                 </div>
               )}

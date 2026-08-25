@@ -56,7 +56,8 @@ function RequireAluno({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
   if (!user) return <Navigate to="/" replace />;
-  if (user.perfil !== 'aluno') return <Navigate to="/prof/dashboard" replace />;
+  const isAlunoMode = user.perfil === 'aluno' || user.perfilAtivo === 'aluno';
+  if (!isAlunoMode) return <Navigate to="/prof/dashboard" replace />;
   if (user.statusCadastro && user.statusCadastro !== 'aprovado') return <Navigate to="/aguardando" replace />;
   return <>{children}</>;
 }
