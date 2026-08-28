@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import ProfLayout from '@/components/layout/ProfLayout';
 import { Users, UserCheck, UserX, Clock, Check, X, GraduationCap, Trash2 } from 'lucide-react';
-import { demoTurmas, demoAlunosLista } from '@/data/demoStore';
+import { demoTurmas, demoAlunosLista, saveDemoIntimacao } from '@/data/demoStore';
 import {
   solicitacoesDoProfessor, alunosDoProfessor, aprovarCadastro, recusarCadastro,
   excluirCadastros, subscribeCadastros, type AlunoCadastro,
@@ -37,7 +37,21 @@ export default function GerenciarAlunosPage() {
     return subscribeCadastros(recarregar);
   }, [professorId]);
 
-  const aceitar = (c: AlunoCadastro) => { aprovarCadastro(c.id); recarregar(); };
+  const aceitar = (c: AlunoCadastro) => {
+    aprovarCadastro(c.id);
+    saveDemoIntimacao({
+      id: crypto.randomUUID(),
+      processo_id: null as any,
+      destinatario_id: c.id,
+      remetente_id: professorId,
+      texto: `Parabéns, ${c.nome}! Seu cadastro na matéria "${turmaNome(c.turmaId)}" foi aprovado pelo professor. Você já pode acessar o sistema e utilizar todas as funcionalidades disponíveis.`,
+      prazo_resposta: null,
+      lida: false,
+      data_ciencia: null,
+      created_at: new Date().toISOString(),
+    });
+    recarregar();
+  };
   const recusar = (c: AlunoCadastro) => {
     if (!confirm(`Recusar o cadastro de ${c.nome}?`)) return;
     recusarCadastro(c.id); recarregar();
