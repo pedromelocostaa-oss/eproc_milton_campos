@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import ProfLayout from '@/components/layout/ProfLayout';
 import { Users, UserCheck, UserX, Clock, Check, X, GraduationCap, Trash2 } from 'lucide-react';
 import { demoTurmas, demoAlunosLista, saveDemoIntimacao } from '@/data/demoStore';
+import { enviarEmailAprovacao } from '@/lib/emailService';
 import {
   solicitacoesDoProfessor, alunosDoProfessor, aprovarCadastro, recusarCadastro,
   excluirCadastros, subscribeCadastros, type AlunoCadastro,
@@ -39,17 +40,22 @@ export default function GerenciarAlunosPage() {
 
   const aceitar = (c: AlunoCadastro) => {
     aprovarCadastro(c.id);
+    const materia = turmaNome(c.turmaId);
     saveDemoIntimacao({
       id: crypto.randomUUID(),
       processo_id: null as any,
       destinatario_id: c.id,
       remetente_id: professorId,
-      texto: `Parabéns, ${c.nome}! Seu cadastro na matéria "${turmaNome(c.turmaId)}" foi aprovado pelo professor. Você já pode acessar o sistema e utilizar todas as funcionalidades disponíveis.`,
+      texto: `Parabéns, ${c.nome}! Seu cadastro na matéria "${materia}" foi aprovado pelo professor. Você já pode acessar o sistema e utilizar todas as funcionalidades disponíveis.`,
       prazo_resposta: null,
       lida: false,
       data_ciencia: null,
       created_at: new Date().toISOString(),
     });
+    if (c.email) {
+      enviarEmailAprovacao({ toName: c.nome, toEmail: c.email, materia })
+        .then(r => { if (!r.ok) console.warn('E-mail não enviado:', r.erro); });
+    }
     recarregar();
   };
   const recusar = (c: AlunoCadastro) => {
