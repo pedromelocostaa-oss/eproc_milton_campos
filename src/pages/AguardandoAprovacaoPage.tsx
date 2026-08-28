@@ -16,7 +16,7 @@ export default function AguardandoAprovacaoPage() {
       const status = statusCadastroPorId(user.id);
       if (status === 'aprovado') {
         atualizarUsuario({ statusCadastro: 'aprovado', ativo: true });
-        navigate('/dashboard');
+        navigate('/dashboard?aprovado=1');
       } else if (status === 'recusado') {
         atualizarUsuario({ statusCadastro: 'recusado' });
       }

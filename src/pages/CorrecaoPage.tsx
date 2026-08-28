@@ -8,6 +8,7 @@ import {
   getAllDemoProcessos, getDemoPartes, getDemoDocumentos,
   saveDemoProcesso, saveDemoMovimentacao, saveDemoIntimacao,
 } from '@/data/demoStore';
+import { listarCadastros } from '@/data/cadastroStore';
 import type { Processo, Parte, Documento } from '@/integrations/supabase/types';
 import { CheckCircle } from 'lucide-react';
 
@@ -64,7 +65,9 @@ export default function CorrecaoPage() {
         setNota(p.nota != null ? String(p.nota) : '');
         setPartes(getDemoPartes(id));
         setDocumentos(getDemoDocumentos(id));
-        setNomeAluno('Luiz Cordeiro');
+        const cadastros = listarCadastros();
+        const cadAluno = cadastros.find(c => c.id === p.aluno_id);
+        setNomeAluno(cadAluno?.nome ?? (p.aluno_id === 'demo-aluno-1' ? 'Luiz Cordeiro' : 'Aluno'));
       }
       setLoading(false);
       return;

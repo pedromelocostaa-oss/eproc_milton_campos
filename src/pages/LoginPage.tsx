@@ -83,6 +83,9 @@ export default function LoginPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandCadastro, setExpandCadastro] = useState(false);
   const [expandAutenticidade, setExpandAutenticidade] = useState(false);
+  const [esqueciSenhaOpen, setEsqueciSenhaOpen] = useState(false);
+  const [esqueciCpf, setEsqueciCpf] = useState('');
+  const [esqueciResult, setEsqueciResult] = useState<string | null>(null);
 
   const changeFont = (delta: number) => {
     const root = document.documentElement;
@@ -90,6 +93,25 @@ export default function LoginPage() {
     root.style.fontSize = `${Math.min(22, Math.max(12, cur + delta))}px`;
   };
   const toggleContrast = () => document.documentElement.classList.toggle('high-contrast');
+
+  const handleEsqueciSenha = () => {
+    setEsqueciResult(null);
+    if (!esqueciCpf || esqueciCpf.replace(/\D/g, '').length !== 11) {
+      setEsqueciResult('Informe um CPF válido (11 dígitos).');
+      return;
+    }
+    const cad = cadastroPorCpf(esqueciCpf);
+    if (cad) {
+      setEsqueciResult(`Senha encontrada! Sua senha é: ${cad.senha}`);
+      return;
+    }
+    const cpfFmt = formatCpf(esqueciCpf.replace(/\D/g, ''));
+    if (cpfFmt === '121.572.976-69') {
+      setEsqueciResult('Senha encontrada! Sua senha é: Milton@2025');
+      return;
+    }
+    setEsqueciResult('CPF não encontrado no sistema. Verifique ou faça um novo cadastro.');
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -505,7 +527,7 @@ export default function LoginPage() {
               </button>
 
               <div className="flex flex-col items-end gap-1 mt-3">
-                <button type="button" className="text-[13px] text-sky-600 hover:underline">Esqueci minha senha</button>
+                <button type="button" className="text-[13px] text-sky-600 hover:underline" onClick={() => { setEsqueciSenhaOpen(true); setEsqueciCpf(usuario); setEsqueciResult(null); }}>Esqueci minha senha</button>
                 <button type="button" className="text-[13px] text-sky-600 hover:underline">Autenticação em dois fatores</button>
               </div>
             </>
@@ -521,6 +543,55 @@ export default function LoginPage() {
       <footer className="edu-footer py-2">
         Simulador Educacional e-Proc — Não possui vínculo com a Justiça Federal, TRF1 ou TJMG · Faculdade Milton Campos / Grupo Anima Educação
       </footer>
+
+      {/* Modal Esqueci minha senha */}
+      {esqueciSenhaOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setEsqueciSenhaOpen(false)}>
+          <div style={{ background: '#fff', borderRadius: 8, padding: 28, width: 400, maxWidth: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#1e3a5f', marginBottom: 4 }}>Recuperar Senha</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>
+              Informe seu CPF para consultar sua senha cadastrada.
+              <br /><em style={{ fontSize: 11 }}>(Simulador educacional — em produção, o envio seria por e-mail)</em>
+            </div>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2 text-[14px] outline-none focus:border-sky-500 mb-3"
+              style={{ borderColor: '#c7ccd1' }}
+              value={esqueciCpf}
+              onChange={e => setEsqueciCpf(formatCpf(e.target.value))}
+              placeholder="000.000.000-00"
+              maxLength={14}
+            />
+            {esqueciResult && (
+              <div style={{
+                padding: '10px 12px', borderRadius: 4, fontSize: 13, marginBottom: 12,
+                background: esqueciResult.startsWith('Senha encontrada') ? '#dcfce7' : '#fee2e2',
+                color: esqueciResult.startsWith('Senha encontrada') ? '#166534' : '#991b1b',
+              }}>
+                {esqueciResult}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setEsqueciSenhaOpen(false)}
+                className="px-4 py-2 text-[13px] border rounded"
+                style={{ borderColor: '#d1d5db', color: '#6b7280' }}
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={handleEsqueciSenha}
+                className="px-4 py-2 text-[13px] rounded font-semibold"
+                style={{ background: '#1e40af', color: '#fff' }}
+              >
+                Consultar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

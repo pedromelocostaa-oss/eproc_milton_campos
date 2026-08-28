@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
 import {
   FileText, History, ListChecks, HelpCircle, MoreVertical, Clock,
-  Lightbulb, X, ArrowRight,
+  Lightbulb, X, ArrowRight, CheckCircle2,
 } from 'lucide-react';
 import { DEMO_MODE } from '@/integrations/supabase/client';
 import {
@@ -28,6 +28,8 @@ function fmtProxima(iso: string) {
 export default function DashboardAlunoPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [aprovadoBanner, setAprovadoBanner] = useState(() => searchParams.get('aprovado') === '1');
   const [processos, setProcessos] = useState<Processo[]>([]);
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [intimacoes, setIntimacoes] = useState<Intimacao[]>([]);
@@ -77,6 +79,18 @@ export default function DashboardAlunoPage() {
               <div style={{ fontSize: 12, color: '#2c77ba' }}>Você possui novidades não lidas.</div>
             </div>
             <button onClick={() => setNovidades(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={16} /></button>
+          </div>
+        )}
+
+        {/* Banner de aprovação */}
+        {aprovadoBanner && (
+          <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: 6, padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <CheckCircle2 size={24} style={{ color: '#16a34a', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#166534' }}>Cadastro aprovado!</div>
+              <div style={{ fontSize: 13, color: '#15803d' }}>Seu cadastro foi aprovado pelo professor. Você já pode usar o sistema normalmente.</div>
+            </div>
+            <button onClick={() => { setAprovadoBanner(false); searchParams.delete('aprovado'); setSearchParams(searchParams, { replace: true }); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#15803d' }}><X size={16} /></button>
           </div>
         )}
 
