@@ -38,7 +38,9 @@ export default function GerenciarAlunosPage() {
     return subscribeCadastros(recarregar);
   }, [professorId]);
 
-  const aceitar = (c: AlunoCadastro) => {
+  const [emailStatus, setEmailStatus] = useState<string | null>(null);
+
+  const aceitar = async (c: AlunoCadastro) => {
     aprovarCadastro(c.id);
     const materia = turmaNome(c.turmaId);
     saveDemoIntimacao({
@@ -52,11 +54,17 @@ export default function GerenciarAlunosPage() {
       data_ciencia: null,
       created_at: new Date().toISOString(),
     });
-    if (c.email) {
-      enviarEmailAprovacao({ toName: c.nome, toEmail: c.email, materia })
-        .then(r => { if (!r.ok) console.warn('E-mail não enviado:', r.erro); });
-    }
     recarregar();
+    if (c.email) {
+      setEmailStatus(`Enviando e-mail para ${c.email}...`);
+      const r = await enviarEmailAprovacao({ toName: c.nome, toEmail: c.email, materia });
+      if (r.ok) {
+        setEmailStatus(`E-mail enviado com sucesso para ${c.email}`);
+      } else {
+        setEmailStatus(`Erro ao enviar e-mail: ${r.erro}`);
+      }
+      setTimeout(() => setEmailStatus(null), 6000);
+    }
   };
   const recusar = (c: AlunoCadastro) => {
     if (!confirm(`Recusar o cadastro de ${c.nome}?`)) return;
@@ -111,6 +119,18 @@ export default function GerenciarAlunosPage() {
         <div style={{ fontSize: 15, color: '#6b7280', marginBottom: 20 }}>
           Aprove os alunos que solicitaram acesso às suas matérias e acompanhe sua lista de alunos.
         </div>
+
+        {/* Banner de status do e-mail */}
+        {emailStatus && (
+          <div style={{
+            padding: '12px 16px', borderRadius: 6, marginBottom: 16, fontSize: 14, fontWeight: 600,
+            background: emailStatus.includes('sucesso') ? '#dcfce7' : emailStatus.includes('Erro') ? '#fee2e2' : '#dbeafe',
+            color: emailStatus.includes('sucesso') ? '#166534' : emailStatus.includes('Erro') ? '#991b1b' : '#1e40af',
+            border: `1px solid ${emailStatus.includes('sucesso') ? '#86efac' : emailStatus.includes('Erro') ? '#fca5a5' : '#93c5fd'}`,
+          }}>
+            {emailStatus}
+          </div>
+        )}
 
         {/* ===== SOLICITAÇÕES (em destaque) ===== */}
         <div
