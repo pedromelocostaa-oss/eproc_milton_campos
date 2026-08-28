@@ -200,10 +200,6 @@ export default function LoginPage() {
     setTelefone('');
     setTurmaId('');
     setPrimeiroAcesso(false);
-    if (demoMode && p === 'professor') {
-      setUsuario('000.000.000-01');
-      setSenha('Milton@2025');
-    }
   };
 
   return (

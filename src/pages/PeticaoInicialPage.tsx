@@ -806,7 +806,7 @@ export default function PeticaoInicialPage() {
   const protocolar = async () => {
     setLoading(true);
     try {
-      const vara = sortearVara();
+      const vara = sortearVara(form.area);
       const numeroProcesso = generateProcessNumber(vara.codigo);
       const dataProtocolo = new Date().toISOString();
       const processoId = crypto.randomUUID();
