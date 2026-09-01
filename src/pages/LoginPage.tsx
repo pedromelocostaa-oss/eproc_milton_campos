@@ -105,11 +105,6 @@ export default function LoginPage() {
       setEsqueciResult(`Senha encontrada! Sua senha é: ${cad.senha}`);
       return;
     }
-    const cpfFmt = formatCpf(esqueciCpf.replace(/\D/g, ''));
-    if (cpfFmt === '121.572.976-69') {
-      setEsqueciResult('Senha encontrada! Sua senha é: Milton@2025');
-      return;
-    }
     setEsqueciResult('CPF não encontrado no sistema. Verifique ou faça um novo cadastro.');
   };
 

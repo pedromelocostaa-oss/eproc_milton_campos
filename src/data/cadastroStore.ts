@@ -105,8 +105,6 @@ export function registrarAluno(dados: { cpf: string; nome: string; email: string
   if (!dados.email.trim()) return { ok: false, erro: 'Informe seu e-mail.' };
   if (dados.senha.length < 4) return { ok: false, erro: 'A senha deve ter ao menos 4 caracteres.' };
   if (!dados.turmaId) return { ok: false, erro: 'Selecione a matéria que você está cursando.' };
-  // CPF reservado do aluno demo
-  if (cpf === '121.572.976-69') return { ok: false, erro: 'Este CPF já está em uso.' };
   const isProf = PROFESSOR_CPFS.includes(cpf);
   const existente = cadastroPorCpf(cpf);
   if (existente) {
@@ -153,22 +151,6 @@ export function statusCadastroPorId(id: string): StatusCadastro | null {
   return readAll().find(c => c.id === id)?.status ?? null;
 }
 
-// ---- seed: solicitações de exemplo para o professor testar ----
-const SEED: AlunoCadastro[] = [
-  { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', email: 'rafael.teixeira@email.com', endereco: 'Rua das Flores, 100 - BH/MG', telefone: '(31) 99999-0001', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T09:00:00Z' },
-  { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', email: 'juliana.campos@email.com', endereco: 'Av. Brasil, 250 - BH/MG', telefone: '(31) 99999-0002', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T10:30:00Z' },
-  { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', email: 'marcos.andrade@email.com', endereco: 'Rua Sergipe, 80 - BH/MG', telefone: '(31) 99999-0003', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T08:15:00Z' },
-];
-
 export function garantirSeedCadastros(): void {
-  try {
-    const existing = readAll();
-    if (existing.length === 0) {
-      writeAll(SEED);
-      return;
-    }
-    const existingIds = new Set(existing.map(c => c.id));
-    const missing = SEED.filter(s => !existingIds.has(s.id));
-    if (missing.length > 0) writeAll([...existing, ...missing]);
-  } catch { /* noop */ }
+  // noop — alunos se cadastram via primeiro acesso
 }

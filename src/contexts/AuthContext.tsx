@@ -50,19 +50,6 @@ function usuarioDoCadastro(cad: { id: string; cpf: string; nome: string; turmaId
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const DEMO_USERS: Record<string, AuthUser> = {
-  '121.572.976-69': {
-    id: 'demo-aluno-1',
-    cpf: '121.572.976-69',
-    nome_completo: 'Luiz Cordeiro',
-    matricula: '2023.1.001234',
-    turma_id: 'demo-turma-1',
-    perfil: 'aluno',
-    oab_simulado: 'MG 192.731',
-    primeiro_acesso: false,
-    ativo: true,
-    created_at: new Date().toISOString(),
-    email: 'luiz.cordeiro@miltoncampos.edu.br',
-  },
   '000.000.000-01': {
     id: 'demo-prof-1',
     cpf: '000.000.000-01',
