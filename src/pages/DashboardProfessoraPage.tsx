@@ -7,7 +7,7 @@ import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getDemoTarefas, getAllDemoProcessos, demoTurmas, demoAlunosLista,
 } from '@/data/demoStore';
-import { solicitacoesDoProfessor, subscribeCadastros } from '@/data/cadastroStore';
+import { solicitacoesDoProfessor, subscribeCadastros, listarCadastros } from '@/data/cadastroStore';
 import { UserPlus } from 'lucide-react';
 import type { Processo, Tarefa } from '@/integrations/supabase/types';
 import {
@@ -37,7 +37,11 @@ export default function DashboardProfessoraPage() {
 
     if (DEMO_MODE) {
       const allProc = getAllDemoProcessos();
-      setProcessos(allProc.map(p => ({ ...p, nome_aluno: 'Luiz Cordeiro' })));
+      const cadastros = listarCadastros();
+      setProcessos(allProc.map(p => {
+        const cad = cadastros.find(c => c.id === p.aluno_id);
+        return { ...p, nome_aluno: cad?.nome ?? 'Aluno' };
+      }));
       const tarefasProf = getDemoTarefas().filter(t => t.professor_id === user.id);
       setTarefas(tarefasProf);
       if (tarefasProf.length > 0) setTarefaSelecionada(tarefasProf[0].id);

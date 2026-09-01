@@ -67,7 +67,7 @@ export default function CorrecaoPage() {
         setDocumentos(getDemoDocumentos(id));
         const cadastros = listarCadastros();
         const cadAluno = cadastros.find(c => c.id === p.aluno_id);
-        setNomeAluno(cadAluno?.nome ?? (p.aluno_id === 'demo-aluno-1' ? 'Luiz Cordeiro' : 'Aluno'));
+        setNomeAluno(cadAluno?.nome ?? 'Aluno');
       }
       setLoading(false);
       return;
