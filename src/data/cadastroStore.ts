@@ -111,15 +111,13 @@ export function registrarAluno(dados: { cpf: string; nome: string; email: string
   const existente = cadastroPorCpf(cpf);
   if (existente) {
     if (existente.status === 'recusado') {
-      const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
-      salvar({ ...existente, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
-      return { ok: true, autoAprovado: isProf };
+      salvar({ ...existente, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status: 'aprovado', createdAt: new Date().toISOString() });
+      return { ok: true, autoAprovado: true };
     }
     return { ok: false, erro: 'Já existe um cadastro com este CPF.' };
   }
-  const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
-  salvar({ id: uid(), cpf, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
-  return { ok: true, autoAprovado: isProf };
+  salvar({ id: uid(), cpf, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status: 'aprovado', createdAt: new Date().toISOString() });
+  return { ok: true, autoAprovado: true };
 }
 
 function salvar(c: AlunoCadastro) {
@@ -157,9 +155,9 @@ export function statusCadastroPorId(id: string): StatusCadastro | null {
 
 // ---- seed: solicitações de exemplo para o professor testar ----
 const SEED: AlunoCadastro[] = [
-  { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', email: 'rafael.teixeira@email.com', endereco: 'Rua das Flores, 100 - BH/MG', telefone: '(31) 99999-0001', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T09:00:00Z' },
-  { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', email: 'juliana.campos@email.com', endereco: 'Av. Brasil, 250 - BH/MG', telefone: '(31) 99999-0002', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T10:30:00Z' },
-  { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', email: 'marcos.andrade@email.com', endereco: 'Rua Sergipe, 80 - BH/MG', telefone: '(31) 99999-0003', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'pendente', createdAt: '2026-08-18T08:15:00Z' },
+  { id: 'cad-seed-1', cpf: '101.202.303-40', nome: 'Rafael Augusto Teixeira', email: 'rafael.teixeira@email.com', endereco: 'Rua das Flores, 100 - BH/MG', telefone: '(31) 99999-0001', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T09:00:00Z' },
+  { id: 'cad-seed-2', cpf: '202.303.404-51', nome: 'Juliana Ferreira Campos', email: 'juliana.campos@email.com', endereco: 'Av. Brasil, 250 - BH/MG', telefone: '(31) 99999-0002', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T10:30:00Z' },
+  { id: 'cad-seed-3', cpf: '303.404.505-62', nome: 'Marcos Vinícius Andrade', email: 'marcos.andrade@email.com', endereco: 'Rua Sergipe, 80 - BH/MG', telefone: '(31) 99999-0003', senha: 'aluno123', turmaId: 'demo-turma-1', status: 'aprovado', createdAt: '2026-08-18T08:15:00Z' },
 ];
 
 export function garantirSeedCadastros(): void {

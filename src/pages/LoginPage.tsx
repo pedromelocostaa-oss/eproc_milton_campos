@@ -137,9 +137,9 @@ export default function LoginPage() {
           setError('CPF ou senha inválidos.');
           return;
         }
-        if (cadExistente && cadExistente.status === 'pendente') {
+        if (cadExistente) {
           setLoading(false);
-          setError('Seu cadastro ainda está aguardando aprovação do professor.');
+          setError('CPF ou senha inválidos.');
           return;
         }
 
@@ -164,14 +164,10 @@ export default function LoginPage() {
       const result = registrarAluno({ cpf: usuario, nome: nome.trim(), email: email.trim(), endereco: endereco.trim(), telefone: telefone.trim(), senha, turmaId });
       if (!result.ok) { setLoading(false); setError(result.erro || 'Erro ao registrar.'); return; }
 
-      if (result.autoAprovado) {
-        const { error: loginError, user } = await loginComoAluno(usuario, senha);
-        setLoading(false);
-        if (!loginError && user) { navigate('/dashboard'); return; }
-      }
-
+      const { error: loginError, user } = await loginComoAluno(usuario, senha);
       setLoading(false);
-      setRegistroEnviado(true);
+      if (!loginError && user) { navigate('/dashboard'); return; }
+      setError('Cadastro realizado. Faça login com seu CPF e senha.');
       return;
     }
 

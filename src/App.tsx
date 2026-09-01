@@ -47,7 +47,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!user) return <Navigate to="/" replace />;
-  if (user.statusCadastro && user.statusCadastro !== 'aprovado') return <Navigate to="/aguardando" replace />;
   if (user.primeiro_acesso) return <Navigate to="/trocar-senha" replace />;
   return <>{children}</>;
 }
@@ -58,7 +57,6 @@ function RequireAluno({ children }: { children: ReactNode }) {
   if (!user) return <Navigate to="/" replace />;
   const isAlunoMode = user.perfil === 'aluno' || user.perfilAtivo === 'aluno';
   if (!isAlunoMode) return <Navigate to="/prof/dashboard" replace />;
-  if (user.statusCadastro && user.statusCadastro !== 'aprovado') return <Navigate to="/aguardando" replace />;
   return <>{children}</>;
 }
 
