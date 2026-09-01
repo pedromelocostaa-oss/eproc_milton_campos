@@ -87,6 +87,7 @@ const DEMO_USERS: Record<string, AuthUser> = {
     primeiro_acesso: false,
     ativo: true,
     created_at: new Date().toISOString(),
+    email: 'giulia.vieira@miltoncampos.edu.br',
   },
   '097.446.776-60': {
     id: 'demo-prof-3',

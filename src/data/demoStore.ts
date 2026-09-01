@@ -75,7 +75,9 @@ export const professoresPorTurma: Record<string, string[]> = {
 
 // ---------- ALUNOS (lista para exibição na Área do Professor) ----------
 // Alunos reais se cadastram via auto-registro e são aprovados pelo professor.
-export const demoAlunosLista: { id: string; cpf: string; nome: string; matricula: string; turma: string }[] = [];
+export const demoAlunosLista: { id: string; cpf: string; nome: string; matricula: string; turma: string }[] = [
+  { id: 'demo-aluno-2', cpf: '150.665.876-83', nome: 'Giulia Name Vieira', matricula: '2023.1.001235', turma: 'Processo judicial eletrônico aplicado' },
+];
 
 // ---------- TAREFAS ----------
 const PETICAO_REFERENCIA_DEMO = `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) FEDERAL DA _ª VARA FEDERAL DE BELO HORIZONTE — MG
