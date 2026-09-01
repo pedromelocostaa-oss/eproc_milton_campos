@@ -143,13 +143,11 @@ export default function LoginPage() {
           return;
         }
 
-        // Try hardcoded demo user (Luiz Cordeiro)
-        const cpfFmt = usuario.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
-        if (cpfFmt === '121.572.976-69') {
-          const { error: loginError, user } = await loginComoAluno(usuario, senha);
+        // Try hardcoded demo users (Luiz Cordeiro + professors entering as student)
+        const { error: loginError, user } = await loginComoAluno(usuario, senha);
+        if (!loginError && user) {
           setLoading(false);
-          if (!loginError && user) { navigate('/dashboard'); return; }
-          setError('CPF ou senha inválidos.');
+          navigate('/dashboard');
           return;
         }
 
