@@ -109,13 +109,15 @@ export function registrarAluno(dados: { cpf: string; nome: string; email: string
   const existente = cadastroPorCpf(cpf);
   if (existente) {
     if (existente.status === 'recusado') {
-      salvar({ ...existente, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status: 'aprovado', createdAt: new Date().toISOString() });
-      return { ok: true, autoAprovado: true };
+      const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
+      salvar({ ...existente, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
+      return { ok: true, autoAprovado: isProf };
     }
     return { ok: false, erro: 'Já existe um cadastro com este CPF.' };
   }
-  salvar({ id: uid(), cpf, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status: 'aprovado', createdAt: new Date().toISOString() });
-  return { ok: true, autoAprovado: true };
+  const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
+  salvar({ id: uid(), cpf, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
+  return { ok: true, autoAprovado: isProf };
 }
 
 function salvar(c: AlunoCadastro) {

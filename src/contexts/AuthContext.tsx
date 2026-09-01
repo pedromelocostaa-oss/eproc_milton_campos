@@ -104,7 +104,7 @@ const DEMO_USERS: Record<string, AuthUser> = {
 
 const DEMO_PASSWORDS: Record<string, string> = {
   '150.665.876-83': 'Milton2026',
-  '097.446.776-60': 'eproc2026',
+  '097.446.776-60': 'Prof@Pedro2026',
   '149.534.096-12': 'Milton2026',
 };
 const DEMO_PASSWORD = 'Milton@2025';
