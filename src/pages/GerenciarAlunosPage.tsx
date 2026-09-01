@@ -6,7 +6,7 @@ import { demoTurmas, demoAlunosLista, saveDemoIntimacao } from '@/data/demoStore
 import { enviarEmailAprovacao } from '@/lib/emailService';
 import {
   solicitacoesDoProfessor, alunosDoProfessor, aprovarCadastro, recusarCadastro,
-  excluirCadastros, subscribeCadastros, type AlunoCadastro,
+  excluirCadastros, subscribeCadastros, listarCadastros, type AlunoCadastro,
 } from '@/data/cadastroStore';
 
 function turmaNome(turmaId: string) {
@@ -25,11 +25,14 @@ export default function GerenciarAlunosPage() {
 
   const [pendentes, setPendentes] = useState<AlunoCadastro[]>([]);
   const [aprovadosCad, setAprovadosCad] = useState<AlunoCadastro[]>([]);
+  const [todosCadastros, setTodosCadastros] = useState<AlunoCadastro[]>([]);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [mostrarSenhas, setMostrarSenhas] = useState(false);
 
   const recarregar = () => {
     setPendentes(solicitacoesDoProfessor(professorId));
     setAprovadosCad(alunosDoProfessor(professorId, 'aprovado'));
+    setTodosCadastros(listarCadastros().sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
     setSelecionados(new Set());
   };
   useEffect(() => {
@@ -272,6 +275,65 @@ export default function GerenciarAlunosPage() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+
+        {/* ===== PAINEL COMPLETO — TODOS OS CADASTROS ===== */}
+        <div className="prof-card" style={{ padding: 0, marginTop: 24 }}>
+          <div className="prof-card-header" style={{ justifyContent: 'space-between' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Users size={18} color="#7c3aed" /> Painel completo — Todos os cadastros ({todosCadastros.length})
+            </span>
+            <button
+              onClick={() => setMostrarSenhas(!mostrarSenhas)}
+              style={{ fontSize: 12, padding: '4px 12px', borderRadius: 4, border: '1px solid #d1d5db', background: mostrarSenhas ? '#fee2e2' : '#f9fafb', color: mostrarSenhas ? '#991b1b' : '#374151', cursor: 'pointer' }}
+            >
+              {mostrarSenhas ? 'Ocultar senhas' : 'Mostrar senhas'}
+            </button>
+          </div>
+          {todosCadastros.length === 0 ? (
+            <div style={{ padding: 32, textAlign: 'center', color: '#6b7280', fontSize: 14 }}>Nenhum cadastro no sistema.</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="prof-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    <th style={{ whiteSpace: 'nowrap' }}>#</th>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Email</th>
+                    {mostrarSenhas && <th>Senha</th>}
+                    <th>Telefone</th>
+                    <th>Matéria</th>
+                    <th>Status</th>
+                    <th>Data cadastro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todosCadastros.map((c, i) => (
+                    <tr key={c.id}>
+                      <td style={{ color: '#9ca3af', textAlign: 'center' }}>{i + 1}</td>
+                      <td style={{ fontWeight: 600, color: '#1e3a5f', whiteSpace: 'nowrap' }}>{c.nome}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{c.cpf}</td>
+                      <td>{c.email || '—'}</td>
+                      {mostrarSenhas && <td style={{ fontFamily: 'monospace', color: '#dc2626' }}>{c.senha}</td>}
+                      <td>{c.telefone || '—'}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{turmaNome(c.turmaId)}</td>
+                      <td>
+                        <span style={{
+                          display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                          background: c.status === 'aprovado' ? '#dcfce7' : c.status === 'pendente' ? '#fef3c7' : '#fee2e2',
+                          color: c.status === 'aprovado' ? '#166534' : c.status === 'pendente' ? '#92400e' : '#991b1b',
+                        }}>
+                          {c.status === 'aprovado' ? 'Aprovado' : c.status === 'pendente' ? 'Pendente' : 'Recusado'}
+                        </span>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap', color: '#6b7280' }}>{fmtData(c.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
