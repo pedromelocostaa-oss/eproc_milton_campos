@@ -2,15 +2,15 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import type { Profile } from '@/integrations/supabase/types';
 import { formatCpf, cpfToEmail } from '@/lib/masks';
-import { autenticarCadastro, cadastroPorCpf, isProfessorCpf, type StatusCadastro } from '@/data/cadastroStore';
-import { demoTurmas } from '@/data/demoStore';
+import { autenticarCadastro, cadastroPorCpf, isProfessorCpf, initCadastroStore, type StatusCadastro } from '@/data/cadastroStore';
+import { getDemoTurmas, initSupabaseStore } from '@/data/demoStore';
 
 interface AuthUser extends Profile {
   email?: string;
   name?: string;
   curso?: string;
   instituicao?: string;
-  statusCadastro?: StatusCadastro; // para alunos auto-cadastrados
+  statusCadastro?: StatusCadastro;
   turmaNome?: string;
   perfilAtivo?: 'aluno' | 'professor';
 }
@@ -28,9 +28,9 @@ interface AuthContextType {
   atualizarUsuario: (patch: Partial<AuthUser>) => void;
 }
 
-/** Monta um AuthUser a partir de um cadastro de aluno auto-registrado. */
 function usuarioDoCadastro(cad: { id: string; cpf: string; nome: string; turmaId: string; status: StatusCadastro; createdAt: string }): AuthUser {
-  const turma = demoTurmas.find(t => t.id === cad.turmaId);
+  const turmas = getDemoTurmas();
+  const turma = turmas.find(t => t.id === cad.turmaId);
   return {
     id: cad.id,
     cpf: cad.cpf,
@@ -109,15 +109,41 @@ const DEMO_PASSWORDS: Record<string, string> = {
 };
 const DEMO_PASSWORD = 'Milton@2025';
 
-function getDemoUser(cpf: string, senha: string): AuthUser | null {
+async function getUser(cpf: string, senha: string): Promise<AuthUser | null> {
   const normalized = formatCpf(cpf.replace(/\D/g, ''));
-  const user = DEMO_USERS[normalized];
-  if (user) {
-    const specificPwd = DEMO_PASSWORDS[normalized];
-    if (specificPwd ? senha === specificPwd : (senha === DEMO_PASSWORD || senha === 'demo123')) return user;
+
+  if (DEMO_MODE) {
+    const user = DEMO_USERS[normalized];
+    if (user) {
+      const specificPwd = DEMO_PASSWORDS[normalized];
+      if (specificPwd ? senha === specificPwd : (senha === DEMO_PASSWORD || senha === 'demo123')) return user;
+      return null;
+    }
+    const cad = autenticarCadastro(normalized, senha);
+    if (cad) return usuarioDoCadastro(cad);
     return null;
   }
-  // Aluno auto-cadastrado
+
+  // Supabase mode: check profiles table for professors
+  if (supabase) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('cpf', normalized)
+      .single();
+
+    if (profile && profile.perfil === 'professor') {
+      const specificPwd = DEMO_PASSWORDS[normalized];
+      if (specificPwd ? senha === specificPwd : (senha === DEMO_PASSWORD || senha === 'demo123')) {
+        const demoUser = DEMO_USERS[normalized];
+        if (demoUser) return { ...demoUser, ...profile, perfil: 'professor' } as AuthUser;
+        return profile as AuthUser;
+      }
+      return null;
+    }
+  }
+
+  // Check cadastros for students
   const cad = autenticarCadastro(normalized, senha);
   if (cad) return usuarioDoCadastro(cad);
   return null;
@@ -127,152 +153,86 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadProfile = async (userId: string): Promise<AuthUser | null> => {
-    if (!supabase) return null;
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    if (error || !data) return null;
-    return data as AuthUser;
-  };
-
   useEffect(() => {
-    if (DEMO_MODE) {
+    async function init() {
+      if (!DEMO_MODE) {
+        await Promise.all([initSupabaseStore(), initCadastroStore()]);
+      }
+
       const stored = localStorage.getItem('eproc-demo-user');
       if (stored) {
         try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
       }
       setLoading(false);
-      return;
     }
-
-    supabase!.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await loadProfile(session.user.id);
-        setUser(profile);
-      }
-      setLoading(false);
-    });
-
-    const { data: { subscription } } = supabase!.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          const profile = await loadProfile(session.user.id);
-          setUser(profile);
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    );
-    return () => subscription.unsubscribe();
+    init();
   }, []);
 
   const login = async (cpf: string, senha: string): Promise<{ error: string | null; user?: AuthUser | null }> => {
-    if (DEMO_MODE) {
-      const demoUser = getDemoUser(cpf, senha);
-      if (!demoUser) return { error: 'CPF ou senha inválidos.', user: null };
-      setUser(demoUser);
-      localStorage.setItem('eproc-demo-user', JSON.stringify(demoUser));
-      return { error: null, user: demoUser };
-    }
-
-    const email = cpfToEmail(cpf);
-    const { data, error } = await supabase!.auth.signInWithPassword({ email, password: senha });
-    if (error) {
-      const msg = error.message.includes('Invalid login')
-        ? 'CPF ou senha inválidos.'
-        : error.message;
-      return { error: msg, user: null };
-    }
-    if (data.user) {
-      const profile = await loadProfile(data.user.id);
-      setUser(profile);
-      return { error: null, user: profile };
-    }
-    return { error: null, user: null };
+    const authUser = await getUser(cpf, senha);
+    if (!authUser) return { error: 'CPF ou senha inválidos.', user: null };
+    setUser(authUser);
+    localStorage.setItem('eproc-demo-user', JSON.stringify(authUser));
+    return { error: null, user: authUser };
   };
 
   const loginComoAluno = async (cpf: string, senha: string): Promise<{ error: string | null; user?: AuthUser | null }> => {
-    if (DEMO_MODE) {
-      const normalized = formatCpf(cpf.replace(/\D/g, ''));
-      const cad = autenticarCadastro(normalized, senha);
-      if (cad) {
-        const studentUser = usuarioDoCadastro(cad);
-        studentUser.perfilAtivo = 'aluno';
-        setUser(studentUser);
-        localStorage.setItem('eproc-demo-user', JSON.stringify(studentUser));
-        return { error: null, user: studentUser };
-      }
-      const demoUser = getDemoUser(cpf, senha);
-      if (demoUser && (demoUser.perfil === 'professor' || demoUser.perfil === 'admin')) {
-        const alunoUser = { ...demoUser, perfilAtivo: 'aluno' as const };
-        setUser(alunoUser);
-        localStorage.setItem('eproc-demo-user', JSON.stringify(alunoUser));
-        return { error: null, user: alunoUser };
-      }
-      if (demoUser) {
-        setUser(demoUser);
-        localStorage.setItem('eproc-demo-user', JSON.stringify(demoUser));
-        return { error: null, user: demoUser };
-      }
-      return { error: 'CPF ou senha inválidos.', user: null };
+    const normalized = formatCpf(cpf.replace(/\D/g, ''));
+    const cad = autenticarCadastro(normalized, senha);
+    if (cad) {
+      const studentUser = usuarioDoCadastro(cad);
+      studentUser.perfilAtivo = 'aluno';
+      setUser(studentUser);
+      localStorage.setItem('eproc-demo-user', JSON.stringify(studentUser));
+      return { error: null, user: studentUser };
     }
-    return login(cpf, senha);
+    const authUser = await getUser(cpf, senha);
+    if (authUser && (authUser.perfil === 'professor' || authUser.perfil === 'admin')) {
+      const alunoUser = { ...authUser, perfilAtivo: 'aluno' as const };
+      setUser(alunoUser);
+      localStorage.setItem('eproc-demo-user', JSON.stringify(alunoUser));
+      return { error: null, user: alunoUser };
+    }
+    if (authUser) {
+      setUser(authUser);
+      localStorage.setItem('eproc-demo-user', JSON.stringify(authUser));
+      return { error: null, user: authUser };
+    }
+    return { error: 'CPF ou senha inválidos.', user: null };
   };
 
   const trocarPerfil = (perfil: 'aluno' | 'professor') => {
     setUser(prev => {
       if (!prev) return prev;
       const updated = { ...prev, perfilAtivo: perfil };
-      if (DEMO_MODE) localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
+      localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
       return updated;
     });
   };
 
   const logout = async () => {
-    if (DEMO_MODE) {
-      localStorage.removeItem('eproc-demo-user');
-      setUser(null);
-      return;
-    }
-    await supabase!.auth.signOut();
+    localStorage.removeItem('eproc-demo-user');
     setUser(null);
   };
 
   const trocarSenha = async (novaSenha: string): Promise<{ error: string | null }> => {
-    if (DEMO_MODE) {
-      if (user) {
-        const updated = { ...user, primeiro_acesso: false };
-        setUser(updated);
-        localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
-      }
-      return { error: null };
-    }
-
-    const { error } = await supabase!.auth.updateUser({ password: novaSenha });
-    if (error) return { error: error.message };
-
     if (user) {
-      await supabase!.from('profiles').update({ primeiro_acesso: false }).eq('id', user.id);
-      setUser({ ...user, primeiro_acesso: false });
+      const updated = { ...user, primeiro_acesso: false };
+      setUser(updated);
+      localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
     }
     return { error: null };
   };
 
   const refreshUser = async () => {
-    if (DEMO_MODE || !user) return;
-    const profile = await loadProfile(user.id);
-    if (profile) setUser(profile);
+    // no-op for now
   };
 
   const atualizarUsuario = (patch: Partial<AuthUser>) => {
     setUser(prev => {
       if (!prev) return prev;
       const updated = { ...prev, ...patch };
-      if (DEMO_MODE) localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
+      localStorage.setItem('eproc-demo-user', JSON.stringify(updated));
       return updated;
     });
   };

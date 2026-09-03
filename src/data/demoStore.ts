@@ -1,8 +1,8 @@
 import type { Processo, Intimacao, Movimentacao, Parte, Documento, Tarefa, Turma } from '@/integrations/supabase/types';
+import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 
-// ---- Persistent demo store using localStorage ----
+// ---- Persistent store: localStorage (demo) or Supabase (production) ----
 
-// v2 keys — força início limpo (dados antigos das chaves sem sufixo são ignorados)
 const KEYS = {
   processos: 'demo-processos-v2',
   movimentacoes: 'demo-movimentacoes-v2',
@@ -13,17 +13,62 @@ const KEYS = {
   turmas: 'demo-turmas',
 };
 
-function get<T>(key: string, fallback: T): T {
-  try {
-    const v = localStorage.getItem(key);
-    return v ? JSON.parse(v) : fallback;
-  } catch { return fallback; }
+// ---- In-memory cache (used when Supabase is active) ----
+const cache = new Map<string, any>();
+let _initialized = false;
+
+export async function initSupabaseStore(): Promise<void> {
+  if (DEMO_MODE || !supabase || _initialized) return;
+  const [turmas, tarefas, processos, partes, docs, movs, intims] = await Promise.all([
+    supabase.from('turmas').select('*'),
+    supabase.from('tarefas').select('*'),
+    supabase.from('processos').select('*'),
+    supabase.from('partes').select('*'),
+    supabase.from('documentos').select('*'),
+    supabase.from('movimentacoes').select('*'),
+    supabase.from('intimacoes').select('*'),
+  ]);
+  cache.set(KEYS.turmas, turmas.data || []);
+  cache.set(KEYS.tarefas, tarefas.data || []);
+  cache.set(KEYS.processos, processos.data || []);
+  cache.set(KEYS.partes, partes.data || []);
+  cache.set(KEYS.documentos, docs.data || []);
+  cache.set(KEYS.movimentacoes, movs.data || []);
+  cache.set(KEYS.intimacoes, intims.data || []);
+
+  // Load professores_turmas into the mapping
+  const { data: pt } = await supabase.from('professores_turmas').select('*');
+  if (pt) {
+    const map: Record<string, string[]> = {};
+    pt.forEach((row: any) => {
+      if (!map[row.turma_id]) map[row.turma_id] = [];
+      map[row.turma_id].push(row.professor_id);
+    });
+    _professoresPorTurmaDb = map;
+  }
+
+  _initialized = true;
 }
 
-// ---- Cross-tab sync via BroadcastChannel ----
+export function isStoreReady(): boolean {
+  return DEMO_MODE || _initialized;
+}
+
+function get<T>(key: string, fallback: T): T {
+  if (DEMO_MODE) {
+    try {
+      const v = localStorage.getItem(key);
+      return v ? JSON.parse(v) : fallback;
+    } catch { return fallback; }
+  }
+  const cached = cache.get(key);
+  return cached !== undefined ? (cached as T) : fallback;
+}
+
+// ---- Cross-tab sync via BroadcastChannel (demo mode only) ----
 const CHANNEL_NAME = 'demo-store-sync';
 const bc: BroadcastChannel | null =
-  typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined'
+  DEMO_MODE && typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined'
     ? new BroadcastChannel(CHANNEL_NAME)
     : null;
 
@@ -43,7 +88,7 @@ if (bc) {
   };
 }
 
-if (typeof window !== 'undefined') {
+if (DEMO_MODE && typeof window !== 'undefined') {
   window.addEventListener('storage', (e) => {
     if (e.key && Object.values(KEYS).includes(e.key)) notify(e.key);
   });
@@ -55,112 +100,84 @@ export function subscribeDemoStore(listener: StoreListener): () => void {
 }
 
 function set<T>(key: string, value: T) {
-  localStorage.setItem(key, JSON.stringify(value));
-  // Notify listeners in this tab immediately
-  notify(key);
-  // Notify other tabs instantly
-  if (bc) {
-    try { bc.postMessage({ key }); } catch { /* noop */ }
+  if (DEMO_MODE) {
+    localStorage.setItem(key, JSON.stringify(value));
+    notify(key);
+    if (bc) {
+      try { bc.postMessage({ key }); } catch { /* noop */ }
+    }
+    return;
   }
+  cache.set(key, value);
+  notify(key);
+}
+
+// ---- Supabase write helpers (fire-and-forget) ----
+function sbUpsert(table: string, row: any) {
+  if (DEMO_MODE || !supabase) return;
+  supabase.from(table).upsert(row, { onConflict: 'id' }).then();
+}
+
+function sbInsert(table: string, row: any) {
+  if (DEMO_MODE || !supabase) return;
+  supabase.from(table).insert(row).then();
+}
+
+function sbDelete(table: string, id: string) {
+  if (DEMO_MODE || !supabase) return;
+  supabase.from(table).delete().eq('id', id).then();
 }
 
 // ---------- TURMAS ----------
-export const demoTurmas: Turma[] = [
+const localDemoTurmas: Turma[] = [
   { id: 'demo-turma-1', nome: 'Processo judicial eletrônico aplicado', professor_id: 'demo-prof-1', semestre: '2025.2', ano: 2025, created_at: '2025-02-01T00:00:00Z' },
 ];
 
-export const professoresPorTurma: Record<string, string[]> = {
+const localProfessoresPorTurma: Record<string, string[]> = {
   'demo-turma-1': ['demo-prof-1', 'demo-prof-2', 'demo-prof-3', 'demo-prof-4'],
 };
 
+let _professoresPorTurmaDb: Record<string, string[]> = {};
+
+export function getDemoTurmas(): Turma[] {
+  if (DEMO_MODE) return localDemoTurmas;
+  return get<Turma[]>(KEYS.turmas, []);
+}
+
+// Keep backward compat — many files import these as a live-binding array
+export const demoTurmas = DEMO_MODE ? localDemoTurmas : new Proxy([] as Turma[], {
+  get(_target, prop) {
+    const real = getDemoTurmas();
+    const value = (real as any)[prop];
+    if (typeof value === 'function') return value.bind(real);
+    if (prop === 'length') return real.length;
+    if (prop === Symbol.iterator) return real[Symbol.iterator].bind(real);
+    return value;
+  },
+});
+
+export const professoresPorTurma: Record<string, string[]> = DEMO_MODE
+  ? localProfessoresPorTurma
+  : new Proxy({} as Record<string, string[]>, {
+      get(_target, prop: string) {
+        return _professoresPorTurmaDb[prop] || [];
+      },
+      ownKeys() {
+        return Object.keys(_professoresPorTurmaDb);
+      },
+      getOwnPropertyDescriptor(_target, prop: string) {
+        if (prop in _professoresPorTurmaDb) {
+          return { configurable: true, enumerable: true, value: _professoresPorTurmaDb[prop] };
+        }
+        return undefined;
+      },
+    });
+
 // ---------- ALUNOS (lista para exibição na Área do Professor) ----------
-// Alunos se cadastram via primeiro acesso e aparecem automaticamente.
 export const demoAlunosLista: { id: string; cpf: string; nome: string; matricula: string; turma: string }[] = [];
 
 // ---------- TAREFAS ----------
-const PETICAO_REFERENCIA_DEMO = `EXCELENTÍSSIMO(A) SENHOR(A) DOUTOR(A) JUIZ(A) FEDERAL DA _ª VARA FEDERAL DE BELO HORIZONTE — MG
-
-ROBERTO FERREIRA DOS SANTOS, brasileiro, casado, empresário, portador do CPF nº 987.654.321-00 e RG nº 7.654.321 SSP/MG, residente e domiciliado na Rua dos Andradas, nº 250, Bairro Centro, Belo Horizonte/MG, CEP 30.120-010, por seu advogado que esta subscreve, vem, respeitosamente, à presença de Vossa Excelência, propor a presente
-
-AÇÃO DE INDENIZAÇÃO POR DANOS MORAIS E MATERIAIS
-
-em face de TRANSPORTADORA RÁPIDO SUL LTDA., pessoa jurídica de direito privado, inscrita no CNPJ nº 12.345.678/0001-99, com sede na Avenida do Contorno, nº 1.500, Bairro Funcionários, Belo Horizonte/MG, CEP 30.110-090, pelos fatos e fundamentos a seguir expostos:
-
-I — DOS FATOS
-
-No dia 15 de março de 2025, o autor conduzia seu veículo (Ford Ka, 2022, placas ABC-1234) pela Avenida do Contorno, sentido Centro-Bairro, quando foi violentamente abalroado por caminhão da empresa requerida, conduzido por seu preposto em evidente excesso de velocidade e sem respeitar a preferencial.
-
-O acidente resultou em: (a) danos materiais ao veículo estimados em R$ 12.500,00 (doze mil e quinhentos reais), conforme laudo de avaliação em anexo; (b) lesões corporais que exigiram 15 dias de afastamento do trabalho, com perda de rendimentos no valor de R$ 4.800,00; e (c) graves danos morais decorrentes do abalo psicológico, constrangimento e sofrimento vivenciados pelo autor e sua família.
-
-II — DO DIREITO
-
-A responsabilidade civil da requerida decorre do art. 932, III, c/c art. 933 do Código Civil (responsabilidade objetiva por ato de preposto), bem como dos princípios gerais da responsabilidade aquiliana (art. 186 e 927 do CC). O dano moral é presumido (in re ipsa) em situações de acidente com lesão corporal, conforme consolidada jurisprudência do Superior Tribunal de Justiça.
-
-III — DOS PEDIDOS
-
-Ante o exposto, requer a Vossa Excelência:
-a) A condenação da requerida ao pagamento de R$ 12.500,00 a título de danos materiais (reparação do veículo);
-b) A condenação ao pagamento de R$ 15.000,00 a título de danos morais;
-c) O pagamento de lucros cessantes no valor de R$ 4.800,00;
-d) A concessão de tutela de urgência para bloqueio de ativos da requerida, dado o periculum in mora.
-
-Valor da causa: R$ 32.300,00 (trinta e dois mil e trezentos reais).
-
-Belo Horizonte, 01 de abril de 2025.
-
-Dr(a). Advogado(a) Simulado(a)
-OAB/MG nº Sim.00001`;
-
-// Padrão vazio — o professor cria as tarefas via interface
 const defaultTarefas: Tarefa[] = [];
-
-const _unusedTarefas: Tarefa[] = [
-  {
-    id: 'demo-tarefa-1',
-    titulo: 'Petição Inicial — Responsabilidade Civil',
-    descricao: `**Objetivo:** Elabore e protocole uma petição inicial de ação de responsabilidade civil por danos morais e materiais.\n\n**Enunciado:** Seu cliente, João da Silva, foi vítima de um acidente de trânsito causado por negligência do réu Carlos Pereira. João sofreu danos materiais (R$ 8.000,00 no veículo) e danos morais. Redija e protocole a petição inicial no e-Proc.\n\n**Documentos obrigatórios:** Petição inicial, procuração, boletim de ocorrência, orçamento de reparo.`,
-    turma_id: 'demo-turma-1',
-    professor_id: 'demo-prof-1',
-    data_inicio: '2025-03-01T00:00:00Z',
-    prazo: '2025-03-20T23:59:59Z',
-    documentos_obrigatorios: ['Petição Inicial', 'Procuração', 'Documento de Identidade'],
-    ativa: true,
-    created_at: '2025-02-28T00:00:00Z',
-    tipo_atividade: 'peticao_inicial',
-    peticao_referencia: null,
-    peticao_referencia_arquivo_nome: null,
-  },
-  {
-    id: 'demo-tarefa-2',
-    titulo: 'Mandado de Segurança — Direito Administrativo',
-    descricao: `**Objetivo:** Elabore e protocole um mandado de segurança.\n\n**Enunciado:** Sua cliente Maria Costa foi preterida em concurso público por ato ilegal da autoridade coatora. Protocole o mandado de segurança com pedido liminar.`,
-    turma_id: 'demo-turma-1',
-    professor_id: 'demo-prof-1',
-    data_inicio: '2025-04-01T00:00:00Z',
-    prazo: '2025-04-30T23:59:59Z',
-    documentos_obrigatorios: ['Petição Inicial', 'Procuração', 'Comprovante de Residência'],
-    ativa: true,
-    created_at: '2025-03-25T00:00:00Z',
-    tipo_atividade: 'peticao_inicial',
-    peticao_referencia: null,
-    peticao_referencia_arquivo_nome: null,
-  },
-  {
-    id: 'demo-tarefa-3',
-    titulo: 'Defesa — Responsabilidade Civil (Transportadora)',
-    descricao: `**Objetivo:** Você foi citado(a) em ação de responsabilidade civil. Elabore e protocole a contestação em defesa da TRANSPORTADORA RÁPIDO SUL LTDA.\n\n**Enunciado:** A transportadora foi acionada por danos decorrentes de acidente de trânsito envolvendo seu preposto. Redija contestação arguindo excludentes de responsabilidade, culpa concorrente e impugnando os valores pleiteados.\n\n**Documentos obrigatórios:** Contestação, procuração, documentos do veículo.`,
-    turma_id: 'demo-turma-1',
-    professor_id: 'demo-prof-1',
-    data_inicio: '2025-04-15T00:00:00Z',
-    prazo: '2025-05-30T23:59:59Z',
-    documentos_obrigatorios: ['Contestação', 'Procuração'],
-    ativa: true,
-    created_at: '2025-04-14T00:00:00Z',
-    tipo_atividade: 'defesa',
-    peticao_referencia: PETICAO_REFERENCIA_DEMO,
-    peticao_referencia_arquivo_nome: 'Peticao_Inicial_Responsabilidade_Civil.pdf',
-  },
-];
 
 export function getDemoTarefas(): Tarefa[] {
   return get<Tarefa[]>(KEYS.tarefas, defaultTarefas);
@@ -172,10 +189,12 @@ export function saveDemoTarefa(tarefa: Tarefa) {
   if (idx >= 0) list[idx] = tarefa;
   else list.push(tarefa);
   set(KEYS.tarefas, list);
+  sbUpsert('tarefas', tarefa);
 }
 
 export function deleteDemoTarefa(id: string) {
   set(KEYS.tarefas, getDemoTarefas().filter(t => t.id !== id));
+  sbDelete('tarefas', id);
 }
 
 export function getDemoTarefasDefesa(turmaId: string): Tarefa[] {
@@ -204,6 +223,7 @@ export function saveDemoProcesso(processo: Processo) {
   if (idx >= 0) list[idx] = processo;
   else list.push(processo);
   set(KEYS.processos, list);
+  sbUpsert('processos', processo);
 }
 
 // ---------- PARTES ----------
@@ -220,6 +240,9 @@ export function saveDemoPartes(partes: Parte[]) {
     if (idx >= 0) all[idx] = p; else all.push(p);
   });
   set(KEYS.partes, all);
+  if (!DEMO_MODE && supabase) {
+    partes.forEach(p => sbUpsert('partes', p));
+  }
 }
 
 // ---------- MOVIMENTAÇÕES ----------
@@ -235,6 +258,7 @@ export function saveDemoMovimentacao(mov: Movimentacao) {
   const all = get<Movimentacao[]>(KEYS.movimentacoes, defaultMovimentacoes);
   all.push(mov);
   set(KEYS.movimentacoes, all);
+  sbInsert('movimentacoes', mov);
 }
 
 // ---------- INTIMAÇÕES ----------
@@ -256,6 +280,9 @@ export function marcarIntimacoesLida(id: string) {
   if (idx >= 0) {
     all[idx] = { ...all[idx], lida: true, data_ciencia: new Date().toISOString() };
     set(KEYS.intimacoes, all);
+    if (!DEMO_MODE && supabase) {
+      supabase.from('intimacoes').update({ lida: true, data_ciencia: new Date().toISOString() }).eq('id', id).then();
+    }
   }
 }
 
@@ -263,6 +290,7 @@ export function saveDemoIntimacao(intim: Intimacao) {
   const all = get<Intimacao[]>(KEYS.intimacoes, defaultIntimacoesAluno);
   all.push(intim);
   set(KEYS.intimacoes, all);
+  sbInsert('intimacoes', intim);
 }
 
 // ---------- DOCUMENTOS ----------
@@ -274,4 +302,13 @@ export function saveDemoDocumento(doc: Documento) {
   const all = get<Documento[]>(KEYS.documentos, []);
   all.push(doc);
   set(KEYS.documentos, all);
+  sbInsert('documentos', doc);
+}
+
+// ---------- REFRESH (recarregar do Supabase) ----------
+export async function refreshFromSupabase(): Promise<void> {
+  if (DEMO_MODE || !supabase) return;
+  _initialized = false;
+  await initSupabaseStore();
+  Object.values(KEYS).forEach(k => notify(k));
 }

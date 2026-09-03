@@ -1,9 +1,8 @@
 // Cadastro de alunos por auto-registro + aprovação do professor.
-// O aluno cria login (CPF) e senha, escolhe a matéria (turma) e envia a
-// solicitação. Ela cai para o professor dono daquela turma, que aceita ou
-// recusa. Persistido em localStorage (modo demo).
+// Persiste em localStorage (demo) ou Supabase (produção).
 
-import { demoTurmas, professoresPorTurma } from './demoStore';
+import { getDemoTurmas, professoresPorTurma } from './demoStore';
+import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { formatCpf } from '@/lib/masks';
 import type { Turma } from '@/integrations/supabase/types';
 
@@ -11,12 +10,12 @@ export type StatusCadastro = 'pendente' | 'aprovado' | 'recusado';
 
 export interface AlunoCadastro {
   id: string;
-  cpf: string;         // formatado (000.000.000-00)
+  cpf: string;
   nome: string;
   email: string;
   endereco: string;
   telefone: string;
-  senha: string;       // texto puro — apenas simulação educacional
+  senha: string;
   turmaId: string;
   status: StatusCadastro;
   createdAt: string;
@@ -30,15 +29,56 @@ const uid = () =>
     ? crypto.randomUUID()
     : `cad-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
 
-// ---- sincronização entre abas ----
+// ---- In-memory cache for Supabase mode ----
+let _cadastrosCache: AlunoCadastro[] | null = null;
+let _cacheInitialized = false;
+
+export async function initCadastroStore(): Promise<void> {
+  if (DEMO_MODE || !supabase || _cacheInitialized) return;
+  const { data } = await supabase.from('cadastros_alunos').select('*');
+  _cadastrosCache = (data || []).map(dbToLocal);
+  _cacheInitialized = true;
+}
+
+function dbToLocal(row: any): AlunoCadastro {
+  return {
+    id: row.id,
+    cpf: row.cpf,
+    nome: row.nome,
+    email: row.email || '',
+    endereco: row.endereco || '',
+    telefone: row.telefone || '',
+    senha: row.senha,
+    turmaId: row.turma_id,
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
+
+function localToDb(c: AlunoCadastro): any {
+  return {
+    id: c.id,
+    cpf: c.cpf,
+    nome: c.nome,
+    email: c.email,
+    endereco: c.endereco,
+    telefone: c.telefone,
+    senha: c.senha,
+    turma_id: c.turmaId,
+    status: c.status,
+    created_at: c.createdAt,
+  };
+}
+
+// ---- sincronização entre abas (demo mode) ----
 type Listener = () => void;
 const listeners = new Set<Listener>();
 const bc: BroadcastChannel | null =
-  typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined'
+  DEMO_MODE && typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined'
     ? new BroadcastChannel(CHANNEL) : null;
 function notify() { listeners.forEach(l => { try { l(); } catch { /* noop */ } }); }
 if (bc) bc.onmessage = () => notify();
-if (typeof window !== 'undefined') {
+if (DEMO_MODE && typeof window !== 'undefined') {
   window.addEventListener('storage', e => { if (e.key === KEY) notify(); });
 }
 export function subscribeCadastros(l: Listener): () => void {
@@ -47,13 +87,22 @@ export function subscribeCadastros(l: Listener): () => void {
 }
 
 function readAll(): AlunoCadastro[] {
-  try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) : []; }
-  catch { return []; }
+  if (DEMO_MODE) {
+    try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) : []; }
+    catch { return []; }
+  }
+  return _cadastrosCache || [];
 }
+
 function writeAll(list: AlunoCadastro[]) {
-  localStorage.setItem(KEY, JSON.stringify(list));
+  if (DEMO_MODE) {
+    localStorage.setItem(KEY, JSON.stringify(list));
+    notify();
+    if (bc) { try { bc.postMessage({ t: 'change' }); } catch { /* noop */ } }
+    return;
+  }
+  _cadastrosCache = list;
   notify();
-  if (bc) { try { bc.postMessage({ t: 'change' }); } catch { /* noop */ } }
 }
 
 // ---- consultas ----
@@ -67,29 +116,28 @@ export function cadastroPorCpf(cpf: string): AlunoCadastro | null {
 function professoresDaTurma(turmaId: string): string[] {
   const extra = professoresPorTurma[turmaId];
   if (extra && extra.length > 0) return extra;
-  const turma = demoTurmas.find(t => t.id === turmaId);
+  const turmas = getDemoTurmas();
+  const turma = turmas.find(t => t.id === turmaId);
   return turma ? [turma.professor_id] : [];
 }
 
 export function turmasDoProfessor(professorId: string): Turma[] {
-  return demoTurmas.filter(t => professoresPorTurma[t.id]?.includes(professorId) || t.professor_id === professorId);
+  const turmas = getDemoTurmas();
+  return turmas.filter(t => professoresPorTurma[t.id]?.includes(professorId) || t.professor_id === professorId);
 }
 
-/** Solicitações pendentes das turmas de um professor. */
 export function solicitacoesDoProfessor(professorId: string): AlunoCadastro[] {
   return readAll()
     .filter(c => c.status === 'pendente' && professoresDaTurma(c.turmaId).includes(professorId))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-/** Alunos de um professor por status (ex.: aprovados). */
 export function alunosDoProfessor(professorId: string, status?: StatusCadastro): AlunoCadastro[] {
   return readAll()
     .filter(c => professoresDaTurma(c.turmaId).includes(professorId) && (!status || c.status === status))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
-// CPFs dos professores pré-cadastrados (acesso coringa: podem se registrar como aluno)
 const PROFESSOR_CPFS = ['000.000.000-01', '150.665.876-83', '097.446.776-60', '149.534.096-12'];
 
 export function isProfessorCpf(cpf: string): boolean {
@@ -110,13 +158,15 @@ export function registrarAluno(dados: { cpf: string; nome: string; email: string
   if (existente) {
     if (existente.status === 'recusado') {
       const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
-      salvar({ ...existente, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
+      const updated = { ...existente, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() };
+      salvar(updated);
       return { ok: true, autoAprovado: isProf };
     }
     return { ok: false, erro: 'Já existe um cadastro com este CPF.' };
   }
   const status: StatusCadastro = isProf ? 'aprovado' : 'pendente';
-  salvar({ id: uid(), cpf, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() });
+  const novo: AlunoCadastro = { id: uid(), cpf, nome: dados.nome.trim(), email: dados.email.trim(), endereco: dados.endereco.trim(), telefone: dados.telefone.trim(), senha: dados.senha, turmaId: dados.turmaId, status, createdAt: new Date().toISOString() };
+  salvar(novo);
   return { ok: true, autoAprovado: isProf };
 }
 
@@ -125,25 +175,43 @@ function salvar(c: AlunoCadastro) {
   const idx = list.findIndex(x => x.id === c.id);
   if (idx >= 0) list[idx] = c; else list.push(c);
   writeAll(list);
+  if (!DEMO_MODE && supabase) {
+    supabase.from('cadastros_alunos').upsert(localToDb(c), { onConflict: 'id' }).then();
+  }
 }
 
 export function aprovarCadastro(id: string) {
   const list = readAll();
   const c = list.find(x => x.id === id);
-  if (c) { c.status = 'aprovado'; writeAll(list); }
+  if (c) {
+    c.status = 'aprovado';
+    writeAll(list);
+    if (!DEMO_MODE && supabase) {
+      supabase.from('cadastros_alunos').update({ status: 'aprovado' }).eq('id', id).then();
+    }
+  }
 }
+
 export function recusarCadastro(id: string) {
   const list = readAll();
   const c = list.find(x => x.id === id);
-  if (c) { c.status = 'recusado'; writeAll(list); }
+  if (c) {
+    c.status = 'recusado';
+    writeAll(list);
+    if (!DEMO_MODE && supabase) {
+      supabase.from('cadastros_alunos').update({ status: 'recusado' }).eq('id', id).then();
+    }
+  }
 }
 
 export function excluirCadastros(ids: string[]) {
   const set = new Set(ids);
   writeAll(readAll().filter(c => !set.has(c.id)));
+  if (!DEMO_MODE && supabase) {
+    ids.forEach(id => supabase.from('cadastros_alunos').delete().eq('id', id).then());
+  }
 }
 
-/** Autentica um aluno auto-cadastrado (retorna qualquer status; o gate cuida do pendente/recusado). */
 export function autenticarCadastro(cpf: string, senha: string): AlunoCadastro | null {
   const c = cadastroPorCpf(cpf);
   return c && c.senha === senha ? c : null;
@@ -154,5 +222,12 @@ export function statusCadastroPorId(id: string): StatusCadastro | null {
 }
 
 export function garantirSeedCadastros(): void {
-  // noop — alunos se cadastram via primeiro acesso
+  // noop
+}
+
+export async function refreshCadastrosFromSupabase(): Promise<void> {
+  if (DEMO_MODE || !supabase) return;
+  _cacheInitialized = false;
+  await initCadastroStore();
+  notify();
 }
