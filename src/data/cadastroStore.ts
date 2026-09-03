@@ -1,8 +1,8 @@
 // Cadastro de alunos por auto-registro + aprovação do professor.
-// Persiste em localStorage (demo) ou Supabase (produção).
+// Persistido no Supabase (tabela cadastros_alunos).
 
 import { getDemoTurmas, professoresPorTurma } from './demoStore';
-import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { formatCpf } from '@/lib/masks';
 import type { Turma } from '@/integrations/supabase/types';
 
@@ -21,20 +21,17 @@ export interface AlunoCadastro {
   createdAt: string;
 }
 
-const KEY = 'demo-cadastros-alunos-v1';
-const CHANNEL = 'cadastro-store-sync';
-
 const uid = () =>
   (typeof crypto !== 'undefined' && crypto.randomUUID)
     ? crypto.randomUUID()
     : `cad-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
 
-// ---- In-memory cache for Supabase mode ----
-let _cadastrosCache: AlunoCadastro[] | null = null;
+// ---- In-memory cache backed by Supabase ----
+let _cadastrosCache: AlunoCadastro[] = [];
 let _cacheInitialized = false;
 
 export async function initCadastroStore(): Promise<void> {
-  if (DEMO_MODE || !supabase || _cacheInitialized) return;
+  if (_cacheInitialized) return;
   const { data } = await supabase.from('cadastros_alunos').select('*');
   _cadastrosCache = (data || []).map(dbToLocal);
   _cacheInitialized = true;
@@ -70,37 +67,21 @@ function localToDb(c: AlunoCadastro): any {
   };
 }
 
-// ---- sincronização entre abas (demo mode) ----
+// ---- Listeners for reactivity ----
 type Listener = () => void;
 const listeners = new Set<Listener>();
-const bc: BroadcastChannel | null =
-  DEMO_MODE && typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined'
-    ? new BroadcastChannel(CHANNEL) : null;
 function notify() { listeners.forEach(l => { try { l(); } catch { /* noop */ } }); }
-if (bc) bc.onmessage = () => notify();
-if (DEMO_MODE && typeof window !== 'undefined') {
-  window.addEventListener('storage', e => { if (e.key === KEY) notify(); });
-}
+
 export function subscribeCadastros(l: Listener): () => void {
   listeners.add(l);
   return () => listeners.delete(l);
 }
 
 function readAll(): AlunoCadastro[] {
-  if (DEMO_MODE) {
-    try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) : []; }
-    catch { return []; }
-  }
-  return _cadastrosCache || [];
+  return _cadastrosCache;
 }
 
 function writeAll(list: AlunoCadastro[]) {
-  if (DEMO_MODE) {
-    localStorage.setItem(KEY, JSON.stringify(list));
-    notify();
-    if (bc) { try { bc.postMessage({ t: 'change' }); } catch { /* noop */ } }
-    return;
-  }
   _cadastrosCache = list;
   notify();
 }
@@ -171,45 +152,37 @@ export function registrarAluno(dados: { cpf: string; nome: string; email: string
 }
 
 function salvar(c: AlunoCadastro) {
-  const list = readAll();
+  const list = readAll().slice();
   const idx = list.findIndex(x => x.id === c.id);
   if (idx >= 0) list[idx] = c; else list.push(c);
   writeAll(list);
-  if (!DEMO_MODE && supabase) {
-    supabase.from('cadastros_alunos').upsert(localToDb(c), { onConflict: 'id' }).then();
-  }
+  supabase.from('cadastros_alunos').upsert(localToDb(c), { onConflict: 'id' }).then();
 }
 
 export function aprovarCadastro(id: string) {
-  const list = readAll();
+  const list = readAll().slice();
   const c = list.find(x => x.id === id);
   if (c) {
     c.status = 'aprovado';
     writeAll(list);
-    if (!DEMO_MODE && supabase) {
-      supabase.from('cadastros_alunos').update({ status: 'aprovado' }).eq('id', id).then();
-    }
+    supabase.from('cadastros_alunos').update({ status: 'aprovado' }).eq('id', id).then();
   }
 }
 
 export function recusarCadastro(id: string) {
-  const list = readAll();
+  const list = readAll().slice();
   const c = list.find(x => x.id === id);
   if (c) {
     c.status = 'recusado';
     writeAll(list);
-    if (!DEMO_MODE && supabase) {
-      supabase.from('cadastros_alunos').update({ status: 'recusado' }).eq('id', id).then();
-    }
+    supabase.from('cadastros_alunos').update({ status: 'recusado' }).eq('id', id).then();
   }
 }
 
 export function excluirCadastros(ids: string[]) {
-  const set = new Set(ids);
-  writeAll(readAll().filter(c => !set.has(c.id)));
-  if (!DEMO_MODE && supabase) {
-    ids.forEach(id => supabase.from('cadastros_alunos').delete().eq('id', id).then());
-  }
+  const idSet = new Set(ids);
+  writeAll(readAll().filter(c => !idSet.has(c.id)));
+  ids.forEach(id => supabase.from('cadastros_alunos').delete().eq('id', id).then());
 }
 
 export function autenticarCadastro(cpf: string, senha: string): AlunoCadastro | null {
@@ -226,7 +199,6 @@ export function garantirSeedCadastros(): void {
 }
 
 export async function refreshCadastrosFromSupabase(): Promise<void> {
-  if (DEMO_MODE || !supabase) return;
   _cacheInitialized = false;
   await initCadastroStore();
   notify();

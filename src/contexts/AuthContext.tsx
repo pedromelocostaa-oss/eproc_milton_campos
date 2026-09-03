@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import type { Profile } from '@/integrations/supabase/types';
-import { formatCpf, cpfToEmail } from '@/lib/masks';
-import { autenticarCadastro, cadastroPorCpf, isProfessorCpf, initCadastroStore, type StatusCadastro } from '@/data/cadastroStore';
+import { formatCpf } from '@/lib/masks';
+import { autenticarCadastro, cadastroPorCpf, initCadastroStore, type StatusCadastro } from '@/data/cadastroStore';
 import { getDemoTurmas, initSupabaseStore } from '@/data/demoStore';
 
 interface AuthUser extends Profile {
@@ -49,98 +49,29 @@ function usuarioDoCadastro(cad: { id: string; cpf: string; nome: string; turmaId
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const DEMO_USERS: Record<string, AuthUser> = {
-  '000.000.000-01': {
-    id: 'demo-prof-1',
-    cpf: '000.000.000-01',
-    nome_completo: 'Profa. Maria Helena Souza',
-    matricula: null,
-    turma_id: null,
-    perfil: 'professor',
-    oab_simulado: null,
-    primeiro_acesso: false,
-    ativo: true,
-    created_at: new Date().toISOString(),
-    email: 'maria.helena@miltoncampos.edu.br',
-  },
-  '150.665.876-83': {
-    id: 'demo-prof-2',
-    cpf: '150.665.876-83',
-    nome_completo: 'Giulia Name Vieira',
-    matricula: null,
-    turma_id: null,
-    perfil: 'professor',
-    oab_simulado: null,
-    primeiro_acesso: false,
-    ativo: true,
-    created_at: new Date().toISOString(),
-    email: 'giulia.vieira@miltoncampos.edu.br',
-  },
-  '097.446.776-60': {
-    id: 'demo-prof-3',
-    cpf: '097.446.776-60',
-    nome_completo: 'Pedro Luis Melo Correa da Costa',
-    matricula: null,
-    turma_id: null,
-    perfil: 'professor',
-    oab_simulado: null,
-    primeiro_acesso: false,
-    ativo: true,
-    created_at: new Date().toISOString(),
-  },
-  '149.534.096-12': {
-    id: 'demo-prof-4',
-    cpf: '149.534.096-12',
-    nome_completo: 'Henrique Vale Duarte',
-    matricula: null,
-    turma_id: null,
-    perfil: 'professor',
-    oab_simulado: null,
-    primeiro_acesso: false,
-    ativo: true,
-    created_at: new Date().toISOString(),
-  },
-};
-
 const DEMO_PASSWORDS: Record<string, string> = {
   '150.665.876-83': 'Milton2026',
   '097.446.776-60': 'Prof@Pedro2026',
   '149.534.096-12': 'Milton2026',
 };
-const DEMO_PASSWORD = 'Milton@2025';
+const DEFAULT_PASSWORD = 'Milton@2025';
 
 async function getUser(cpf: string, senha: string): Promise<AuthUser | null> {
   const normalized = formatCpf(cpf.replace(/\D/g, ''));
 
-  if (DEMO_MODE) {
-    const user = DEMO_USERS[normalized];
-    if (user) {
-      const specificPwd = DEMO_PASSWORDS[normalized];
-      if (specificPwd ? senha === specificPwd : (senha === DEMO_PASSWORD || senha === 'demo123')) return user;
-      return null;
+  // Check profiles table for professors
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('cpf', normalized)
+    .single();
+
+  if (profile && profile.perfil === 'professor') {
+    const specificPwd = DEMO_PASSWORDS[normalized];
+    if (specificPwd ? senha === specificPwd : (senha === DEFAULT_PASSWORD || senha === 'demo123')) {
+      return profile as AuthUser;
     }
-    const cad = autenticarCadastro(normalized, senha);
-    if (cad) return usuarioDoCadastro(cad);
     return null;
-  }
-
-  // Supabase mode: check profiles table for professors
-  if (supabase) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('cpf', normalized)
-      .single();
-
-    if (profile && profile.perfil === 'professor') {
-      const specificPwd = DEMO_PASSWORDS[normalized];
-      if (specificPwd ? senha === specificPwd : (senha === DEMO_PASSWORD || senha === 'demo123')) {
-        const demoUser = DEMO_USERS[normalized];
-        if (demoUser) return { ...demoUser, ...profile, perfil: 'professor' } as AuthUser;
-        return profile as AuthUser;
-      }
-      return null;
-    }
   }
 
   // Check cadastros for students
@@ -155,9 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function init() {
-      if (!DEMO_MODE) {
-        await Promise.all([initSupabaseStore(), initCadastroStore()]);
-      }
+      await Promise.all([initSupabaseStore(), initCadastroStore()]);
 
       const stored = localStorage.getItem('eproc-demo-user');
       if (stored) {
@@ -225,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshUser = async () => {
-    // no-op for now
+    // no-op
   };
 
   const atualizarUsuario = (patch: Partial<AuthUser>) => {
@@ -238,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, demoMode: DEMO_MODE, login, loginComoAluno, trocarPerfil, logout, trocarSenha, refreshUser, atualizarUsuario }}>
+    <AuthContext.Provider value={{ user, loading, demoMode: false, login, loginComoAluno, trocarPerfil, logout, trocarSenha, refreshUser, atualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   );
