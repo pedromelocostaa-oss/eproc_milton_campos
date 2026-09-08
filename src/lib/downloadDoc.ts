@@ -1,5 +1,19 @@
 import { supabase } from '@/integrations/supabase/client';
 
+const COMBINING_MARKS = /[̀-ͯ]/g;
+const UNSAFE_CHARS = /[^a-zA-Z0-9._-]+/g;
+
+/**
+ * Sanitiza um segmento de path para o Supabase Storage.
+ * Remove acentos e substitui qualquer caractere não seguro por _.
+ * Preserva pontos (usados na extensão do arquivo).
+ */
+export function sanitizeStorageSegment(s: string): string {
+  const normalized = s.normalize('NFD').replace(COMBINING_MARKS, '');
+  const cleaned = normalized.replace(UNSAFE_CHARS, '_');
+  return cleaned.replace(/^_+|_+$/g, '') || 'arquivo';
+}
+
 /**
  * Baixa um arquivo do bucket `documentos` diretamente no computador do usuário.
  * Usa createSignedUrl (funciona em bucket público ou privado).

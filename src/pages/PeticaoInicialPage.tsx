@@ -17,6 +17,7 @@ import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } 
 import { generateProcessNumber } from '@/lib/cnj';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { saveDemoProcesso, saveDemoPartes, saveDemoMovimentacao, saveDemoDocumento, getDemoTarefas } from '@/data/demoStore';
+import { sanitizeStorageSegment } from '@/lib/downloadDoc';
 import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, Folder, Info, Home } from 'lucide-react';
 
 function countLeaves(node: NodoAssunto): number {
@@ -915,10 +916,15 @@ export default function PeticaoInicialPage() {
         for (let i = 0; i < form.documentos.length; i++) {
           const doc = form.documentos[i];
           if (!doc.arquivo) continue;
-          const storagePath = `processos/${processoId}/${doc.tipo}/${doc.arquivo.name}`;
-          await supabase.storage
+          const storagePath = `processos/${processoId}/${sanitizeStorageSegment(doc.tipo || 'documento')}/${sanitizeStorageSegment(doc.arquivo.name)}`;
+          const up = await supabase.storage
             .from('documentos')
             .upload(storagePath, doc.arquivo, { upsert: true });
+          if (up.error) {
+            alert(`Falha ao enviar "${doc.arquivo.name}":\n${up.error.message}`);
+            setLoading(false);
+            return;
+          }
           saveDemoDocumento({
             id: crypto.randomUUID(),
             processo_id: processoId,

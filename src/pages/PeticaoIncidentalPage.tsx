@@ -5,6 +5,7 @@ import EprocLayout from '@/components/layout/EprocLayout';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getDemoProcessos, saveDemoMovimentacao } from '@/data/demoStore';
 import { tiposPeticaoIncidental } from '@/data/classesAssuntos';
+import { sanitizeStorageSegment } from '@/lib/downloadDoc';
 import { CheckCircle, Upload } from 'lucide-react';
 import type { Processo } from '@/integrations/supabase/types';
 
@@ -68,8 +69,12 @@ export default function PeticaoIncidentalPage() {
         });
 
         if (arquivo) {
-          const path = `processos/${processoSelecionado}/${tipo}/${arquivo.name}`;
-          await supabase!.storage.from('documentos').upload(path, arquivo, { upsert: true });
+          const path = `processos/${processoSelecionado}/${sanitizeStorageSegment(tipo || 'documento')}/${sanitizeStorageSegment(arquivo.name)}`;
+          const up = await supabase!.storage.from('documentos').upload(path, arquivo, { upsert: true });
+          if (up.error) {
+            alert(`Falha ao enviar o arquivo:\n${up.error.message}`);
+            return;
+          }
           await supabase!.from('documentos').insert({
             processo_id: processoSelecionado,
             aluno_id: user!.id,

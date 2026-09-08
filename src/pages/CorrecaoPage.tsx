@@ -10,7 +10,7 @@ import {
 } from '@/data/demoStore';
 import { listarCadastros } from '@/data/cadastroStore';
 import type { Processo, Parte, Documento } from '@/integrations/supabase/types';
-import { baixarDocumento } from '@/lib/downloadDoc';
+import { baixarDocumento, sanitizeStorageSegment } from '@/lib/downloadDoc';
 import { CheckCircle } from 'lucide-react';
 
 function formatDate(iso: string) { return new Date(iso).toLocaleString('pt-BR'); }
@@ -157,10 +157,15 @@ export default function CorrecaoPage() {
         });
 
         if (arquivoDespacho) {
-          const storagePath = `processos/${id}/despacho/${arquivoDespacho.name}`;
-          await supabase.storage
+          const storagePath = `processos/${id}/despacho/${sanitizeStorageSegment(arquivoDespacho.name)}`;
+          const up = await supabase.storage
             .from('documentos')
             .upload(storagePath, arquivoDespacho, { upsert: true });
+          if (up.error) {
+            alert(`Falha ao anexar o despacho ao Storage:\n${up.error.message}`);
+            setSalvando(false);
+            return;
+          }
           saveDemoDocumento({
             id: crypto.randomUUID(),
             processo_id: id!,
