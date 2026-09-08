@@ -508,6 +508,8 @@ export default function PeticaoInicialPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [tarefa, setTarefa] = useState<Tarefa | null>(null);
+  const [declaracaoVerdade, setDeclaracaoVerdade] = useState(false);
+  const [cienciaSimulacao, setCienciaSimulacao] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState<FormData>(() => initialForm(searchParams.get('tarefa') ?? ''));
@@ -804,6 +806,10 @@ export default function PeticaoInicialPage() {
 
   // ── Protocolar ──
   const protocolar = async () => {
+    if (!declaracaoVerdade || !cienciaSimulacao) {
+      alert('Antes de confirmar, marque as duas declarações no final da página:\n\n• "Declaro, sob as penas da lei, que as informações prestadas são verdadeiras..."\n• "Estou ciente de que este é um sistema de simulação educacional..."');
+      return;
+    }
     setLoading(true);
     try {
       const vara = sortearVara(form.area);
@@ -2822,11 +2828,19 @@ export default function PeticaoInicialPage() {
                 {/* Declarations */}
                 <div style={{ border: '1px solid #d1d5db', padding: '10px 14px', borderRadius: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                    <input type="checkbox" />
+                    <input
+                      type="checkbox"
+                      checked={declaracaoVerdade}
+                      onChange={e => setDeclaracaoVerdade(e.target.checked)}
+                    />
                     <span>Declaro, sob as penas da lei, que as informações prestadas são verdadeiras e de minha inteira responsabilidade.</span>
                   </label>
                   <label className="pje-checkbox" style={{ fontSize: 12 }}>
-                    <input type="checkbox" />
+                    <input
+                      type="checkbox"
+                      checked={cienciaSimulacao}
+                      onChange={e => setCienciaSimulacao(e.target.checked)}
+                    />
                     <span>Estou ciente de que este é um <strong>sistema de simulação educacional</strong> sem vínculo com o TJMG real.</span>
                   </label>
                 </div>
