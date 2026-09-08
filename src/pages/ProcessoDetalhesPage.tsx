@@ -303,19 +303,28 @@ export default function ProcessoDetalhesPage() {
           )}
 
           {/* Feedback do professor */}
-          {processo.feedback_professor && (
-            <div className="mt-4 bg-white border border-border">
-              <div className="panel-header">FEEDBACK DO PROFESSOR / DESPACHO</div>
-              <div className="p-4">
-                <div className="text-[12px] whitespace-pre-line">{processo.feedback_professor}</div>
-                {processo.nota != null && (
-                  <div className="mt-3 text-[14px] font-bold" style={{ color: 'hsl(210,100%,20%)' }}>
-                    Nota Final: {processo.nota.toFixed(1)} / 10,0
-                  </div>
-                )}
+          {processo.feedback_professor && (() => {
+            const raw = processo.feedback_professor;
+            const m = /^\[VP=([\d.]+)\]\s*\n?/.exec(raw);
+            const valorProva = m ? parseFloat(m[1]) : 10;
+            const feedbackTexto = m ? raw.slice(m[0].length) : raw;
+            const casas = Number.isInteger(processo.nota ?? 0) && Number.isInteger(valorProva) ? 0 : 1;
+            const notaStr = (processo.nota ?? 0).toFixed(casas).replace('.', ',');
+            const valorStr = valorProva.toFixed(Number.isInteger(valorProva) ? 0 : 1).replace('.', ',');
+            return (
+              <div className="mt-4 bg-white border border-border">
+                <div className="panel-header">FEEDBACK DO PROFESSOR / DESPACHO</div>
+                <div className="p-4">
+                  <div className="text-[12px] whitespace-pre-line">{feedbackTexto}</div>
+                  {processo.nota != null && (
+                    <div className="mt-3 text-[14px] font-bold" style={{ color: 'hsl(210,100%,20%)' }}>
+                      Nota Final: {notaStr} / {valorStr}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </EprocLayout>

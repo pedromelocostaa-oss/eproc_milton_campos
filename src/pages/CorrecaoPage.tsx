@@ -15,6 +15,18 @@ import { CheckCircle } from 'lucide-react';
 
 function formatDate(iso: string) { return new Date(iso).toLocaleString('pt-BR'); }
 
+function parseFeedbackWithValor(raw: string): { valorProva: number | null; feedback: string } {
+  const m = /^\[VP=([\d.]+)\]\s*\n?/.exec(raw);
+  if (m) return { valorProva: parseFloat(m[1]), feedback: raw.slice(m[0].length) };
+  return { valorProva: null, feedback: raw };
+}
+
+function formatNota(n: number | null | undefined, valor: number): string {
+  const nn = typeof n === 'number' ? n : 0;
+  const casas = Number.isInteger(nn) && Number.isInteger(valor) ? 0 : 1;
+  return `${nn.toFixed(casas).replace('.', ',')} / ${valor.toFixed(Number.isInteger(valor) ? 0 : 1).replace('.', ',')}`;
+}
+
 type Acao = 'despacho' | 'emenda' | 'encerrar';
 
 const ACOES: { val: Acao; title: string; desc: string; icon: string }[] = [
@@ -51,6 +63,7 @@ export default function CorrecaoPage() {
 
   const [feedback, setFeedback] = useState('');
   const [nota, setNota] = useState('');
+  const [valorProva, setValorProva] = useState('10');
   const [prazoResposta, setPrazoResposta] = useState('');
   const [acao, setAcao] = useState<Acao>('despacho');
   const [salvando, setSalvando] = useState(false);
@@ -63,7 +76,9 @@ export default function CorrecaoPage() {
       const p = getAllDemoProcessos().find(p => p.id === id);
       if (p) {
         setProcesso(p);
-        setFeedback(p.feedback_professor ?? '');
+        const { valorProva: vpExist, feedback: fbExist } = parseFeedbackWithValor(p.feedback_professor ?? '');
+        setFeedback(fbExist);
+        if (vpExist) setValorProva(String(vpExist));
         setNota(p.nota != null ? String(p.nota) : '');
         setPartes(getDemoPartes(id));
         setDocumentos(getDemoDocumentos(id));
@@ -82,7 +97,9 @@ export default function CorrecaoPage() {
       const [pRes, partRes, docRes] = res as any[];
       if (pRes.data) {
         setProcesso(pRes.data);
-        setFeedback((pRes.data as any).feedback_professor ?? '');
+        const { valorProva: vpExist, feedback: fbExist } = parseFeedbackWithValor((pRes.data as any).feedback_professor ?? '');
+        setFeedback(fbExist);
+        if (vpExist) setValorProva(String(vpExist));
         setNota(pRes.data.nota != null ? String(pRes.data.nota) : '');
         setNomeAluno((pRes.data as any).profiles?.nome_completo ?? 'Aluno');
       }
@@ -97,19 +114,26 @@ export default function CorrecaoPage() {
       alert('Por favor, escreva seu comentário para o aluno antes de continuar.');
       return;
     }
+    const valorProvaNum = parseFloat(valorProva.replace(',', '.'));
+    if (isNaN(valorProvaNum) || valorProvaNum <= 0) {
+      alert('Informe o valor total da prova (número maior que zero, ex: 30).');
+      return;
+    }
     if (!nota) {
-      alert('Por favor, informe a nota do aluno (de 0 a 10).');
+      alert(`Por favor, informe a nota do aluno (de 0 a ${valorProvaNum}).`);
       return;
     }
     const notaNum = parseFloat(nota.replace(',', '.'));
-    if (isNaN(notaNum) || notaNum < 0 || notaNum > 10) {
-      alert('A nota deve ser um número entre 0 e 10. Você pode usar decimais (ex: 7,5).');
+    if (isNaN(notaNum) || notaNum < 0 || notaNum > valorProvaNum) {
+      alert(`A nota deve ser um número entre 0 e ${valorProvaNum}. Você pode usar decimais (ex: 7,5).`);
       return;
     }
 
+    const notaFmt = formatNota(notaNum, valorProvaNum);
+
     if (acao === 'encerrar') {
       const ok = confirm(
-        `Você está encerrando definitivamente esta atividade.\n\nO aluno ${nomeAluno} receberá a nota final: ${notaNum.toFixed(1)}.\n\nDeseja continuar?`
+        `Você está encerrando definitivamente esta atividade.\n\nO aluno ${nomeAluno} receberá a nota final: ${notaFmt}.\n\nDeseja continuar?`
       );
       if (!ok) return;
     }
@@ -120,12 +144,13 @@ export default function CorrecaoPage() {
     const tipoMov = acao === 'despacho' ? 'despacho' : acao === 'emenda' ? 'solicitacao_emenda' : 'encerramento';
 
     try {
+      const feedbackStored = `[VP=${valorProvaNum}]\n${feedback}`;
       if (DEMO_MODE) {
         saveDemoProcesso({
           ...processo!,
           status: novoStatus,
           nota: notaNum,
-          feedback_professor: feedback,
+          feedback_professor: feedbackStored,
           updated_at: now,
         });
         saveDemoMovimentacao({
@@ -139,10 +164,10 @@ export default function CorrecaoPage() {
 
         const textoIntimacao =
           acao === 'encerrar'
-            ? `Processo encerrado pela professora.\n\nFeedback final:\n${feedback}\n\nNota atribuída: ${notaNum.toFixed(1)}`
+            ? `Processo encerrado pela professora.\n\nFeedback final:\n${feedback}\n\nNota atribuída: ${notaFmt}`
             : acao === 'emenda'
             ? `Solicitação de Correção:\n\n${feedback}\n\nPrazo para ajuste: ${prazoResposta ? new Date(`${prazoResposta}T00:00:00Z`).toLocaleDateString('pt-BR') : 'a definir'}`
-            : `Despacho da Professora:\n\n${feedback}\n\nNota atribuída: ${notaNum.toFixed(1)}`;
+            : `Despacho da Professora:\n\n${feedback}\n\nNota atribuída: ${notaFmt}`;
 
         saveDemoIntimacao({
           id: crypto.randomUUID(),
@@ -179,14 +204,14 @@ export default function CorrecaoPage() {
         }
       } else {
         await supabase!.from('processos').update({
-          status: novoStatus, nota: notaNum, feedback_professor: feedback, updated_at: now,
+          status: novoStatus, nota: notaNum, feedback_professor: feedbackStored, updated_at: now,
         }).eq('id', id);
         await supabase!.from('movimentacoes').insert({
           processo_id: id, tipo: tipoMov, descricao: feedback, autor_id: user!.id,
         });
         await supabase!.from('intimacoes').insert({
           processo_id: id, destinatario_id: processo!.aluno_id, remetente_id: user!.id,
-          texto: `${acao === 'despacho' ? 'Despacho' : acao === 'emenda' ? 'Solicitação de Correção' : 'Processo Encerrado'}:\n\n${feedback}${notaNum ? `\n\nNota: ${notaNum.toFixed(1)}` : ''}`,
+          texto: `${acao === 'despacho' ? 'Despacho' : acao === 'emenda' ? 'Solicitação de Correção' : 'Processo Encerrado'}:\n\n${feedback}${notaNum ? `\n\nNota: ${notaFmt}` : ''}`,
           prazo_resposta: prazoResposta ? `${prazoResposta}T23:59:59Z` : null,
         });
       }
@@ -462,11 +487,29 @@ export default function CorrecaoPage() {
                 )}
               </div>
 
+              {/* Valor total da prova */}
+              <div>
+                <label className="prof-label" style={{ fontSize: 17 }}>
+                  Valor total da prova <span style={{ color: '#dc2626' }}>*</span>
+                  <HelpTooltip text={'Quantos pontos vale esta prova/atividade no total?\nEx: 10, 30, 100. A nota do aluno é lançada dentro desse valor.'} />
+                </label>
+                <input
+                  type="number"
+                  className="prof-input"
+                  style={{ width: 120, height: 48, fontSize: 18, textAlign: 'center' }}
+                  value={valorProva}
+                  onChange={e => setValorProva(e.target.value)}
+                  min={0.1}
+                  step={1}
+                  placeholder="10"
+                />
+              </div>
+
               {/* Nota */}
               <div>
                 <label className="prof-label" style={{ fontSize: 17 }}>
-                  Nota do aluno (de 0 a 10) <span style={{ color: '#dc2626' }}>*</span>
-                  <HelpTooltip text={'Dê uma nota de 0 a 10. Você pode usar decimais (ex: 7,5).\nEsta nota ficará registrada no sistema e será visível para o aluno.'} />
+                  Nota do aluno (de 0 a {valorProva || '?'}) <span style={{ color: '#dc2626' }}>*</span>
+                  <HelpTooltip text={'Dê a nota do aluno dentro do valor total da prova (ex: 25 de 30).\nVocê pode usar decimais (ex: 7,5).\nEsta nota ficará registrada no sistema e será visível para o aluno.'} />
                 </label>
                 <input
                   type="number"
@@ -475,9 +518,9 @@ export default function CorrecaoPage() {
                   value={nota}
                   onChange={e => setNota(e.target.value)}
                   min={0}
-                  max={10}
+                  max={parseFloat(valorProva) || undefined}
                   step={0.5}
-                  placeholder="0–10"
+                  placeholder={`0–${valorProva || '?'}`}
                 />
               </div>
 
