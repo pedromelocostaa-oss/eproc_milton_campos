@@ -6,7 +6,7 @@ import { HelpTooltip } from '@/components/prof/HelpTooltip';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import {
   getAllDemoProcessos, getDemoPartes, getDemoDocumentos,
-  saveDemoProcesso, saveDemoMovimentacao, saveDemoIntimacao,
+  saveDemoProcesso, saveDemoMovimentacao, saveDemoIntimacao, saveDemoDocumento,
 } from '@/data/demoStore';
 import { listarCadastros } from '@/data/cadastroStore';
 import type { Processo, Parte, Documento } from '@/integrations/supabase/types';
@@ -54,6 +54,7 @@ export default function CorrecaoPage() {
   const [acao, setAcao] = useState<Acao>('despacho');
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
+  const [arquivoDespacho, setArquivoDespacho] = useState<File | null>(null);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -153,6 +154,23 @@ export default function CorrecaoPage() {
           data_ciencia: null,
           created_at: now,
         });
+
+        if (arquivoDespacho) {
+          const storagePath = `processos/${id}/despacho/${arquivoDespacho.name}`;
+          await supabase.storage
+            .from('documentos')
+            .upload(storagePath, arquivoDespacho, { upsert: true });
+          saveDemoDocumento({
+            id: crypto.randomUUID(),
+            processo_id: id!,
+            aluno_id: processo!.aluno_id,
+            tipo: 'Despacho do Professor',
+            nome_arquivo: arquivoDespacho.name,
+            storage_path: storagePath,
+            tamanho_bytes: arquivoDespacho.size,
+            created_at: now,
+          });
+        }
       } else {
         await supabase!.from('processos').update({
           status: novoStatus, nota: notaNum, feedback_professor: feedback, updated_at: now,
@@ -393,6 +411,45 @@ export default function CorrecaoPage() {
                   onChange={e => setFeedback(e.target.value)}
                   placeholder={'Ex: Boa petição! A causa de pedir está bem estruturada. Atenção para o pedido de tutela antecipada — especifique melhor o periculum in mora.'}
                 />
+              </div>
+
+              {/* Anexar documento de despacho (opcional) */}
+              <div>
+                <label className="prof-label" style={{ fontSize: 17 }}>
+                  Anexar documento de despacho (PDF ou DOCX) — opcional
+                  <HelpTooltip text="Se quiser, anexe um documento formal (ex: modelo de despacho assinado). O aluno poderá baixá-lo junto com seu parecer." />
+                </label>
+                <label
+                  htmlFor="arquivo-despacho-input"
+                  className="prof-btn-secondary"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    height: 40, padding: '0 16px', fontSize: 14, cursor: 'pointer',
+                  }}
+                >
+                  Escolher arquivo
+                </label>
+                <input
+                  id="arquivo-despacho-input"
+                  type="file"
+                  accept=".pdf,.docx"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    if (file && file.size > 10 * 1024 * 1024) {
+                      alert('Arquivo muito grande (máx 10 MB).');
+                      e.target.value = '';
+                      return;
+                    }
+                    setArquivoDespacho(file);
+                  }}
+                />
+                {arquivoDespacho && (
+                  <div style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, color: '#166534' }}>
+                    <CheckCircle size={16} color="#22c55e" />
+                    <span>{arquivoDespacho.name}</span>
+                  </div>
+                )}
               </div>
 
               {/* Nota */}

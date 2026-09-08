@@ -16,7 +16,7 @@ import { sortearVara } from '@/data/varas';
 import { formatCpfCnpj, formatPhone, formatCep, formatCurrency, parseCurrency } from '@/lib/masks';
 import { generateProcessNumber } from '@/lib/cnj';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
-import { saveDemoProcesso, saveDemoPartes, saveDemoMovimentacao, getDemoTarefas } from '@/data/demoStore';
+import { saveDemoProcesso, saveDemoPartes, saveDemoMovimentacao, saveDemoDocumento, getDemoTarefas } from '@/data/demoStore';
 import { CheckCircle, Upload, X, Plus, Trash2, ChevronDown, ChevronRight, Search, Loader2, Folder, Info, Home } from 'lucide-react';
 
 function countLeaves(node: NodoAssunto): number {
@@ -854,6 +854,24 @@ export default function PeticaoInicialPage() {
           autor_id: user!.id,
           created_at: dataProtocolo,
         });
+
+        for (const doc of form.documentos) {
+          if (!doc.arquivo) continue;
+          const storagePath = `processos/${processoId}/${doc.tipo}/${doc.arquivo.name}`;
+          await supabase.storage
+            .from('documentos')
+            .upload(storagePath, doc.arquivo, { upsert: true });
+          saveDemoDocumento({
+            id: crypto.randomUUID(),
+            processo_id: processoId,
+            aluno_id: user!.id,
+            tipo: doc.tipo,
+            nome_arquivo: doc.arquivo.name,
+            storage_path: storagePath,
+            tamanho_bytes: doc.arquivo.size,
+            created_at: dataProtocolo,
+          });
+        }
       } else {
         await supabase!.from('processos').insert({
           id: processoId,
