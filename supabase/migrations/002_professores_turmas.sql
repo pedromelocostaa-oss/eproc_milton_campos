@@ -1,10 +1,11 @@
 -- ⚠️ EXECUTAR MANUALMENTE no Supabase SQL Editor (Settings → SQL Editor → New snippet → colar e Run)
--- Nota: profiles.id é TEXT neste projeto, por isso professor_id é TEXT e usamos auth.uid()::text nas policies.
+-- Nota: profiles.id e turmas.id são TEXT neste projeto, por isso as colunas de FK são TEXT
+-- e usamos auth.uid()::text nas policies.
 
 CREATE TABLE IF NOT EXISTS public.professores_turmas (
   id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   professor_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  turma_id     UUID NOT NULL REFERENCES public.turmas(id) ON DELETE CASCADE,
+  turma_id     TEXT NOT NULL REFERENCES public.turmas(id) ON DELETE CASCADE,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(professor_id, turma_id)
 );
