@@ -752,8 +752,58 @@ export default function PeticaoInicialPage() {
   };
 
   const removeDoc = (idx: number) => {
-    if (idx === 0) return;
-    setForm(f => ({ ...f, documentos: f.documentos.filter((_, i) => i !== idx) }));
+    setForm(f => {
+      if (f.documentos.length <= 1) return f;
+      return { ...f, documentos: f.documentos.filter((_, i) => i !== idx) };
+    });
+  };
+
+  const moveDoc = (idx: number, direction: -1 | 1) => {
+    setForm(f => {
+      const target = idx + direction;
+      if (target < 0 || target >= f.documentos.length) return f;
+      const docs = [...f.documentos];
+      [docs[idx], docs[target]] = [docs[target], docs[idx]];
+      return { ...f, documentos: docs };
+    });
+  };
+
+  const addFilesToDocs = (startIdx: number, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const MAX_SIZE = 10 * 1024 * 1024;
+    const MAX_DOCS = 10;
+
+    const oversized = Array.from(files).filter(f => f.size > MAX_SIZE);
+    if (oversized.length > 0) {
+      alert(`Arquivo(s) acima de 10 MB foram ignorados:\n${oversized.map(f => `• ${f.name}`).join('\n')}`);
+    }
+    const valid = Array.from(files).filter(f => f.size <= MAX_SIZE);
+    if (valid.length === 0) return;
+
+    setForm(f => {
+      let docs = [...f.documentos];
+      let cursor = 0;
+
+      if (!docs[startIdx].arquivo) {
+        docs[startIdx] = { ...docs[startIdx], arquivo: valid[0], nomeArquivo: valid[0].name };
+        cursor = 1;
+      }
+
+      for (let i = cursor; i < valid.length; i++) {
+        if (docs.length >= MAX_DOCS) {
+          alert(`Limite de ${MAX_DOCS} documentos atingido. Os arquivos restantes foram ignorados.`);
+          break;
+        }
+        docs.push({
+          ...emptyDocumento(),
+          arquivo: valid[i],
+          nomeArquivo: valid[i].name,
+        });
+      }
+      return { ...f, documentos: docs };
+    });
+
+    setErrors(err => { const n = { ...err }; delete n.peticao_inicial; return n; });
   };
 
   const toggleInfoAdic = (key: keyof InfoAdicionais) =>
@@ -861,7 +911,9 @@ export default function PeticaoInicialPage() {
           created_at: dataProtocolo,
         });
 
-        for (const doc of form.documentos) {
+        const baseTime = new Date(dataProtocolo).getTime();
+        for (let i = 0; i < form.documentos.length; i++) {
+          const doc = form.documentos[i];
           if (!doc.arquivo) continue;
           const storagePath = `processos/${processoId}/${doc.tipo}/${doc.arquivo.name}`;
           await supabase.storage
@@ -875,7 +927,7 @@ export default function PeticaoInicialPage() {
             nome_arquivo: doc.arquivo.name,
             storage_path: storagePath,
             tamanho_bytes: doc.arquivo.size,
-            created_at: dataProtocolo,
+            created_at: new Date(baseTime + i).toISOString(),
           });
         }
       } else {
@@ -2567,6 +2619,32 @@ export default function PeticaoInicialPage() {
                             </span>
                           )}
                         </span>
+                        {form.documentos.length > 1 && (
+                          <span style={{ display: 'inline-flex', gap: 2 }}>
+                            <button
+                              onClick={() => moveDoc(idx, -1)}
+                              disabled={idx === 0}
+                              title="Mover para cima"
+                              style={{
+                                background: 'none', border: '1px solid #d1d5db', borderRadius: 3,
+                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                opacity: idx === 0 ? 0.35 : 1,
+                                padding: '1px 6px', fontSize: 11, color: '#374151', lineHeight: 1,
+                              }}
+                            >▲</button>
+                            <button
+                              onClick={() => moveDoc(idx, 1)}
+                              disabled={idx === form.documentos.length - 1}
+                              title="Mover para baixo"
+                              style={{
+                                background: 'none', border: '1px solid #d1d5db', borderRadius: 3,
+                                cursor: idx === form.documentos.length - 1 ? 'not-allowed' : 'pointer',
+                                opacity: idx === form.documentos.length - 1 ? 0.35 : 1,
+                                padding: '1px 6px', fontSize: 11, color: '#374151', lineHeight: 1,
+                              }}
+                            >▼</button>
+                          </span>
+                        )}
                         <select
                           value={doc.sigilo}
                           onChange={e => updateDoc(idx, 'sigilo', e.target.value)}
@@ -2575,9 +2653,10 @@ export default function PeticaoInicialPage() {
                         >
                           {siglosDocumento.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
-                        {idx > 0 && (
+                        {form.documentos.length > 1 && (
                           <button
                             onClick={() => removeDoc(idx)}
+                            title="Remover documento"
                             style={{ color: '#dc2626', cursor: 'pointer', background: 'none', border: 'none', flexShrink: 0 }}
                           >
                             <X size={14} />
@@ -2596,8 +2675,6 @@ export default function PeticaoInicialPage() {
                               value={doc.tipo}
                               onChange={e => updateDoc(idx, 'tipo', e.target.value)}
                               placeholder="Ex.: Petição Inicial, Procuração..."
-                              disabled={idx === 0}
-                              style={idx === 0 ? { background: '#f9fafb' } : undefined}
                             />
                           </div>
                           <div>
@@ -2612,18 +2689,15 @@ export default function PeticaoInicialPage() {
                                 borderRadius: 4, background: '#fff', color: '#374151',
                               }}>
                                 <Upload size={13} />
-                                {doc.nomeArquivo ? 'Alterar' : 'Selecionar arquivo'}
+                                {doc.nomeArquivo ? 'Alterar' : 'Selecionar arquivo(s)'}
                                 <input
                                   type="file"
+                                  multiple
                                   style={{ display: 'none' }}
                                   accept=".pdf,.docx"
                                   onChange={e => {
-                                    const file = e.target.files?.[0];
-                                    if (!file) return;
-                                    if (file.size > 10 * 1024 * 1024) { alert('Arquivo muito grande (máx 10 MB).'); return; }
-                                    updateDoc(idx, 'arquivo', file);
-                                    updateDoc(idx, 'nomeArquivo', file.name);
-                                    if (idx === 0) setErrors(err => { const n = { ...err }; delete n.peticao_inicial; return n; });
+                                    addFilesToDocs(idx, e.target.files);
+                                    e.target.value = '';
                                   }}
                                 />
                               </label>

@@ -5,6 +5,7 @@ import EprocLayout from '@/components/layout/EprocLayout';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getDemoProcessos, getDemoPartes, getDemoMovimentacoes, getDemoDocumentos, getDemoIntimacoesAluno } from '@/data/demoStore';
 import { getJuiz } from '@/data/varas';
+import { baixarDocumento } from '@/lib/downloadDoc';
 import type { Processo, Parte, Movimentacao, Documento, Intimacao } from '@/integrations/supabase/types';
 
 type Tab = 'partes' | 'movimentacoes' | 'documentos' | 'intimacoes';
@@ -262,7 +263,7 @@ export default function ProcessoDetalhesPage() {
                       <td>{d.nome_arquivo}</td>
                       <td>{d.tamanho_bytes ? `${(d.tamanho_bytes / 1024).toFixed(0)} KB` : '—'}</td>
                       <td>{formatDateShort(d.created_at)}</td>
-                      <td><button className="btn-secondary text-[10px] py-0.5 px-2" disabled>Baixar</button></td>
+                      <td><button className="btn-secondary text-[10px] py-0.5 px-2" onClick={() => baixarDocumento(d.storage_path, d.nome_arquivo)}>Baixar</button></td>
                     </tr>
                   ))}
                 </tbody>

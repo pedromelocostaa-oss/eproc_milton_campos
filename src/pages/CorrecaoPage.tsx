@@ -10,6 +10,7 @@ import {
 } from '@/data/demoStore';
 import { listarCadastros } from '@/data/cadastroStore';
 import type { Processo, Parte, Documento } from '@/integrations/supabase/types';
+import { baixarDocumento } from '@/lib/downloadDoc';
 import { CheckCircle } from 'lucide-react';
 
 function formatDate(iso: string) { return new Date(iso).toLocaleString('pt-BR'); }
@@ -329,7 +330,11 @@ export default function CorrecaoPage() {
                         <div style={{ fontSize: 15, fontWeight: 600 }}>{d.tipo}</div>
                         <div style={{ fontSize: 13, color: '#6b7280' }}>{d.nome_arquivo}</div>
                       </div>
-                      <button className="prof-btn-secondary" style={{ height: 36, padding: '0 14px', fontSize: 13 }} disabled>
+                      <button
+                        className="prof-btn-secondary"
+                        style={{ height: 36, padding: '0 14px', fontSize: 13 }}
+                        onClick={() => baixarDocumento(d.storage_path, d.nome_arquivo)}
+                      >
                         Baixar
                       </button>
                     </div>
