@@ -16,12 +16,12 @@ export function generateProcessNumber(varaCode?: string): string {
 
   const nnnnnnn = String(sequenceCounter).padStart(7, '0');
   const aaaa = new Date().getFullYear().toString();
-  const j = '4';
-  const tr = '01';
+  const j = '8';
+  const tr = '13';
   const oooo = varaCode || varasCodigos[Math.floor(Math.random() * varasCodigos.length)];
 
   const dv = calcDigitosCNJ(nnnnnnn, aaaa, j, tr, oooo);
-  return `${nnnnnnn}-${dv}.${aaaa}.${j}.${tr}.${oooo}`;
+  return `${nnnnnnn}-${dv}.${aaaa}.${j}${tr}.${oooo}`;
 }
 
 export function formatProcessNumber(raw: string): string {
