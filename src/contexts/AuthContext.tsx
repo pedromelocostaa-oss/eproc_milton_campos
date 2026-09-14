@@ -53,6 +53,7 @@ const DEMO_PASSWORDS: Record<string, string> = {
   '150.665.876-83': 'Milton2026',
   '097.446.776-60': 'Prof@Pedro2026',
   '149.534.096-12': 'Milton2026',
+  '123.456.789-10': '*Paulo.m1ilton',
 };
 const DEFAULT_PASSWORD = 'Milton@2025';
 
