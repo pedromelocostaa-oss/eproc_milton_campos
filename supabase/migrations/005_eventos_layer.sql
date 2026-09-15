@@ -40,7 +40,7 @@ END $$;
 -- ── 2. Tabela eventos ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.eventos (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  processo_id    UUID NOT NULL REFERENCES public.processos(id) ON DELETE CASCADE,
+  processo_id    TEXT NOT NULL REFERENCES public.processos(id) ON DELETE CASCADE,
   numero         INTEGER NOT NULL,
   subtipo        evento_subtipo NOT NULL,
   autor_papel    evento_autor_papel NOT NULL,
