@@ -38,6 +38,8 @@ import ForumConciliacaoPage from './pages/ForumConciliacaoPage';
 import LegislacaoPage from './pages/LegislacaoPage';
 import SessoesJulgamentoPage from './pages/SessoesJulgamentoPage';
 import TutoriaisPage from './pages/TutoriaisPage';
+import AlunoProcessoPage from './pages/AlunoProcessoPage';
+import ProfessorProcessoPage from './pages/ProfessorProcessoPage';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -103,6 +105,11 @@ function AppRoutes() {
       <Route path="/intimacoes" element={<RequireAluno><IntimacoesPage /></RequireAluno>} />
       <Route path="/peticao-referencia/:tarefaId" element={<RequireAluno><PeticaoReferenciaPage /></RequireAluno>} />
       <Route path="/meus-dados" element={<RequireAluno><MeusProcessosPage /></RequireAluno>} />
+
+      {/* Rotas novas — camada de eventos (Fase 2) */}
+      <Route path="/aluno/processos" element={<RequireAluno><MeusProcessosPage /></RequireAluno>} />
+      <Route path="/aluno/processos/:id" element={<RequireAluno><AlunoProcessoPage /></RequireAluno>} />
+      <Route path="/professor/processos/:id" element={<RequireProfessor><ProfessorProcessoPage /></RequireProfessor>} />
 
       {/* Professor routes */}
       <Route path="/prof/dashboard" element={<RequireProfessor><DashboardProfessoraPage /></RequireProfessor>} />

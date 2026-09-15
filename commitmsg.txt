@@ -1,0 +1,11 @@
+Login redesenhado com seletor de papel (aluno/professor) e fluxo de matéria
+
+- Removido menu lateral da tela de login
+- Adicionados botões "Entrar como Aluno" e "Entrar como Professor"
+- Aluno seleciona matéria antes de entrar; primeiro acesso cria solicitação pendente
+- Atualizado Step 2 (Assuntos) com tabela PJe e breadcrumb de ancestralidade
+- Atualizado Step 3 e 4 (Partes) com layout Consulta do PJe e tabela completa
+- Cadastro de Pessoa Física reescrito com todos os campos e dropdowns do PJe
+- Dados de classesAssuntos atualizados com valores reais do PJe (nacionalidades, documentos, etc.)
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>

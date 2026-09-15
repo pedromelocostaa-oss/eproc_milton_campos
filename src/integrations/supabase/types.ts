@@ -274,6 +274,87 @@ export interface Database {
         };
         Relationships: [];
       };
+      eventos: {
+        Row: {
+          id: string;
+          processo_id: string;
+          numero: number;
+          subtipo: EventoSubtipo;
+          autor_papel: EventoAutorPapel;
+          autor_id: string | null;
+          titulo: string;
+          corpo: string | null;
+          em_resposta_a: string | null;
+          data_evento: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          processo_id: string;
+          numero?: number;
+          subtipo: EventoSubtipo;
+          autor_papel: EventoAutorPapel;
+          autor_id?: string | null;
+          titulo: string;
+          corpo?: string | null;
+          em_resposta_a?: string | null;
+          data_evento?: string;
+        };
+        Update: {
+          titulo?: string;
+          corpo?: string | null;
+        };
+        Relationships: [];
+      };
+      evento_documentos: {
+        Row: {
+          id: string;
+          evento_id: string;
+          nome: string;
+          storage_path: string;
+          mime_type: string | null;
+          tamanho_bytes: number | null;
+          ordem: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          evento_id: string;
+          nome: string;
+          storage_path: string;
+          mime_type?: string | null;
+          tamanho_bytes?: number | null;
+          ordem?: number;
+        };
+        Update: {
+          nome?: string;
+          ordem?: number;
+        };
+        Relationships: [];
+      };
+      evento_correcoes: {
+        Row: {
+          id: string;
+          evento_id: string;
+          nota: number | null;
+          feedback: string | null;
+          corrigido_por: string | null;
+          corrigido_em: string;
+        };
+        Insert: {
+          id?: string;
+          evento_id: string;
+          nota?: number | null;
+          feedback?: string | null;
+          corrigido_por?: string | null;
+        };
+        Update: {
+          nota?: number | null;
+          feedback?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -281,11 +362,24 @@ export interface Database {
   };
 }
 
+export type EventoAutorPapel = 'aluno' | 'professor_juiz' | 'sistema';
+
+export type EventoSubtipo =
+  | 'distribuicao' | 'intimacao'
+  | 'peticao_inicial' | 'emenda_inicial' | 'manifestacao' | 'cumprimento_despacho'
+  | 'replica' | 'contestacao' | 'peticao_juntada' | 'recurso' | 'peticao_generica'
+  | 'despacho' | 'decisao' | 'sentenca';
+
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Turma = Database['public']['Tables']['turmas']['Row'];
 export type Tarefa = Database['public']['Tables']['tarefas']['Row'];
-export type Processo = Database['public']['Tables']['processos']['Row'];
+export type Processo = Database['public']['Tables']['processos']['Row'] & {
+  estado?: 'ativo' | 'sentenciado' | 'baixado';
+};
 export type Parte = Database['public']['Tables']['partes']['Row'];
 export type Documento = Database['public']['Tables']['documentos']['Row'];
 export type Movimentacao = Database['public']['Tables']['movimentacoes']['Row'];
 export type Intimacao = Database['public']['Tables']['intimacoes']['Row'];
+export type EventoRow = Database['public']['Tables']['eventos']['Row'];
+export type EventoDocumentoRow = Database['public']['Tables']['evento_documentos']['Row'];
+export type EventoCorrecaoRow = Database['public']['Tables']['evento_correcoes']['Row'];

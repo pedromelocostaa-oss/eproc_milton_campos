@@ -80,6 +80,16 @@ export default {
         "nav-bg": "hsl(var(--nav-bg))",
         "nav-fg": "hsl(var(--nav-fg))",
         "nav-hover": "hsl(var(--nav-hover))",
+        // Camada de eventos (semântica por autor)
+        "ato-aluno": "#1d4ed8",
+        "ato-aluno-bg": "#eff6ff",
+        "ato-juiz": "#7c2d92",
+        "ato-juiz-bg": "#faf5ff",
+        "ato-sistema": "#525252",
+        "ato-sistema-bg": "#f5f5f5",
+        "ato-sentenca": "#991b1b",
+        "ato-sentenca-bg": "#fef2f2",
+        "destaque-novo": "#fef3c7",
       },
       borderRadius: {
         lg: "var(--radius)",
