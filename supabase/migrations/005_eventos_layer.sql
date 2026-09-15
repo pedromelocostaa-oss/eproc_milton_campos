@@ -98,7 +98,16 @@ ALTER TABLE public.processos
 
 -- ── 6. Triggers ─────────────────────────────────────────────
 
--- 6.1 updated_at automático em eventos (reusa a função existente set_updated_at)
+-- 6.1 updated_at automático em eventos
+-- Cria a função se não existir (defensivo — schema pode não ter set_updated_at)
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
 DROP TRIGGER IF EXISTS trg_eventos_updated_at ON public.eventos;
 CREATE TRIGGER trg_eventos_updated_at
   BEFORE UPDATE ON public.eventos
