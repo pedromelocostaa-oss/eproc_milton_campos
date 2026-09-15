@@ -178,6 +178,14 @@ export default function MeusProcessosPage() {
                               >
                                 [Ver Autos]
                               </button>
+                              <button
+                                className="text-[11px] hover:underline cursor-pointer"
+                                style={{ color: 'hsl(210,100%,20%)' }}
+                                onClick={() => navigate(`/aluno/processos/${p.id}`)}
+                                title="Nova interface — árvore de eventos"
+                              >
+                                [Árvore de eventos]
+                              </button>
                               {p.status !== 'encerrado' && (
                                 <button
                                   className="text-[11px] hover:underline cursor-pointer"

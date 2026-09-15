@@ -216,19 +216,32 @@ export default function FilaPeticoesPage() {
                           </span>
                         </td>
                         <td>
-                          <button
-                            onClick={() => navigate(`/prof/correcao/${p.id}`)}
-                            style={{
-                              height: 44, padding: '0 16px', fontSize: 14, fontWeight: 600,
-                              border: '2px solid', borderRadius: 6, cursor: 'pointer',
-                              background: isPendente ? '#1e40af' : 'transparent',
-                              color: isPendente ? '#fff' : '#16a34a',
-                              borderColor: isPendente ? '#1e40af' : '#16a34a',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            {isPendente ? 'Corrigir esta petição' : 'Ver correção'}
-                          </button>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            <button
+                              onClick={() => navigate(`/prof/correcao/${p.id}`)}
+                              style={{
+                                height: 44, padding: '0 16px', fontSize: 14, fontWeight: 600,
+                                border: '2px solid', borderRadius: 6, cursor: 'pointer',
+                                background: isPendente ? '#1e40af' : 'transparent',
+                                color: isPendente ? '#fff' : '#16a34a',
+                                borderColor: isPendente ? '#1e40af' : '#16a34a',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {isPendente ? 'Corrigir esta petição' : 'Ver correção'}
+                            </button>
+                            <button
+                              onClick={() => navigate(`/professor/processos/${p.id}`)}
+                              style={{
+                                height: 32, padding: '0 12px', fontSize: 12, fontWeight: 500,
+                                border: '1px solid #cbd5e1', borderRadius: 4, cursor: 'pointer',
+                                background: '#fff', color: '#334155', whiteSpace: 'nowrap',
+                              }}
+                              title="Nova interface — árvore de eventos + emissão de atos"
+                            >
+                              Abrir árvore de eventos
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
