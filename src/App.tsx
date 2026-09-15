@@ -41,6 +41,7 @@ import TutoriaisPage from './pages/TutoriaisPage';
 import AlunoProcessoPage from './pages/AlunoProcessoPage';
 import AlunoPeticionarPage from './pages/AlunoPeticionarPage';
 import ProfessorProcessoPage from './pages/ProfessorProcessoPage';
+import ProfessorAtoPage from './pages/ProfessorAtoPage';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -112,6 +113,7 @@ function AppRoutes() {
       <Route path="/aluno/processos/:id" element={<RequireAluno><AlunoProcessoPage /></RequireAluno>} />
       <Route path="/aluno/processos/:id/peticionar" element={<RequireAluno><AlunoPeticionarPage /></RequireAluno>} />
       <Route path="/professor/processos/:id" element={<RequireProfessor><ProfessorProcessoPage /></RequireProfessor>} />
+      <Route path="/professor/processos/:id/ato" element={<RequireProfessor><ProfessorAtoPage /></RequireProfessor>} />
 
       {/* Professor routes */}
       <Route path="/prof/dashboard" element={<RequireProfessor><DashboardProfessoraPage /></RequireProfessor>} />
