@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
@@ -15,6 +15,8 @@ export default function AlunoProcessoPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const destaque = Number(searchParams.get('destaque')) || null;
   const [processo, setProcesso] = useState<Processo | null>(null);
   const [partes, setPartes] = useState<Parte[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -91,6 +93,7 @@ export default function AlunoProcessoPage() {
           processoId={processo.id}
           dataDistribuicao={processo.created_at}
           viewMode="aluno"
+          destacarNumero={destaque}
         />
       </div>
     </EprocLayout>

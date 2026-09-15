@@ -39,6 +39,7 @@ import LegislacaoPage from './pages/LegislacaoPage';
 import SessoesJulgamentoPage from './pages/SessoesJulgamentoPage';
 import TutoriaisPage from './pages/TutoriaisPage';
 import AlunoProcessoPage from './pages/AlunoProcessoPage';
+import AlunoPeticionarPage from './pages/AlunoPeticionarPage';
 import ProfessorProcessoPage from './pages/ProfessorProcessoPage';
 import NotFound from './pages/NotFound';
 
@@ -109,6 +110,7 @@ function AppRoutes() {
       {/* Rotas novas — camada de eventos (Fase 2) */}
       <Route path="/aluno/processos" element={<RequireAluno><MeusProcessosPage /></RequireAluno>} />
       <Route path="/aluno/processos/:id" element={<RequireAluno><AlunoProcessoPage /></RequireAluno>} />
+      <Route path="/aluno/processos/:id/peticionar" element={<RequireAluno><AlunoPeticionarPage /></RequireAluno>} />
       <Route path="/professor/processos/:id" element={<RequireProfessor><ProfessorProcessoPage /></RequireProfessor>} />
 
       {/* Professor routes */}
