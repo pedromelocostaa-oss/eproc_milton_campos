@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getAllDemoProcessos, getDemoPartes } from '@/data/demoStore';
+import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
 function formatDate(iso: string) {
@@ -164,6 +165,22 @@ export default function ConsultaPublicaPage() {
                   ⚠️ Este é um sistema de simulação educacional. Os dados exibidos são fictícios, produzidos por alunos da Faculdade Milton Campos.
                 </div>
               </div>
+            </div>
+          )}
+
+          {result && (
+            <div className="mt-4">
+              <div className="text-[11px] font-bold text-muted-foreground uppercase mb-2">
+                Linha do tempo do processo (eventos públicos)
+              </div>
+              <ArvoreDeEventos
+                processoId={result.id}
+                dataDistribuicao={result.created_at}
+                viewMode="aluno"
+              />
+              <p className="text-[11px] text-muted-foreground mt-2 italic">
+                Para peticionar neste processo é necessário ser parte ou estar habilitado nos autos.
+              </p>
             </div>
           )}
 

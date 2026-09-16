@@ -11,7 +11,7 @@ import {
 import { listarCadastros } from '@/data/cadastroStore';
 import type { Processo, Parte, Documento } from '@/integrations/supabase/types';
 import { baixarDocumento, sanitizeStorageSegment } from '@/lib/downloadDoc';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, ExternalLink, ArrowRight } from 'lucide-react';
 
 function formatDate(iso: string) { return new Date(iso).toLocaleString('pt-BR'); }
 
@@ -29,27 +29,6 @@ function formatNota(n: number | null | undefined, valor: number): string {
 
 type Acao = 'despacho' | 'emenda' | 'encerrar';
 
-const ACOES: { val: Acao; title: string; desc: string; icon: string }[] = [
-  {
-    val: 'despacho',
-    title: 'Enviar Despacho',
-    desc: 'Dou feedback e nota. O processo continua ativo.',
-    icon: '📋',
-  },
-  {
-    val: 'emenda',
-    title: 'Solicitar Correção ao Aluno',
-    desc: 'Devolvo para o aluno ajustar, com prazo e orientação.',
-    icon: '🔄',
-  },
-  {
-    val: 'encerrar',
-    title: 'Encerrar e Finalizar',
-    desc: 'Encerro o processo com nota final e comentário.',
-    icon: '✅',
-  },
-];
-
 export default function CorrecaoPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -64,8 +43,8 @@ export default function CorrecaoPage() {
   const [feedback, setFeedback] = useState('');
   const [nota, setNota] = useState('');
   const [valorProva, setValorProva] = useState('10');
-  const [prazoResposta, setPrazoResposta] = useState('');
-  const [acao, setAcao] = useState<Acao>('despacho');
+  const prazoResposta = ''; // reservado (não mais editável na UI)
+  const acao: Acao = 'despacho'; // simplificado: única ação
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
   const [arquivoDespacho, setArquivoDespacho] = useState<File | null>(null);
@@ -252,25 +231,25 @@ export default function CorrecaoPage() {
           <div className="prof-card" style={{ textAlign: 'center', padding: 48 }}>
             <CheckCircle size={56} color="#22c55e" style={{ margin: '0 auto 16px' }} />
             <div style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f', marginBottom: 12 }}>
-              Avaliação enviada com sucesso!
+              Avaliação salva.
             </div>
             <div style={{ fontSize: 16, color: '#6b7280', marginBottom: 32, lineHeight: 1.6 }}>
-              O aluno <strong>{nomeAluno}</strong> foi notificado e pode ver seu comentário e nota agora.
+              A nota e a observação para <strong>{nomeAluno}</strong> foram registradas.
             </div>
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 className="prof-btn-secondary"
                 style={{ height: 52, padding: '0 28px', fontSize: 15 }}
                 onClick={() => navigate('/prof/peticoes')}
               >
-                Ver outras petições
+                Ver outros processos
               </button>
               <button
                 className="prof-btn-primary"
                 style={{ height: 52, padding: '0 28px', fontSize: 15 }}
-                onClick={() => navigate('/prof/dashboard')}
+                onClick={() => window.open(`/professor/processos/${processo?.id}`, '_blank')}
               >
-                Voltar ao painel
+                Abrir processo completo
               </button>
             </div>
           </div>
@@ -282,10 +261,7 @@ export default function CorrecaoPage() {
   const poloAtivo = partes.filter(p => p.polo === 'ativo');
   const poloPassivo = partes.filter(p => p.polo === 'passivo');
 
-  const submitLabel =
-    acao === 'despacho' ? 'Enviar Avaliação para o Aluno'
-    : acao === 'emenda'  ? 'Solicitar Correção ao Aluno'
-    : 'Finalizar e Encerrar';
+  const submitLabel = 'Salvar avaliação';
 
   return (
     <ProfLayout>
@@ -295,12 +271,40 @@ export default function CorrecaoPage() {
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
             <span className="prof-page-title" style={{ marginBottom: 0 }}>
-              Corrigir Petição do Aluno
+              Avaliação da Atividade
             </span>
-            <HelpTooltip text={'Analise a petição enviada pelo aluno, escolha uma ação e escreva seu\nfeedback detalhado. O aluno receberá automaticamente uma notificação\ncom seu comentário e nota.'} />
+            <HelpTooltip text={'Analise a atividade do aluno acessando o processo completo,\nescreva sua observação e atribua a nota.'} />
           </div>
           <div style={{ fontSize: 16, color: '#6b7280', marginTop: 4 }}>
-            Aluno: <strong>{nomeAluno}</strong> — Processo: <strong style={{ fontFamily: 'monospace' }}>{processo.numero_processo}</strong>
+            Aluno: <strong>{nomeAluno}</strong> — Processo:{' '}
+            <button
+              type="button"
+              onClick={() => window.open(`/professor/processos/${processo.id}`, '_blank')}
+              style={{
+                fontFamily: 'monospace', fontWeight: 700,
+                color: '#1e40af', background: 'none', border: 'none',
+                cursor: 'pointer', textDecoration: 'underline',
+                padding: 0, fontSize: 16,
+              }}
+              title="Abrir painel completo do processo em nova aba"
+            >
+              {processo.numero_processo}
+            </button>
+            <span style={{ marginLeft: 6, color: '#9ca3af', fontSize: 13 }}>
+              (clique para ver todos os eventos do processo)
+            </span>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={() => window.open(`/professor/processos/${processo.id}`, '_blank')}
+              className="prof-btn-secondary"
+              style={{ height: 40, padding: '0 16px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            >
+              <ExternalLink size={16} /> Abrir processo completo (linha do tempo e eventos)
+              <ArrowRight size={14} />
+            </button>
           </div>
         </div>
 
@@ -381,56 +385,15 @@ export default function CorrecaoPage() {
             </div>
             <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-              {/* Action selector cards */}
-              <div>
-                <div style={{ fontSize: 17, fontWeight: 700, color: '#1e3a5f', marginBottom: 12, display: 'flex', alignItems: 'center' }}>
-                  Tipo de Ação
-                  <HelpTooltip text={'Escolha o que deseja fazer com esta petição.\nVocê pode enviar um comentário, pedir que o aluno corrija,\nou finalizar a atividade com nota.'} />
-                </div>
-                {ACOES.map(opt => (
-                  <div
-                    key={opt.val}
-                    className={'prof-action-card' + (acao === opt.val ? ' selected' : '')}
-                    onClick={() => setAcao(opt.val)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setAcao(opt.val); }}
-                    style={{ minHeight: 72 }}
-                  >
-                    <span style={{ fontSize: 24, lineHeight: 1, flexShrink: 0 }}>{opt.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div className="prof-action-card-title">{opt.title}</div>
-                      <div className="prof-action-card-desc">{opt.desc}</div>
-                    </div>
-                    {acao === opt.val && (
-                      <span style={{
-                        fontSize: 12, fontWeight: 700,
-                        color: '#1e40af', background: '#dbeafe',
-                        padding: '3px 10px', borderRadius: 4, flexShrink: 0,
-                      }}>
-                        SELECIONADO
-                      </span>
-                    )}
-                  </div>
-                ))}
+              <div style={{
+                padding: 12, background: '#f0f9ff', border: '1px solid #bae6fd',
+                borderRadius: 4, fontSize: 13, color: '#0c4a6e', lineHeight: 1.5,
+              }}>
+                <strong>Como funciona:</strong> abra o processo completo pelo botão acima
+                para ver a linha do tempo e os documentos. Volte aqui, escreva sua observação
+                e atribua a nota. Despachos, decisões e sentenças são emitidos dentro do próprio
+                processo, e não por esta tela.
               </div>
-
-              {/* Prazo (emenda only) */}
-              {acao === 'emenda' && (
-                <div>
-                  <label className="prof-label" style={{ fontSize: 17 }}>
-                    Prazo para o aluno fazer a correção
-                    <HelpTooltip text="O aluno verá esta data como prazo para reenviar a petição corrigida." />
-                  </label>
-                  <input
-                    type="date"
-                    className="prof-input"
-                    style={{ width: 200 }}
-                    value={prazoResposta}
-                    onChange={e => setPrazoResposta(e.target.value)}
-                  />
-                </div>
-              )}
 
               {/* Feedback textarea */}
               <div>
