@@ -1,9 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, UserPlus } from 'lucide-react';
 import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getAllDemoProcessos, getDemoPartes } from '@/data/demoStore';
 import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
+import { SolicitarHabilitacaoDialog } from '@/components/eventos/SolicitarHabilitacaoDialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchEventosUnificados } from '@/lib/eventos/adapter';
+import { habilitados, jaSolicitou } from '@/lib/eventos/habilitacao';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
 function formatDate(iso: string) {
@@ -23,11 +27,27 @@ function statusLabel(s: string): { label: string; cls: string } {
 
 export default function ConsultaPublicaPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<Processo | null>(null);
   const [partes, setPartes] = useState<Parte[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [jaHabilitado, setJaHabilitado] = useState(false);
+  const [jaPediu, setJaPediu] = useState(false);
+  const [ehDono, setEhDono] = useState(false);
+
+  useEffect(() => {
+    if (!result || !user) { setJaHabilitado(false); setJaPediu(false); setEhDono(false); return; }
+    setEhDono(result.aluno_id === user.id);
+    (async () => {
+      const evs = await fetchEventosUnificados({ processoId: result.id, dataDistribuicao: result.created_at });
+      setJaHabilitado(habilitados(evs).has(user.id));
+      setJaPediu(jaSolicitou(evs, user.id));
+    })();
+  }, [result, user, refreshKey]);
 
   const buscar = async () => {
     if (!query.trim()) return;
@@ -170,18 +190,59 @@ export default function ConsultaPublicaPage() {
 
           {result && (
             <div className="mt-4">
-              <div className="text-[11px] font-bold text-muted-foreground uppercase mb-2">
-                Linha do tempo do processo (eventos públicos)
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-bold text-muted-foreground uppercase">
+                  Linha do tempo do processo (eventos públicos)
+                </div>
+                {user && !ehDono && !jaHabilitado && !jaPediu && (
+                  <button
+                    onClick={() => setDialogAberto(true)}
+                    className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-sm border border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <UserPlus size={13} /> Solicitar habilitação
+                  </button>
+                )}
+                {user && !ehDono && jaPediu && !jaHabilitado && (
+                  <span className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-sm border border-warning bg-warning-bg text-warning">
+                    Habilitação pendente de deferimento
+                  </span>
+                )}
+                {user && !ehDono && jaHabilitado && (
+                  <span className="inline-flex items-center gap-1.5 text-[12px] px-3 py-1.5 rounded-sm border border-success bg-sucesso-bg text-sucesso">
+                    Habilitado nos autos ✓
+                  </span>
+                )}
               </div>
               <ArvoreDeEventos
                 processoId={result.id}
                 dataDistribuicao={result.created_at}
                 viewMode="aluno"
+                atualizarKey={refreshKey}
               />
               <p className="text-[11px] text-muted-foreground mt-2 italic">
                 Para peticionar neste processo é necessário ser parte ou estar habilitado nos autos.
               </p>
+              {user && jaHabilitado && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => navigate(`/aluno/processos/${result.id}`)}
+                    className="btn-primary text-[12px]"
+                  >
+                    Abrir processo para peticionar
+                  </button>
+                </div>
+              )}
             </div>
+          )}
+
+          {result && user && (
+            <SolicitarHabilitacaoDialog
+              processoId={result.id}
+              numeroProcesso={result.numero_processo}
+              aberto={dialogAberto}
+              onFechar={() => setDialogAberto(false)}
+              onEnviou={() => setRefreshKey(k => k + 1)}
+            />
           )}
 
           {/* Tip */}

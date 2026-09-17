@@ -9,6 +9,8 @@ import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, Send } from 'lucide-react';
+import { fetchEventosUnificados } from '@/lib/eventos/adapter';
+import { habilitados } from '@/lib/eventos/habilitacao';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
 export default function AlunoProcessoPage() {
@@ -20,6 +22,7 @@ export default function AlunoProcessoPage() {
   const [processo, setProcesso] = useState<Processo | null>(null);
   const [partes, setPartes] = useState<Parte[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [ehHabilitado, setEhHabilitado] = useState(false);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -37,6 +40,10 @@ export default function AlunoProcessoPage() {
       ]);
       if (pRes.data) setProcesso(pRes.data as Processo);
       if (partRes.data) setPartes(partRes.data);
+      if (pRes.data && user) {
+        const evs = await fetchEventosUnificados({ processoId: (pRes.data as Processo).id, dataDistribuicao: (pRes.data as Processo).created_at });
+        setEhHabilitado(habilitados(evs).has(user.id));
+      }
       setCarregando(false);
     })();
   }, [id, user]);
@@ -45,7 +52,13 @@ export default function AlunoProcessoPage() {
   if (!processo) return <EprocLayout><div className="p-6 text-[12px]">Processo não encontrado.</div></EprocLayout>;
 
   const estado = processo.estado ?? (processo.status === 'encerrado' ? 'sentenciado' : 'ativo');
-  const podePeticionar = estado !== 'sentenciado' && estado !== 'baixado';
+  const ehDono = user?.id === processo.aluno_id;
+  const podePeticionar = estado !== 'sentenciado' && estado !== 'baixado' && (ehDono || ehHabilitado);
+  const razaoBloqueio = estado === 'sentenciado'
+    ? 'Este processo foi sentenciado. Não é possível peticionar.'
+    : (!ehDono && !ehHabilitado)
+    ? 'Você não é parte deste processo. Solicite habilitação nos autos pela Consulta Pública.'
+    : null;
 
   return (
     <EprocLayout>
@@ -78,9 +91,9 @@ export default function AlunoProcessoPage() {
                       </Button>
                     </span>
                   </TooltipTrigger>
-                  {!podePeticionar && (
+                  {!podePeticionar && razaoBloqueio && (
                     <TooltipContent>
-                      <p className="text-xs">Este processo foi sentenciado. Não é possível peticionar.</p>
+                      <p className="text-xs">{razaoBloqueio}</p>
                     </TooltipContent>
                   )}
                 </Tooltip>

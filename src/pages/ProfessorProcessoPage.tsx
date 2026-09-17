@@ -8,8 +8,10 @@ import { CabecalhoProcesso } from '@/components/eventos/CabecalhoProcesso';
 import { EventoLinha } from '@/components/eventos/EventoLinha';
 import { CorrigirEventoSheet } from '@/components/eventos/CorrigirEventoSheet';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Eye, Feather, Scale, Gavel, ClipboardCheck, Loader2, RefreshCw } from 'lucide-react';
+import { ChevronLeft, Eye, Feather, Scale, Gavel, ClipboardCheck, Loader2, RefreshCw, UserCheck } from 'lucide-react';
 import { fetchEventosUnificados, type EventoUnificado } from '@/lib/eventos/adapter';
+import { pedidosPendentes, textoDeferimento } from '@/lib/eventos/habilitacao';
+import { toast } from 'sonner';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
 export default function ProfessorProcessoPage() {
@@ -61,6 +63,33 @@ export default function ProfessorProcessoPage() {
       .sort((a, b) => b.numero - a.numero)[0] ?? null;
   }, [eventos]);
 
+  const habilitacoesPendentes = useMemo(() => (eventos ? pedidosPendentes(eventos) : []), [eventos]);
+
+  const [deferindo, setDeferindo] = useState<string | null>(null);
+  async function deferirHabilitacao(eventoPedidoId: string, alunoId: string, polo: 'ativo' | 'passivo', nomeAluno: string) {
+    if (!user || !processo) return;
+    setDeferindo(eventoPedidoId);
+    try {
+      const corpo = textoDeferimento(nomeAluno, polo, alunoId);
+      const { error } = await supabase.from('eventos').insert({
+        processo_id: processo.id,
+        subtipo: 'despacho',
+        autor_papel: 'professor_juiz',
+        autor_id: user.id,
+        titulo: `Despacho — Deferimento de Habilitação (${nomeAluno})`,
+        corpo,
+        em_resposta_a: eventoPedidoId,
+      });
+      if (error) throw error;
+      toast.success('Habilitação deferida.');
+      recarregarEventos();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao deferir habilitação.');
+    } finally {
+      setDeferindo(null);
+    }
+  }
+
   const estado = processo?.estado ?? (processo?.status === 'encerrado' ? 'sentenciado' : 'ativo');
   const jaSentenciado = estado === 'sentenciado';
 
@@ -110,29 +139,55 @@ export default function ProfessorProcessoPage() {
               <p className="text-sm text-muted-foreground">Nenhum evento neste processo.</p>
             ) : (
               <div className="space-y-3">
-                {ordenados.map(e => (
-                  <div key={e.id} className="space-y-1">
-                    <EventoLinha evento={e} viewMode="professor" destacar={destaque === e.numero} />
-                    {e.autorPapel === 'aluno' && !e.legacy && (
-                      <div className="flex justify-end">
-                        <Button
-                          variant={e.correcao ? 'outline' : 'default'}
-                          size="sm"
-                          onClick={() => setCorrigindo(e)}
-                        >
-                          <ClipboardCheck className="h-4 w-4 mr-1.5" />
-                          {e.correcao ? 'Editar correção' : 'Corrigir'}
-                        </Button>
+                {ordenados.map(e => {
+                  const pedidoHab = habilitacoesPendentes.find(p => p.evento.id === e.id);
+                  return (
+                    <div key={e.id} className="space-y-1">
+                      <EventoLinha evento={e} viewMode="professor" destacar={destaque === e.numero} />
+                      <div className="flex justify-end gap-2">
+                        {pedidoHab && !jaSentenciado && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            disabled={deferindo === e.id}
+                            onClick={() => deferirHabilitacao(
+                              e.id,
+                              pedidoHab.marker.alunoId,
+                              pedidoHab.marker.polo,
+                              e.titulo.replace(/^Requerimento de Habilitação — /, '') || 'Requerente',
+                            )}
+                          >
+                            <UserCheck className="h-4 w-4 mr-1.5" />
+                            {deferindo === e.id ? 'Deferindo...' : 'Deferir habilitação'}
+                          </Button>
+                        )}
+                        {e.autorPapel === 'aluno' && !e.legacy && !pedidoHab && (
+                          <Button
+                            variant={e.correcao ? 'outline' : 'default'}
+                            size="sm"
+                            onClick={() => setCorrigindo(e)}
+                          >
+                            <ClipboardCheck className="h-4 w-4 mr-1.5" />
+                            {e.correcao ? 'Editar correção' : 'Corrigir'}
+                          </Button>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
           <aside className="border rounded-md p-4 h-fit space-y-3 lg:sticky lg:top-4 bg-card shadow-sm">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase">Ações</h3>
+
+            {habilitacoesPendentes.length > 0 && (
+              <div className="border border-amber-300 bg-amber-50 rounded p-3 text-xs text-amber-900">
+                <strong>{habilitacoesPendentes.length} requerimento(s) de habilitação</strong> aguardando deferimento.
+                Use o botão "Deferir habilitação" no evento correspondente.
+              </div>
+            )}
 
             {eventoAlunoPendente && (
               <Button

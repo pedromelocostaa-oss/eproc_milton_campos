@@ -45,15 +45,36 @@ export default function MeusProcessosPage() {
       return;
     }
 
-    supabase!
-      .from('processos')
-      .select('*')
-      .eq('aluno_id', user.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        if (data) setProcessos(data);
-        setLoading(false);
-      });
+    (async () => {
+      const own = await supabase!
+        .from('processos')
+        .select('*')
+        .eq('aluno_id', user.id)
+        .order('created_at', { ascending: false });
+
+      // Habilitados: busca eventos de deferimento cujo corpo referencia este aluno
+      const habs = await supabase!
+        .from('eventos')
+        .select('processo_id, corpo')
+        .eq('subtipo', 'despacho')
+        .ilike('corpo', `%HABILITACAO_DEFERIDA:aluno_id=${user.id}%`);
+
+      let habilitadosProcessos: Processo[] = [];
+      const ownIds = new Set((own.data ?? []).map(p => p.id));
+      const habIds = Array.from(new Set((habs.data ?? []).map(e => e.processo_id))).filter(id => !ownIds.has(id));
+      if (habIds.length > 0) {
+        const alheios = await supabase!
+          .from('processos')
+          .select('*')
+          .in('id', habIds);
+        habilitadosProcessos = (alheios.data ?? []).map(p => ({ ...p, _habilitado: true } as Processo & { _habilitado?: boolean }));
+      }
+
+      const todos = [...(own.data ?? []), ...habilitadosProcessos]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setProcessos(todos);
+      setLoading(false);
+    })();
   }, [user]);
 
   const filtered = processos.filter(p => {
@@ -163,7 +184,14 @@ export default function MeusProcessosPage() {
                           className="cursor-pointer"
                           onClick={() => navigate(`/processo/${p.id}`)}
                         >
-                          <td className="font-mono text-[11px] font-semibold">{p.numero_processo}</td>
+                          <td className="font-mono text-[11px] font-semibold">
+                            {p.numero_processo}
+                            {(p as Processo & { _habilitado?: boolean })._habilitado && (
+                              <span className="ml-1 text-[9px] font-normal align-middle inline-flex items-center gap-0.5 px-1 py-0.5 border border-success text-success bg-sucesso-bg rounded-sm">
+                                habilitado
+                              </span>
+                            )}
+                          </td>
                           <td>{p.classe_processual}</td>
                           <td>{p.vara}</td>
                           <td><span className={st.cls}>{st.label}</span></td>
