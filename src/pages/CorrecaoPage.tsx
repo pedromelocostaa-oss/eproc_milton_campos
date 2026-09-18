@@ -12,6 +12,7 @@ import { listarCadastros } from '@/data/cadastroStore';
 import type { Processo, Parte, Documento } from '@/integrations/supabase/types';
 import { baixarDocumento, sanitizeStorageSegment } from '@/lib/downloadDoc';
 import { CheckCircle, ExternalLink, ArrowRight } from 'lucide-react';
+import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
 
 function formatDate(iso: string) { return new Date(iso).toLocaleString('pt-BR'); }
 
@@ -247,7 +248,7 @@ export default function CorrecaoPage() {
               <button
                 className="prof-btn-primary"
                 style={{ height: 52, padding: '0 28px', fontSize: 15 }}
-                onClick={() => window.open(`/professor/processos/${processo?.id}`, '_blank')}
+                onClick={() => navigate(`/professor/processos/${processo?.id}`)}
               >
                 Abrir processo completo
               </button>
@@ -277,33 +278,46 @@ export default function CorrecaoPage() {
           </div>
           <div style={{ fontSize: 16, color: '#6b7280', marginTop: 4 }}>
             Aluno: <strong>{nomeAluno}</strong> — Processo:{' '}
-            <button
-              type="button"
-              onClick={() => window.open(`/professor/processos/${processo.id}`, '_blank')}
+            <a
+              href={`/professor/processos/${processo.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
                 fontFamily: 'monospace', fontWeight: 700,
-                color: '#1e40af', background: 'none', border: 'none',
-                cursor: 'pointer', textDecoration: 'underline',
-                padding: 0, fontSize: 16,
+                color: '#1e40af', textDecoration: 'underline',
+                fontSize: 16,
               }}
               title="Abrir painel completo do processo em nova aba"
             >
               {processo.numero_processo}
-            </button>
+            </a>
             <span style={{ marginLeft: 6, color: '#9ca3af', fontSize: 13 }}>
               (clique para ver todos os eventos do processo)
             </span>
           </div>
 
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <a
+              href={`/professor/processos/${processo.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="prof-btn-secondary"
+              style={{
+                height: 40, padding: '0 16px', fontSize: 14,
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                textDecoration: 'none',
+              }}
+            >
+              <ExternalLink size={16} /> Abrir processo completo em nova aba
+              <ArrowRight size={14} />
+            </a>
             <button
               type="button"
-              onClick={() => window.open(`/professor/processos/${processo.id}`, '_blank')}
+              onClick={() => navigate(`/professor/processos/${processo.id}`)}
               className="prof-btn-secondary"
-              style={{ height: 40, padding: '0 16px', fontSize: 14, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              style={{ height: 40, padding: '0 16px', fontSize: 14 }}
             >
-              <ExternalLink size={16} /> Abrir processo completo (linha do tempo e eventos)
-              <ArrowRight size={14} />
+              Ir para o processo (mesma aba)
             </button>
           </div>
         </div>
@@ -376,6 +390,21 @@ export default function CorrecaoPage() {
                 </div>
               </div>
             )}
+
+            <div className="prof-card" style={{ padding: 0 }}>
+              <div className="prof-card-header">Linha do Tempo do Processo</div>
+              <div style={{ padding: 12 }}>
+                <ArvoreDeEventos
+                  processoId={processo.id}
+                  dataDistribuicao={processo.created_at}
+                  viewMode="aluno"
+                />
+                <p style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>
+                  Todos os eventos do processo (incluindo petições posteriores do aluno).
+                  Para emitir despacho, decisão ou sentença, use o painel do processo completo.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* ── 6.3 Right: Correction panel ── */}

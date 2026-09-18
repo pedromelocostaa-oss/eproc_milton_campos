@@ -51,43 +51,54 @@ export async function fetchEventosUnificados({ processoId, dataDistribuicao }: F
     titulo: string; corpo: string | null; data_evento: string;
   }>;
 
-  if (eventos.length > 0) {
-    const docsNovos = (docsNovosRes.data ?? []) as Array<{
-      id: string; evento_id: string; nome: string; storage_path: string; tamanho_bytes: number | null; ordem: number;
-    }>;
-    const correcoes = (correcoesRes.data ?? []) as Array<{
-      evento_id: string; nota: number | null; feedback: string | null; corrigido_por: string | null; corrigido_em: string;
-    }>;
-    return eventos.map(e => {
-      const docs = docsNovos
-        .filter(d => d.evento_id === e.id)
-        .sort((a, b) => a.ordem - b.ordem)
-        .map<EventoDoc>(d => ({
-          id: d.id,
-          nome: d.nome,
-          storagePath: d.storage_path,
-          bucket: 'evento-documentos',
-          tamanhoBytes: d.tamanho_bytes,
-        }));
-      const c = correcoes.find(cc => cc.evento_id === e.id);
-      return {
-        id: e.id,
-        processoId: e.processo_id,
-        numero: e.numero,
-        subtipo: e.subtipo,
-        autorPapel: e.autor_papel,
-        autorId: e.autor_id,
-        titulo: e.titulo,
-        corpo: e.corpo,
-        dataEvento: e.data_evento,
-        documentos: docs,
-        correcao: c ? { nota: c.nota, feedback: c.feedback, corrigidoPor: c.corrigido_por, corrigidoEm: c.corrigido_em } : null,
-        legacy: false,
-      };
-    });
-  }
+  const docsNovos = (docsNovosRes.data ?? []) as Array<{
+    id: string; evento_id: string; nome: string; storage_path: string; tamanho_bytes: number | null; ordem: number;
+  }>;
+  const correcoes = (correcoesRes.data ?? []) as Array<{
+    evento_id: string; nota: number | null; feedback: string | null; corrigido_por: string | null; corrigido_em: string;
+  }>;
 
-  return sintetizarLegacy(processoId, dataDistribuicao);
+  const novos: EventoUnificado[] = eventos.map(e => {
+    const docs = docsNovos
+      .filter(d => d.evento_id === e.id)
+      .sort((a, b) => a.ordem - b.ordem)
+      .map<EventoDoc>(d => ({
+        id: d.id,
+        nome: d.nome,
+        storagePath: d.storage_path,
+        bucket: 'evento-documentos',
+        tamanhoBytes: d.tamanho_bytes,
+      }));
+    const c = correcoes.find(cc => cc.evento_id === e.id);
+    return {
+      id: e.id,
+      processoId: e.processo_id,
+      numero: e.numero,
+      subtipo: e.subtipo,
+      autorPapel: e.autor_papel,
+      autorId: e.autor_id,
+      titulo: e.titulo,
+      corpo: e.corpo,
+      dataEvento: e.data_evento,
+      documentos: docs,
+      correcao: c ? { nota: c.nota, feedback: c.feedback, corrigidoPor: c.corrigido_por, corrigidoEm: c.corrigido_em } : null,
+      legacy: false,
+    };
+  });
+
+  // SEMPRE inclui o histórico do modelo antigo (distribuição, petição inicial,
+  // despachos gravados como intimações etc.) — se houver evento novo do tipo
+  // peticao_inicial, remove o duplicado legacy pra não ficar redundante.
+  const legacy = await sintetizarLegacy(processoId, dataDistribuicao);
+  const temNovaPeticaoInicial = novos.some(e => e.subtipo === 'peticao_inicial');
+  const legacyRelevante = temNovaPeticaoInicial
+    ? legacy.filter(e => e.subtipo !== 'peticao_inicial')
+    : legacy;
+
+  const combinados = [...legacyRelevante, ...novos]
+    .sort((a, b) => new Date(a.dataEvento).getTime() - new Date(b.dataEvento).getTime());
+
+  return combinados.map((e, i) => ({ ...e, numero: i + 1 }));
 }
 
 async function sintetizarLegacy(processoId: string, dataDistribuicao: string): Promise<EventoUnificado[]> {
