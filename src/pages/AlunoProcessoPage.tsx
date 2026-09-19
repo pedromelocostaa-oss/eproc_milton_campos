@@ -6,6 +6,8 @@ import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getDemoProcessos, getDemoPartes } from '@/data/demoStore';
 import { CabecalhoProcesso } from '@/components/eventos/CabecalhoProcesso';
 import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
+import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
+import type { EventoUnificado } from '@/lib/eventos/adapter';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, Send } from 'lucide-react';
@@ -23,6 +25,7 @@ export default function AlunoProcessoPage() {
   const [partes, setPartes] = useState<Parte[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [ehHabilitado, setEhHabilitado] = useState(false);
+  const [detalhando, setDetalhando] = useState<EventoUnificado | null>(null);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -107,8 +110,15 @@ export default function AlunoProcessoPage() {
           dataDistribuicao={processo.created_at}
           viewMode="aluno"
           destacarNumero={destaque}
+          onAbrirDetalhes={setDetalhando}
         />
       </div>
+
+      <EventoDetalheDialog
+        evento={detalhando}
+        aberto={detalhando != null}
+        onFechar={() => setDetalhando(null)}
+      />
     </EprocLayout>
   );
 }

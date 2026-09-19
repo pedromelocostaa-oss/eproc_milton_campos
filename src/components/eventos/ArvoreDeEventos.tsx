@@ -10,9 +10,10 @@ interface Props {
   viewMode: 'aluno' | 'professor';
   destacarNumero?: number | null;
   atualizarKey?: number;
+  onAbrirDetalhes?: (evento: EventoUnificado) => void;
 }
 
-export function ArvoreDeEventos({ processoId, dataDistribuicao, viewMode, destacarNumero, atualizarKey }: Props) {
+export function ArvoreDeEventos({ processoId, dataDistribuicao, viewMode, destacarNumero, atualizarKey, onAbrirDetalhes }: Props) {
   const [eventos, setEventos] = useState<EventoUnificado[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -69,7 +70,7 @@ export function ArvoreDeEventos({ processoId, dataDistribuicao, viewMode, destac
           <p className="p-4 text-[12px] text-eproc-texto-secundario">Nenhum evento registrado.</p>
         ) : (
           ordenados.map(e => (
-            <EventoLinha key={e.id} evento={e} viewMode="aluno" destacar={destacarNumero === e.numero} />
+            <EventoLinha key={e.id} evento={e} viewMode="aluno" destacar={destacarNumero === e.numero} onAbrirDetalhes={onAbrirDetalhes} />
           ))
         )}
       </div>
@@ -95,7 +96,7 @@ export function ArvoreDeEventos({ processoId, dataDistribuicao, viewMode, destac
       ) : (
         <div className="space-y-3">
           {ordenados.map(e => (
-            <EventoLinha key={e.id} evento={e} viewMode="professor" destacar={destacarNumero === e.numero} />
+            <EventoLinha key={e.id} evento={e} viewMode="professor" destacar={destacarNumero === e.numero} onAbrirDetalhes={onAbrirDetalhes} />
           ))}
         </div>
       )}

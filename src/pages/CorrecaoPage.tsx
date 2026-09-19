@@ -13,6 +13,8 @@ import type { Processo, Parte, Documento } from '@/integrations/supabase/types';
 import { baixarDocumento, sanitizeStorageSegment } from '@/lib/downloadDoc';
 import { CheckCircle, ExternalLink, ArrowRight } from 'lucide-react';
 import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
+import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
+import type { EventoUnificado } from '@/lib/eventos/adapter';
 
 function formatDate(iso: string) { return new Date(iso).toLocaleString('pt-BR'); }
 
@@ -49,6 +51,7 @@ export default function CorrecaoPage() {
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
   const [arquivoDespacho, setArquivoDespacho] = useState<File | null>(null);
+  const [detalhando, setDetalhando] = useState<EventoUnificado | null>(null);
 
   useEffect(() => {
     if (!id || !user) return;
@@ -398,6 +401,7 @@ export default function CorrecaoPage() {
                   processoId={processo.id}
                   dataDistribuicao={processo.created_at}
                   viewMode="aluno"
+                  onAbrirDetalhes={setDetalhando}
                 />
                 <p style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>
                   Todos os eventos do processo (incluindo petições posteriores do aluno).
@@ -538,6 +542,12 @@ export default function CorrecaoPage() {
           </div>
         </div>
       </div>
+
+      <EventoDetalheDialog
+        evento={detalhando}
+        aberto={detalhando != null}
+        onFechar={() => setDetalhando(null)}
+      />
     </ProfLayout>
   );
 }

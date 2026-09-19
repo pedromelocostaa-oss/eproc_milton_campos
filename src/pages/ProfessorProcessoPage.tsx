@@ -7,6 +7,7 @@ import { getAllDemoProcessos, getDemoPartes } from '@/data/demoStore';
 import { CabecalhoProcesso } from '@/components/eventos/CabecalhoProcesso';
 import { EventoLinha } from '@/components/eventos/EventoLinha';
 import { CorrigirEventoSheet } from '@/components/eventos/CorrigirEventoSheet';
+import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Eye, Feather, Scale, Gavel, ClipboardCheck, Loader2, RefreshCw, UserCheck } from 'lucide-react';
 import { fetchEventosUnificados, type EventoUnificado } from '@/lib/eventos/adapter';
@@ -27,6 +28,7 @@ export default function ProfessorProcessoPage() {
   const [carregando, setCarregando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [corrigindo, setCorrigindo] = useState<EventoUnificado | null>(null);
+  const [detalhando, setDetalhando] = useState<EventoUnificado | null>(null);
 
   const recarregarEventos = useCallback(async () => {
     if (!processo) return;
@@ -143,7 +145,12 @@ export default function ProfessorProcessoPage() {
                   const pedidoHab = habilitacoesPendentes.find(p => p.evento.id === e.id);
                   return (
                     <div key={e.id} className="space-y-1">
-                      <EventoLinha evento={e} viewMode="professor" destacar={destaque === e.numero} />
+                      <EventoLinha
+                        evento={e}
+                        viewMode="professor"
+                        destacar={destaque === e.numero}
+                        onAbrirDetalhes={setDetalhando}
+                      />
                       <div className="flex justify-end gap-2">
                         {pedidoHab && !jaSentenciado && (
                           <Button
@@ -250,6 +257,12 @@ export default function ProfessorProcessoPage() {
         aberto={corrigindo != null}
         onFechar={() => setCorrigindo(null)}
         onSalvou={recarregarEventos}
+      />
+
+      <EventoDetalheDialog
+        evento={detalhando}
+        aberto={detalhando != null}
+        onFechar={() => setDetalhando(null)}
       />
     </ProfLayout>
   );
