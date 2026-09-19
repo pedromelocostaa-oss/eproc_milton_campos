@@ -6,9 +6,12 @@ import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
 import { getDemoProcessos, getDemoPartes, getDemoMovimentacoes, getDemoDocumentos, getDemoIntimacoesAluno } from '@/data/demoStore';
 import { getJuiz } from '@/data/varas';
 import { baixarDocumento } from '@/lib/downloadDoc';
+import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
+import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
+import type { EventoUnificado } from '@/lib/eventos/adapter';
 import type { Processo, Parte, Movimentacao, Documento, Intimacao } from '@/integrations/supabase/types';
 
-type Tab = 'partes' | 'movimentacoes' | 'documentos' | 'intimacoes';
+type Tab = 'eventos' | 'partes' | 'movimentacoes' | 'documentos' | 'intimacoes';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('pt-BR');
@@ -45,7 +48,8 @@ export default function ProcessoDetalhesPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('movimentacoes');
+  const [tab, setTab] = useState<Tab>('eventos');
+  const [detalhandoEvento, setDetalhandoEvento] = useState<EventoUnificado | null>(null);
   const [processo, setProcesso] = useState<Processo | null>(null);
   const [partes, setPartes] = useState<Parte[]>([]);
   const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
@@ -95,6 +99,7 @@ export default function ProcessoDetalhesPage() {
   const intimacoesNaoLidas = intimacoes.filter(i => !i.lida).length;
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
+    { key: 'eventos', label: 'Linha do Tempo' },
     { key: 'movimentacoes', label: 'Movimentações' },
     { key: 'partes', label: 'Partes' },
     { key: 'documentos', label: 'Documentos' },
@@ -170,6 +175,22 @@ export default function ProcessoDetalhesPage() {
         </div>
 
         <div className="p-4">
+          {/* Tab: Linha do Tempo (nova) */}
+          {tab === 'eventos' && (
+            <div className="space-y-2">
+              <div className="text-[12px] text-muted-foreground">
+                Todos os eventos do processo em ordem cronológica (petições, despachos, decisões, intimações).
+                Clique em qualquer card para ver o conteúdo completo e os documentos anexados.
+              </div>
+              <ArvoreDeEventos
+                processoId={processo.id}
+                dataDistribuicao={processo.created_at}
+                viewMode="aluno"
+                onAbrirDetalhes={setDetalhandoEvento}
+              />
+            </div>
+          )}
+
           {/* Tab: Movimentações */}
           {tab === 'movimentacoes' && (
             <div className="bg-white border border-border">
@@ -327,6 +348,12 @@ export default function ProcessoDetalhesPage() {
           })()}
         </div>
       </div>
+
+      <EventoDetalheDialog
+        evento={detalhandoEvento}
+        aberto={detalhandoEvento != null}
+        onFechar={() => setDetalhandoEvento(null)}
+      />
     </EprocLayout>
   );
 }

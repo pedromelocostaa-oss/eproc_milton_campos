@@ -174,10 +174,18 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
     });
   });
 
-  const usados = new Set(intims.map(i => new Date(i.created_at).getTime()));
+  // Ignora movimentações que já foram cobertas por intimações (mesmo despacho/decisão/sentença)
+  // Como CorrecaoPage grava mov + intim quase simultâneas, considera qualquer intimação
+  // dentro de uma janela de 5s como cobertura.
+  const timesIntim = intims.map(i => new Date(i.created_at).getTime());
+  const jaCobertoPorIntim = (mtime: number) => timesIntim.some(t => Math.abs(t - mtime) <= 5000);
+
+  const TIPOS_MOV_JA_COBERTOS = new Set(['despacho', 'solicitacao_emenda', 'encerramento', 'distribuicao']);
+
   movs.forEach((m, idx) => {
     const t = new Date(m.created_at).getTime();
-    if (usados.has(t) || m.tipo === 'distribuicao') return;
+    if (TIPOS_MOV_JA_COBERTOS.has(m.tipo) && jaCobertoPorIntim(t)) return;
+    if (m.tipo === 'distribuicao') return;
     legacy.push({
       id: `legacy-mov-${m.id}`,
       processoId,
