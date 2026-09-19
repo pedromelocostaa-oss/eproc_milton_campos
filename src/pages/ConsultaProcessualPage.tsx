@@ -4,8 +4,9 @@ import { Info, Volume2, FileText, ExternalLink, ArrowLeft } from 'lucide-react';
 import EprocLayout from '@/components/layout/EprocLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCpf, formatCnpj } from '@/lib/masks';
-import { getAcervoParaAluno, subscribeAcervo, type AcervoProcesso } from '@/data/acervoStore';
+import { getAcervoParaAluno, subscribeAcervo, type AcervoProcesso, type AcervoParte } from '@/data/acervoStore';
 import { abrirArquivo } from '@/lib/fileStore';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ParteAgregada {
   chave: string;
@@ -39,17 +40,84 @@ export default function ConsultaProcessualPage() {
   const { user } = useAuth();
 
   const [acervo, setAcervo] = useState<AcervoProcesso[]>([]);
+  const [processosDaTurma, setProcessosDaTurma] = useState<AcervoProcesso[]>([]);
+  const [carregandoTurma, setCarregandoTurma] = useState(true);
+
   useEffect(() => {
     const load = () => setAcervo(getAcervoParaAluno([user?.turma_id]));
     load();
     return subscribeAcervo(load);
   }, [user?.turma_id]);
 
+  // Busca processos REAIS de outros grupos/alunos da mesma turma do aluno logado
+  useEffect(() => {
+    if (!user?.turma_id) { setProcessosDaTurma([]); setCarregandoTurma(false); return; }
+    (async () => {
+      setCarregandoTurma(true);
+      try {
+        // 1) IDs das tarefas dessa turma
+        const tarefasRes = await supabase.from('tarefas').select('id').eq('turma_id', user.turma_id);
+        const tarefaIds = (tarefasRes.data ?? []).map(t => t.id as string);
+        if (tarefaIds.length === 0) { setProcessosDaTurma([]); setCarregandoTurma(false); return; }
+
+        // 2) Processos NÃO SIGILOSOS dessas tarefas
+        const procsRes = await supabase
+          .from('processos')
+          .select('id, numero_processo, classe_processual, assunto, vara, valor_causa, segredo_justica, created_at, aluno_id, tarefa_id')
+          .in('tarefa_id', tarefaIds)
+          .eq('segredo_justica', false);
+        const procs = procsRes.data ?? [];
+        if (procs.length === 0) { setProcessosDaTurma([]); setCarregandoTurma(false); return; }
+
+        // 3) Partes desses processos
+        const partesRes = await supabase
+          .from('partes')
+          .select('id, processo_id, nome, polo, tipo_pessoa, cpf_cnpj')
+          .in('processo_id', procs.map(p => p.id));
+        const partesByProc = new Map<string, AcervoParte[]>();
+        (partesRes.data ?? []).forEach(pt => {
+          const arr = partesByProc.get(pt.processo_id as string) ?? [];
+          arr.push({
+            id: pt.id as string,
+            nome: pt.nome as string,
+            polo: pt.polo as 'ativo' | 'passivo',
+            tipoPessoa: (pt.tipo_pessoa as string) === 'juridica' ? 'juridica' : 'fisica',
+            cpfCnpj: ((pt.cpf_cnpj as string | null) ?? '').replace(/\D/g, ''),
+          });
+          partesByProc.set(pt.processo_id as string, arr);
+        });
+
+        // 4) Converte pra AcervoProcesso
+        const convertidos: AcervoProcesso[] = procs.map(p => ({
+          id: `real:${p.id}`,
+          professorId: `aluno:${p.aluno_id}`,
+          numeroProcesso: p.numero_processo as string,
+          classe: p.classe_processual as string,
+          assunto: (p.assunto as string) ?? '',
+          vara: (p.vara as string) ?? '',
+          valorCausa: (p.valor_causa as number | null) ?? null,
+          segredoJustica: false,
+          partes: partesByProc.get(p.id as string) ?? [],
+          documentos: [], // documentos não são listados nessa tela; abrem via detalhe → linha do tempo
+          createdAt: (p.created_at as string) ?? new Date().toISOString(),
+        }));
+        setProcessosDaTurma(convertidos);
+      } catch {
+        setProcessosDaTurma([]);
+      } finally {
+        setCarregandoTurma(false);
+      }
+    })();
+  }, [user?.turma_id]);
+
+  // Base combinada de busca: acervo do professor + processos reais da mesma turma.
+  const baseBusca = useMemo(() => [...acervo, ...processosDaTurma], [acervo, processosDaTurma]);
+
   const procById = useMemo(() => {
     const m = new Map<string, AcervoProcesso>();
-    acervo.forEach(p => m.set(p.id, p));
+    baseBusca.forEach(p => m.set(p.id, p));
     return m;
-  }, [acervo]);
+  }, [baseBusca]);
 
   const [numProcesso, setNumProcesso] = useState('');
   const [chaveProcesso, setChaveProcesso] = useState('');
@@ -72,13 +140,13 @@ export default function ConsultaProcessualPage() {
   const location = useLocation();
   useEffect(() => {
     const numero = new URLSearchParams(location.search).get('numero');
-    if (!numero || acervo.length === 0) return;
+    if (!numero || baseBusca.length === 0) return;
     const alvo = numero.replace(/\D/g, '');
     setNumProcesso(numero);
-    setProcessosEncontrados(acervo.filter(pr => pr.numeroProcesso.replace(/\D/g, '').includes(alvo)));
+    setProcessosEncontrados(baseBusca.filter(pr => pr.numeroProcesso.replace(/\D/g, '').includes(alvo)));
     setParteSelecionada(null);
     setView('processos');
-  }, [location.search, acervo]);
+  }, [location.search, baseBusca]);
 
   const normaliza = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
@@ -94,7 +162,7 @@ export default function ConsultaProcessualPage() {
   // Agrega todas as partes do acervo (únicas por nome+documento) com os processos em que aparecem.
   const partesAgregadas = useMemo<ParteAgregada[]>(() => {
     const map = new Map<string, ParteAgregada>();
-    acervo.forEach(proc => {
+    baseBusca.forEach(proc => {
       proc.partes.forEach(pt => {
         const chave = `${normaliza(pt.nome)}|${pt.cpfCnpj}`;
         const existente = map.get(chave);
@@ -106,7 +174,7 @@ export default function ConsultaProcessualPage() {
       });
     });
     return [...map.values()];
-  }, [acervo]);
+  }, [baseBusca]);
 
   const consultar = () => {
     setErro('');
@@ -127,7 +195,7 @@ export default function ConsultaProcessualPage() {
     // Busca por número do processo → lista de processos
     if (numProcesso.trim()) {
       const alvo = numProcesso.replace(/\D/g, '');
-      const found = acervo.filter(pr => pr.numeroProcesso.replace(/\D/g, '').includes(alvo));
+      const found = baseBusca.filter(pr => pr.numeroProcesso.replace(/\D/g, '').includes(alvo));
       setProcessosEncontrados(found);
       setParteSelecionada(null);
       setView('processos');
@@ -144,6 +212,13 @@ export default function ConsultaProcessualPage() {
   };
 
   const abrirDetalhe = (proc: AcervoProcesso) => {
+    // Se é um processo REAL (id prefixado "real:"), navega para a árvore de eventos
+    if (proc.id.startsWith('real:')) {
+      const realId = proc.id.slice(5);
+      navigate(`/aluno/processos/${realId}`);
+      return;
+    }
+    // Acervo do professor → mostra o detalhe do acervo (com documentos-modelo)
     setDetalhe(proc);
     setView('detalhe');
   };
@@ -188,6 +263,15 @@ export default function ConsultaProcessualPage() {
             )}
             <button className="tjmg-btn-link" onClick={voltar}>Voltar</button>
           </div>
+        </div>
+
+        {/* Escopo */}
+        <div className="mb-3 text-[12px] text-muted-foreground">
+          {carregandoTurma
+            ? <span>Carregando processos da sua turma...</span>
+            : processosDaTurma.length > 0
+              ? <span>Você pode buscar entre <strong>{processosDaTurma.length}</strong> processo(s) reais de alunos da sua turma, além dos exemplares do acervo.</span>
+              : <span>Nenhum processo de outros grupos da sua turma foi encontrado ainda. Apenas exemplares do acervo estão disponíveis.</span>}
         </div>
 
         {/* Critérios da consulta */}
@@ -325,17 +409,25 @@ export default function ConsultaProcessualPage() {
                   {processosEncontrados.length === 0 ? (
                     <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhum processo encontrado.</td></tr>
                   ) : (
-                    processosEncontrados.map((pr, i) => (
-                      <tr key={pr.id} className={`border-b border-border ${i % 2 ? 'bg-muted/20' : ''} align-top`}>
-                        <td className="px-4 py-2">
-                          <button className="text-sky-700 hover:underline font-mono text-left" onClick={() => abrirDetalhe(pr)}>{pr.numeroProcesso}</button>
-                        </td>
-                        <td className="px-4 py-2">{poloAutor(pr)}</td>
-                        <td className="px-4 py-2 whitespace-pre-line">{poloReu(pr)}</td>
-                        <td className="px-4 py-2">{pr.assunto || '—'}</td>
-                        <td className="px-4 py-2">{pr.documentos.length}</td>
-                      </tr>
-                    ))
+                    processosEncontrados.map((pr, i) => {
+                      const isReal = pr.id.startsWith('real:');
+                      return (
+                        <tr key={pr.id} className={`border-b border-border ${i % 2 ? 'bg-muted/20' : ''} align-top`}>
+                          <td className="px-4 py-2">
+                            <button className="text-sky-700 hover:underline font-mono text-left" onClick={() => abrirDetalhe(pr)}>{pr.numeroProcesso}</button>
+                            {isReal && (
+                              <span className="ml-2 inline-block text-[10px] font-semibold uppercase px-1.5 py-0.5 border border-emerald-400 bg-emerald-50 text-emerald-800 rounded-sm align-middle">
+                                turma
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-2">{poloAutor(pr)}</td>
+                          <td className="px-4 py-2 whitespace-pre-line">{poloReu(pr)}</td>
+                          <td className="px-4 py-2">{pr.assunto || '—'}</td>
+                          <td className="px-4 py-2">{isReal ? '—' : pr.documentos.length}</td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
