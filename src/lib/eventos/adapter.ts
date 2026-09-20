@@ -129,13 +129,23 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
     legacy: true,
   });
 
+  // Documentos da petição INICIAL: agrupados num único evento peticao_inicial
+  // (só os docs cujo created_at está próximo do primeiro documento do aluno)
   const peticao = docs.find(d => /peti[cç][ãa]o inicial/i.test(d.tipo));
+  const docsIniciaisIds = new Set<string>();
   if (peticao) {
-    const docsIniciais = docs.filter(d => !/despacho do professor/i.test(d.tipo));
+    const inicialTime = new Date(peticao.created_at).getTime();
+    const docsIniciais = docs.filter(d => {
+      if (/despacho do professor/i.test(d.tipo)) return false;
+      // Considera "inicial" todo documento gravado em até 60s do primeiro
+      const dt = new Date(d.created_at).getTime();
+      return Math.abs(dt - inicialTime) <= 60_000;
+    });
+    docsIniciais.forEach(d => docsIniciaisIds.add(d.id));
     legacy.push({
       id: `legacy-peti-${processoId}`,
       processoId,
-      _order: new Date(peticao.created_at).getTime() + 1,
+      _order: inicialTime + 1,
       subtipo: 'peticao_inicial',
       autorPapel: 'aluno',
       autorId: peticao.aluno_id,
@@ -150,7 +160,32 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
     });
   }
 
+  // Documentos POSTERIORES do aluno (petições incidentais, contestações, manifestações etc.)
+  // gravados via /peticao-incidental — cada um vira um evento peticao_generica separado.
   const despachoDoc = docs.find(d => /despacho do professor/i.test(d.tipo));
+  docs.forEach(d => {
+    if (docsIniciaisIds.has(d.id)) return;
+    if (despachoDoc && d.id === despachoDoc.id) return;
+    if (/despacho do professor/i.test(d.tipo)) return;
+    legacy.push({
+      id: `legacy-doc-${d.id}`,
+      processoId,
+      _order: new Date(d.created_at).getTime() + 20,
+      subtipo: 'peticao_generica',
+      autorPapel: 'aluno',
+      autorId: d.aluno_id,
+      titulo: d.tipo || 'Petição incidental',
+      corpo: null,
+      dataEvento: d.created_at,
+      documentos: [{
+        id: d.id, nome: d.nome_arquivo, storagePath: d.storage_path,
+        bucket: 'documentos', tamanhoBytes: d.tamanho_bytes,
+      }],
+      correcao: null,
+      legacy: true,
+    });
+  });
+
   intims.forEach((i, idx) => {
     const isEncerramento = /encerrado|nota final/i.test(i.texto);
     const isEmenda = /solicita[cç][ãa]o de corre[cç][ãa]o/i.test(i.texto);

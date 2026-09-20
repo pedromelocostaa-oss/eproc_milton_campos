@@ -49,22 +49,30 @@ export default function ConsultaProcessualPage() {
     return subscribeAcervo(load);
   }, [user?.turma_id]);
 
-  // Busca processos REAIS de outros grupos/alunos da mesma turma do aluno logado
+  // Busca processos REAIS de outros grupos/alunos da mesma turma do aluno logado.
+  // Filtro pelo TURMA_ID DO DONO DO PROCESSO (não pela tarefa) para pegar também
+  // processos criados sem estar vinculados a uma tarefa específica.
   useEffect(() => {
     if (!user?.turma_id) { setProcessosDaTurma([]); setCarregandoTurma(false); return; }
     (async () => {
       setCarregandoTurma(true);
       try {
-        // 1) IDs das tarefas dessa turma
-        const tarefasRes = await supabase.from('tarefas').select('id').eq('turma_id', user.turma_id);
-        const tarefaIds = (tarefasRes.data ?? []).map(t => t.id as string);
-        if (tarefaIds.length === 0) { setProcessosDaTurma([]); setCarregandoTurma(false); return; }
+        // 1) IDs dos alunos da mesma turma (cadastros_alunos + profiles)
+        const [cadRes, profRes] = await Promise.all([
+          supabase.from('cadastros_alunos').select('id').eq('turma_id', user.turma_id),
+          supabase.from('profiles').select('id').eq('turma_id', user.turma_id),
+        ]);
+        const alunoIds = Array.from(new Set([
+          ...(cadRes.data ?? []).map(r => r.id as string),
+          ...(profRes.data ?? []).map(r => r.id as string),
+        ]));
+        if (alunoIds.length === 0) { setProcessosDaTurma([]); setCarregandoTurma(false); return; }
 
-        // 2) Processos NÃO SIGILOSOS dessas tarefas
+        // 2) Processos NÃO SIGILOSOS criados por qualquer aluno da turma
         const procsRes = await supabase
           .from('processos')
           .select('id, numero_processo, classe_processual, assunto, vara, valor_causa, segredo_justica, created_at, aluno_id, tarefa_id')
-          .in('tarefa_id', tarefaIds)
+          .in('aluno_id', alunoIds)
           .eq('segredo_justica', false);
         const procs = procsRes.data ?? [];
         if (procs.length === 0) { setProcessosDaTurma([]); setCarregandoTurma(false); return; }

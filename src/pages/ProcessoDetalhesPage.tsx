@@ -11,7 +11,7 @@ import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
 import type { EventoUnificado } from '@/lib/eventos/adapter';
 import type { Processo, Parte, Movimentacao, Documento, Intimacao } from '@/integrations/supabase/types';
 
-type Tab = 'eventos' | 'partes' | 'movimentacoes' | 'documentos' | 'intimacoes';
+type Tab = 'partes' | 'movimentacoes' | 'documentos' | 'intimacoes';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('pt-BR');
@@ -48,7 +48,7 @@ export default function ProcessoDetalhesPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('eventos');
+  const [tab, setTab] = useState<Tab>('movimentacoes');
   const [detalhandoEvento, setDetalhandoEvento] = useState<EventoUnificado | null>(null);
   const [processo, setProcesso] = useState<Processo | null>(null);
   const [partes, setPartes] = useState<Parte[]>([]);
@@ -99,7 +99,6 @@ export default function ProcessoDetalhesPage() {
   const intimacoesNaoLidas = intimacoes.filter(i => !i.lida).length;
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
-    { key: 'eventos', label: 'Linha do Tempo' },
     { key: 'movimentacoes', label: 'Movimentações' },
     { key: 'partes', label: 'Partes' },
     { key: 'documentos', label: 'Documentos' },
@@ -175,8 +174,8 @@ export default function ProcessoDetalhesPage() {
         </div>
 
         <div className="p-4">
-          {/* Tab: Linha do Tempo (nova) */}
-          {tab === 'eventos' && (
+          {/* Tab: Movimentações — agora mostra a árvore de eventos completa */}
+          {tab === 'movimentacoes' && (
             <div className="space-y-2">
               <div className="text-[12px] text-muted-foreground">
                 Todos os eventos do processo em ordem cronológica (petições, despachos, decisões, intimações).
@@ -191,8 +190,8 @@ export default function ProcessoDetalhesPage() {
             </div>
           )}
 
-          {/* Tab: Movimentações */}
-          {tab === 'movimentacoes' && (
+          {/* Tab: Movimentações (legado — sempre falso, mantido só para não quebrar refs) */}
+          {false && tab === 'movimentacoes' && (
             <div className="bg-white border border-border">
               <div className="panel-header">MOVIMENTAÇÕES PROCESSUAIS</div>
               {movimentacoes.length === 0 && (
