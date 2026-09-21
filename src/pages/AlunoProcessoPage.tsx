@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
-import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
-import { getDemoProcessos, getDemoPartes } from '@/data/demoStore';
+import { supabase } from '@/integrations/supabase/client';
 import { CabecalhoProcesso } from '@/components/eventos/CabecalhoProcesso';
 import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
 import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
@@ -30,21 +29,19 @@ export default function AlunoProcessoPage() {
   useEffect(() => {
     if (!id || !user) return;
     (async () => {
-      if (DEMO_MODE) {
-        const p = getDemoProcessos(user.id).find(x => x.id === id) ?? null;
-        setProcesso(p);
-        if (p) setPartes(getDemoPartes(id));
-        setCarregando(false);
-        return;
-      }
+      // SEMPRE busca no BD (o DEMO_MODE só afeta o wizard antigo de criação).
+      // Assim qualquer aluno pode abrir processos de outros grupos da sua turma.
       const [pRes, partRes] = await Promise.all([
-        supabase!.from('processos').select('*').eq('id', id).single(),
-        supabase!.from('partes').select('*').eq('processo_id', id),
+        supabase.from('processos').select('*').eq('id', id).single(),
+        supabase.from('partes').select('*').eq('processo_id', id),
       ]);
       if (pRes.data) setProcesso(pRes.data as Processo);
       if (partRes.data) setPartes(partRes.data);
-      if (pRes.data && user) {
-        const evs = await fetchEventosUnificados({ processoId: (pRes.data as Processo).id, dataDistribuicao: (pRes.data as Processo).created_at });
+      if (pRes.data) {
+        const evs = await fetchEventosUnificados({
+          processoId: (pRes.data as Processo).id,
+          dataDistribuicao: (pRes.data as Processo).created_at,
+        });
         setEhHabilitado(habilitados(evs).has(user.id));
       }
       setCarregando(false);

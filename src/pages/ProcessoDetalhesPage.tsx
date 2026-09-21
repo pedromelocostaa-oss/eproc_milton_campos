@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import EprocLayout from '@/components/layout/EprocLayout';
-import { supabase, DEMO_MODE } from '@/integrations/supabase/client';
-import { getDemoProcessos, getDemoPartes, getDemoMovimentacoes, getDemoDocumentos, getDemoIntimacoesAluno } from '@/data/demoStore';
+import { supabase } from '@/integrations/supabase/client';
 import { getJuiz } from '@/data/varas';
 import { baixarDocumento } from '@/lib/downloadDoc';
 import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
@@ -60,26 +59,15 @@ export default function ProcessoDetalhesPage() {
   useEffect(() => {
     if (!id || !user) return;
 
-    if (DEMO_MODE) {
-      const all = getDemoProcessos(user.id);
-      const p = all.find(p => p.id === id);
-      if (p) {
-        setProcesso(p);
-        setPartes(getDemoPartes(id));
-        setMovimentacoes(getDemoMovimentacoes(id));
-        setDocumentos(getDemoDocumentos(id));
-        setIntimacoesAluno(getDemoIntimacoesAluno(user.id).filter(i => i.processo_id === id));
-      }
-      setLoading(false);
-      return;
-    }
-
+    // SEMPRE busca no BD (o DEMO_MODE só era usado no wizard antigo local).
+    // Assim qualquer aluno pode abrir processos de outros grupos da sua turma
+    // (via Consulta Processual).
     Promise.all([
-      supabase!.from('processos').select('*').eq('id', id).single(),
-      supabase!.from('partes').select('*').eq('processo_id', id),
-      supabase!.from('movimentacoes').select('*').eq('processo_id', id).order('created_at', { ascending: false }),
-      supabase!.from('documentos').select('*').eq('processo_id', id),
-      supabase!.from('intimacoes').select('*').eq('processo_id', id).eq('destinatario_id', user.id),
+      supabase.from('processos').select('*').eq('id', id).single(),
+      supabase.from('partes').select('*').eq('processo_id', id),
+      supabase.from('movimentacoes').select('*').eq('processo_id', id).order('created_at', { ascending: false }),
+      supabase.from('documentos').select('*').eq('processo_id', id),
+      supabase.from('intimacoes').select('*').eq('processo_id', id).eq('destinatario_id', user.id),
     ]).then(([pRes, partRes, movRes, docRes, intimRes]) => {
       if (pRes.data) setProcesso(pRes.data);
       if (partRes.data) setPartes(partRes.data);
