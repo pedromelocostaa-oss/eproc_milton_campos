@@ -99,7 +99,10 @@ export function EventoDetalheDialog({ evento, aberto, onFechar }: Props) {
               <div>
                 <div className="text-lg font-semibold">Evento {evento.numero} — {cfg.label}</div>
                 <div className="text-xs font-normal text-muted-foreground mt-0.5">
-                  {labelAutorPapel(evento.autorPapel)} · {data}
+                  {evento.autorNome
+                    ? <>Enviado por <strong className="text-foreground">{evento.autorNome}</strong> ({labelAutorPapel(evento.autorPapel)})</>
+                    : labelAutorPapel(evento.autorPapel)}
+                  {' · '}{data}
                   {evento.legacy && <span className="ml-2 italic">(histórico do modelo anterior)</span>}
                 </div>
               </div>

@@ -39,7 +39,9 @@ export function EventoLinha({ evento, viewMode, destacar, onAbrirDetalhes }: Pro
               <span className="text-eproc-texto-secundario truncate">— {evento.titulo}</span>
             )}
           </span>
-          <span className="text-eproc-texto-secundario">{labelAutorPapel(evento.autorPapel)}</span>
+          <span className="text-eproc-texto-secundario truncate" title={evento.autorNome ?? undefined}>
+            {evento.autorNome ?? labelAutorPapel(evento.autorPapel)}
+          </span>
           <span className="text-eproc-texto-secundario text-right">{evento.documentos.length > 0 ? `${evento.documentos.length} doc` : '—'}</span>
         </button>
         {aberto && (
@@ -79,7 +81,10 @@ export function EventoLinha({ evento, viewMode, destacar, onAbrirDetalhes }: Pro
               Evento {evento.numero} — {cfg.label}
             </div>
             <div className="text-[12px] text-muted-foreground">
-              {labelAutorPapel(evento.autorPapel)} · {data}
+              {evento.autorNome
+                ? <>Enviado por <strong className="text-foreground">{evento.autorNome}</strong> ({labelAutorPapel(evento.autorPapel)})</>
+                : labelAutorPapel(evento.autorPapel)}
+              {' · '}{data}
             </div>
           </div>
         </div>

@@ -19,6 +19,7 @@ export interface EventoUnificado {
   subtipo: EventoSubtipo;
   autorPapel: EventoAutorPapel;
   autorId: string | null;
+  autorNome: string | null;
   titulo: string;
   corpo: string | null;
   dataEvento: string;
@@ -43,6 +44,11 @@ export async function fetchEventosUnificados({ processoId, dataDistribuicao }: F
     supabase.from('eventos').select('*').eq('processo_id', processoId).order('numero', { ascending: true }),
     supabase.from('evento_documentos').select('*'),
     supabase.from('evento_correcoes').select('*'),
+  ]);
+
+  // Busca nome dos autores (aluno / professor) para exibição
+  const autoresMap = await buscarNomesAutores([
+    ...((eventosRes.data ?? []).map(e => e.autor_id).filter(Boolean) as string[]),
   ]);
 
   const eventos = (eventosRes.data ?? []) as Array<{
@@ -77,6 +83,7 @@ export async function fetchEventosUnificados({ processoId, dataDistribuicao }: F
       subtipo: e.subtipo,
       autorPapel: e.autor_papel,
       autorId: e.autor_id,
+      autorNome: e.autor_id ? autoresMap.get(e.autor_id) ?? null : null,
       titulo: e.titulo,
       corpo: e.corpo,
       dataEvento: e.data_evento,
@@ -120,7 +127,7 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
     _order: new Date(dataDistribuicao).getTime(),
     subtipo: 'distribuicao',
     autorPapel: 'sistema',
-    autorId: null,
+    autorId: null, autorNome: null,
     titulo: 'Distribuição do processo',
     corpo: 'Petição inicial distribuída automaticamente.',
     dataEvento: dataDistribuicao,
@@ -148,7 +155,7 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
       _order: inicialTime + 1,
       subtipo: 'peticao_inicial',
       autorPapel: 'aluno',
-      autorId: peticao.aluno_id,
+      autorId: peticao.aluno_id, autorNome: null,
       titulo: 'Petição Inicial',
       corpo: null,
       dataEvento: peticao.created_at,
@@ -173,7 +180,7 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
       _order: new Date(d.created_at).getTime() + 20,
       subtipo: 'peticao_generica',
       autorPapel: 'aluno',
-      autorId: d.aluno_id,
+      autorId: d.aluno_id, autorNome: null,
       titulo: d.tipo || 'Petição incidental',
       corpo: null,
       dataEvento: d.created_at,
@@ -196,7 +203,7 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
       _order: new Date(i.created_at).getTime() + 100 + idx,
       subtipo,
       autorPapel: 'professor_juiz',
-      autorId: i.remetente_id,
+      autorId: i.remetente_id, autorNome: null,
       titulo: subtipo === 'sentenca' ? 'Sentença' : subtipo === 'decisao' ? 'Decisão' : 'Despacho',
       corpo: i.texto,
       dataEvento: i.created_at,
@@ -227,7 +234,7 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
       _order: t + 50 + idx,
       subtipo: 'intimacao',
       autorPapel: 'sistema',
-      autorId: m.autor_id,
+      autorId: m.autor_id, autorNome: null,
       titulo: m.tipo,
       corpo: m.descricao,
       dataEvento: m.created_at,
@@ -237,9 +244,37 @@ async function sintetizarLegacy(processoId: string, dataDistribuicao: string): P
     });
   });
 
+  // Enriquece os legacy com nome do autor
+  const idsLegacy = Array.from(new Set(legacy.map(l => l.autorId).filter(Boolean) as string[]));
+  const legacyAutoresMap = await buscarNomesAutores(idsLegacy);
+  legacy.forEach(l => {
+    if (l.autorId) l.autorNome = legacyAutoresMap.get(l.autorId) ?? null;
+  });
+
   legacy.sort((a, b) => a._order - b._order);
   return legacy.map((e, i) => {
     const { _order: _, ...rest } = e;
     return { ...rest, numero: i + 1 };
   });
+}
+
+/** Busca nomes dos autores em cadastros_alunos + profiles em batch. */
+async function buscarNomesAutores(ids: string[]): Promise<Map<string, string>> {
+  const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+  const out = new Map<string, string>();
+  if (uniqueIds.length === 0) return out;
+
+  const [cadRes, profRes] = await Promise.all([
+    supabase.from('cadastros_alunos').select('id, nome').in('id', uniqueIds),
+    supabase.from('profiles').select('id, nome_completo').in('id', uniqueIds),
+  ]);
+  (cadRes.data ?? []).forEach(r => {
+    if (r.id && r.nome) out.set(r.id as string, r.nome as string);
+  });
+  (profRes.data ?? []).forEach(r => {
+    if (r.id && r.nome_completo && !out.has(r.id as string)) {
+      out.set(r.id as string, r.nome_completo as string);
+    }
+  });
+  return out;
 }
