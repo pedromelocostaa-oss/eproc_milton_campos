@@ -7,8 +7,6 @@ import { CabecalhoProcesso } from '@/components/eventos/CabecalhoProcesso';
 import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
 import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
 import type { EventoUnificado } from '@/lib/eventos/adapter';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, Send } from 'lucide-react';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
@@ -68,35 +66,49 @@ export default function AlunoProcessoPage() {
           </div>
         )}
 
-        {/* Barra de ações do processo — sempre visível no topo */}
-        <div className="mb-3 flex items-center justify-between gap-3 px-3 py-2 border border-eproc-borda bg-white rounded-sm">
-          <div className="text-[12px] text-eproc-texto">
+        {/* Barra de ações — botão HTML simples pra garantir visibilidade */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+            padding: '10px 12px',
+            marginBottom: 12,
+            border: '1px solid #d1d5db',
+            background: '#fff',
+            borderRadius: 2,
+          }}
+        >
+          <div style={{ fontSize: 12, color: '#333' }}>
             <strong>Ações disponíveis:</strong>{' '}
             {podePeticionar
               ? 'você pode peticionar neste processo.'
               : (razaoBloqueio ?? 'peticionamento indisponível.')}
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    size="sm"
-                    onClick={() => navigate(`/aluno/processos/${id}/peticionar`)}
-                    disabled={!podePeticionar}
-                    className="bg-eproc-header hover:bg-primary text-white h-9 px-4 text-[13px] font-semibold"
-                  >
-                    <Send className="h-4 w-4 mr-1.5" /> Peticionar neste processo
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              {!podePeticionar && razaoBloqueio && (
-                <TooltipContent>
-                  <p className="text-xs">{razaoBloqueio}</p>
-                </TooltipContent>
-              )}
-            </Tooltip>
-          </TooltipProvider>
+          <button
+            type="button"
+            onClick={() => navigate(`/aluno/processos/${id}/peticionar`)}
+            disabled={!podePeticionar}
+            title={razaoBloqueio ?? undefined}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              height: 38,
+              padding: '0 18px',
+              border: 'none',
+              borderRadius: 4,
+              background: podePeticionar ? '#1a5276' : '#9ca3af',
+              color: '#fff',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: podePeticionar ? 'pointer' : 'not-allowed',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+            }}
+          >
+            <Send size={16} /> Peticionar neste processo
+          </button>
         </div>
 
         <CabecalhoProcesso
