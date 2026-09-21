@@ -204,25 +204,35 @@ export default function AlunoPeticionarPage() {
           <div className="flex-1 transition-opacity duration-150" key={etapa}>
             {etapa === 1 && (
               <div className="space-y-3">
-                <label className="text-[12px] font-semibold text-eproc-texto">Tipo de Petição</label>
-                <Select value={subtipo} onValueChange={v => selecionarSubtipo(v as EventoSubtipo)}>
-                  <SelectTrigger className="max-w-md">
-                    <SelectValue placeholder="Selecione o tipo..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subtiposDisponiveis.map(s => {
-                      const cfg = SUBTIPO_CONFIG[s];
-                      const Icone = cfg.icon;
-                      return (
-                        <SelectItem key={s} value={s}>
-                          <span className="inline-flex items-center gap-2">
-                            <Icone className="h-3.5 w-3.5" /> {cfg.label}
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                <label className="text-[12px] font-semibold text-eproc-texto">
+                  Tipo de Petição <span className="text-destructive">*</span>
+                </label>
+                <select
+                  value={subtipo}
+                  onChange={e => selecionarSubtipo(e.target.value as EventoSubtipo)}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    maxWidth: 460,
+                    height: 40,
+                    padding: '0 12px',
+                    fontSize: 13,
+                    border: '1px solid #d1d5db',
+                    borderRadius: 4,
+                    background: '#fff',
+                    color: '#333',
+                  }}
+                >
+                  <option value="">— Selecione o tipo —</option>
+                  {subtiposDisponiveis.map(s => (
+                    <option key={s} value={s}>{SUBTIPO_CONFIG[s].label}</option>
+                  ))}
+                </select>
+                {subtipo && (
+                  <div className="text-[11px] text-eproc-texto-secundario italic">
+                    Tipo selecionado: <strong>{SUBTIPO_CONFIG[subtipo].label}</strong>. Clique em Próximo para continuar.
+                  </div>
+                )}
                 {temPeticaoInicial && (
                   <p className="text-[11px] text-eproc-texto-secundario">
                     Este processo já tem petição inicial protocolada.
@@ -316,33 +326,79 @@ export default function AlunoPeticionarPage() {
             )}
           </div>
 
-          <footer className="flex items-center justify-between pt-4 mt-4 border-t border-eproc-borda">
-            <Button variant="outline" onClick={() => setConfirmSair(true)} disabled={enviando} className="h-8 text-[12px]">
+          <footer
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingTop: 16,
+              marginTop: 16,
+              borderTop: '1px solid #d1d5db',
+              gap: 8,
+              flexWrap: 'wrap',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setConfirmSair(true)}
+              disabled={enviando}
+              style={{
+                height: 36, padding: '0 16px', fontSize: 13,
+                border: '1px solid #d1d5db', borderRadius: 4,
+                background: '#fff', color: '#333', cursor: enviando ? 'not-allowed' : 'pointer',
+              }}
+            >
               Cancelar
-            </Button>
-            <div className="flex items-center gap-2">
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {etapa > 1 && (
-                <Button variant="outline" onClick={() => setEtapa(e => (e - 1) as EtapaId)} disabled={enviando} className="h-8 text-[12px]">
-                  <ChevronLeft className="h-3.5 w-3.5 mr-1" /> Voltar
-                </Button>
+                <button
+                  type="button"
+                  onClick={() => setEtapa(e => (e - 1) as EtapaId)}
+                  disabled={enviando}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    height: 36, padding: '0 16px', fontSize: 13,
+                    border: '1px solid #d1d5db', borderRadius: 4,
+                    background: '#fff', color: '#333', cursor: enviando ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <ChevronLeft size={14} /> Voltar
+                </button>
               )}
               {etapa < 5 ? (
-                <Button
+                <button
+                  type="button"
                   onClick={() => setEtapa(e => (e + 1) as EtapaId)}
                   disabled={!podeAvancar}
-                  className="h-8 text-[12px] bg-eproc-header hover:bg-primary text-white"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    height: 36, padding: '0 18px', fontSize: 13, fontWeight: 700,
+                    border: 'none', borderRadius: 4,
+                    background: podeAvancar ? '#1a5276' : '#9ca3af',
+                    color: '#fff',
+                    cursor: podeAvancar ? 'pointer' : 'not-allowed',
+                  }}
                 >
-                  Próximo <ChevronRight className="h-3.5 w-3.5 ml-1" />
-                </Button>
+                  Próximo <ChevronRight size={14} />
+                </button>
               ) : (
-                <Button
+                <button
+                  type="button"
                   onClick={enviarPeticao}
-                  disabled={enviando}
-                  className="h-8 text-[12px] bg-eproc-header hover:bg-primary text-white"
+                  disabled={enviando || !podeAvancar}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    height: 36, padding: '0 18px', fontSize: 13, fontWeight: 700,
+                    border: 'none', borderRadius: 4,
+                    background: (!enviando && podeAvancar) ? '#1a5276' : '#9ca3af',
+                    color: '#fff',
+                    cursor: (enviando || !podeAvancar) ? 'not-allowed' : 'pointer',
+                  }}
                 >
-                  {enviando ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                  {enviando ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                   {enviando ? 'Enviando...' : 'Enviar Petição'}
-                </Button>
+                </button>
               )}
             </div>
           </footer>
