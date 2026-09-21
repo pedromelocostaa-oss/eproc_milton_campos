@@ -68,35 +68,41 @@ export default function AlunoProcessoPage() {
           </div>
         )}
 
+        {/* Barra de ações do processo — sempre visível no topo */}
+        <div className="mb-3 flex items-center justify-between gap-3 px-3 py-2 border border-eproc-borda bg-white rounded-sm">
+          <div className="text-[12px] text-eproc-texto">
+            <strong>Ações disponíveis:</strong>{' '}
+            {podePeticionar
+              ? 'você pode peticionar neste processo.'
+              : (razaoBloqueio ?? 'peticionamento indisponível.')}
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate(`/aluno/processos/${id}/peticionar`)}
+                    disabled={!podePeticionar}
+                    className="bg-eproc-header hover:bg-primary text-white h-9 px-4 text-[13px] font-semibold"
+                  >
+                    <Send className="h-4 w-4 mr-1.5" /> Peticionar neste processo
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!podePeticionar && razaoBloqueio && (
+                <TooltipContent>
+                  <p className="text-xs">{razaoBloqueio}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
         <CabecalhoProcesso
           processo={processo}
           partes={partes}
           viewMode="aluno"
-          extra={
-            <div className="flex justify-end">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/aluno/processos/${id}/peticionar`)}
-                        disabled={!podePeticionar}
-                        className="bg-eproc-header hover:bg-primary text-white h-8 text-[12px]"
-                      >
-                        <Send className="h-3.5 w-3.5 mr-1.5" /> Peticionar
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {!podePeticionar && razaoBloqueio && (
-                    <TooltipContent>
-                      <p className="text-xs">{razaoBloqueio}</p>
-                    </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          }
         />
 
         <ArvoreDeEventos

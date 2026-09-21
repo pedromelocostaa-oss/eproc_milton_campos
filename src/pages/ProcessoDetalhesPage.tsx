@@ -125,12 +125,22 @@ export default function ProcessoDetalhesPage() {
                 </div>
               )}
               {processo.status !== 'encerrado' && (
-                <button
-                  className="btn-secondary text-[11px] py-0.5 px-2 mt-2"
-                  onClick={() => navigate(`/peticao-incidental?processo=${processo.id}`)}
-                >
-                  + Peticionar Incidentalmente
-                </button>
+                <div className="flex flex-col gap-1 mt-2 items-end">
+                  <button
+                    className="btn-primary text-[12px] py-1 px-3 font-semibold"
+                    onClick={() => navigate(`/aluno/processos/${processo.id}/peticionar`)}
+                    title="Peticionar diretamente neste processo (novo fluxo de eventos)"
+                  >
+                    ✎ Peticionar neste processo
+                  </button>
+                  <button
+                    className="btn-secondary text-[11px] py-0.5 px-2"
+                    onClick={() => navigate(`/peticao-incidental?processo=${processo.id}`)}
+                    title="Modo antigo — fluxo tradicional de petição incidental"
+                  >
+                    + Modo antigo
+                  </button>
+                </div>
               )}
             </div>
           </div>
