@@ -10,8 +10,6 @@ import type { EventoUnificado } from '@/lib/eventos/adapter';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, Send } from 'lucide-react';
-import { fetchEventosUnificados } from '@/lib/eventos/adapter';
-import { habilitados } from '@/lib/eventos/habilitacao';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
 export default function AlunoProcessoPage() {
@@ -23,7 +21,6 @@ export default function AlunoProcessoPage() {
   const [processo, setProcesso] = useState<Processo | null>(null);
   const [partes, setPartes] = useState<Parte[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [ehHabilitado, setEhHabilitado] = useState(false);
   const [detalhando, setDetalhando] = useState<EventoUnificado | null>(null);
 
   useEffect(() => {
@@ -37,13 +34,6 @@ export default function AlunoProcessoPage() {
       ]);
       if (pRes.data) setProcesso(pRes.data as Processo);
       if (partRes.data) setPartes(partRes.data);
-      if (pRes.data) {
-        const evs = await fetchEventosUnificados({
-          processoId: (pRes.data as Processo).id,
-          dataDistribuicao: (pRes.data as Processo).created_at,
-        });
-        setEhHabilitado(habilitados(evs).has(user.id));
-      }
       setCarregando(false);
     })();
   }, [id, user]);
@@ -53,11 +43,12 @@ export default function AlunoProcessoPage() {
 
   const estado = processo.estado ?? (processo.status === 'encerrado' ? 'sentenciado' : 'ativo');
   const ehDono = user?.id === processo.aluno_id;
-  const podePeticionar = estado !== 'sentenciado' && estado !== 'baixado' && (ehDono || ehHabilitado);
+  // Qualquer aluno logado da mesma turma pode peticionar. Processo sentenciado bloqueia todo mundo.
+  const podePeticionar = estado !== 'sentenciado' && estado !== 'baixado';
   const razaoBloqueio = estado === 'sentenciado'
     ? 'Este processo foi sentenciado. Não é possível peticionar.'
-    : (!ehDono && !ehHabilitado)
-    ? 'Você não é parte deste processo. Solicite habilitação nos autos pela Consulta Pública.'
+    : estado === 'baixado'
+    ? 'Este processo foi baixado.'
     : null;
 
   return (
@@ -70,6 +61,12 @@ export default function AlunoProcessoPage() {
           <span className="mx-1">›</span>
           <span className="font-mono">{processo.numero_processo}</span>
         </nav>
+
+        {!ehDono && (
+          <div className="mb-2 px-3 py-2 border-l-4 border-eproc-header bg-eproc-tabela-row-alt text-[12px] text-eproc-texto">
+            Você está atuando em um processo de outro grupo. Qualquer petição que enviar aparecerá para o dono do processo, para o professor e para os demais grupos da turma, identificada com o seu nome.
+          </div>
+        )}
 
         <CabecalhoProcesso
           processo={processo}

@@ -75,9 +75,9 @@ export default function AlunoPeticionarPage() {
     if (etapa === 1) return !!subtipo;
     if (etapa === 2) return titulo.trim().length > 0;
     if (etapa === 3) return corpo.trim().length > 0;
-    if (etapa === 4) return true;
-    return true;
-  }, [etapa, subtipo, titulo, corpo]);
+    if (etapa === 4) return docs.length > 0; // documento obrigatório
+    return docs.length > 0;
+  }, [etapa, subtipo, titulo, corpo, docs.length]);
 
   function selecionarSubtipo(v: EventoSubtipo) {
     setSubtipo(v);
@@ -112,6 +112,11 @@ export default function AlunoPeticionarPage() {
     if (!processoId || !subtipo || !user) return;
     setEnviando(true);
     try {
+      const nomeAutor = (user as { nome_completo?: string; nome?: string }).nome_completo
+        ?? (user as { nome?: string }).nome
+        ?? 'Requerente';
+      const tituloComAutor = /—\s*/.test(titulo) ? titulo.trim() : `${titulo.trim()} — ${nomeAutor}`;
+
       const { data: eventoInserido, error: evErr } = await supabase
         .from('eventos')
         .insert({
@@ -119,7 +124,7 @@ export default function AlunoPeticionarPage() {
           subtipo,
           autor_papel: 'aluno',
           autor_id: user.id,
-          titulo: titulo.trim(),
+          titulo: tituloComAutor,
           corpo: corpo.trim() || null,
         })
         .select('id, numero')
@@ -248,7 +253,9 @@ export default function AlunoPeticionarPage() {
             {etapa === 4 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="text-[12px] font-semibold text-eproc-texto">Documentos anexos</label>
+                  <label className="text-[12px] font-semibold text-eproc-texto">
+                    Documentos anexos <span className="text-destructive">*</span>
+                  </label>
                   <label className="inline-flex items-center gap-2 text-[12px] font-medium text-eproc-link hover:underline cursor-pointer">
                     <Upload className="h-3.5 w-3.5" /> Adicionar arquivo(s)
                     <input
@@ -261,7 +268,7 @@ export default function AlunoPeticionarPage() {
                   </label>
                 </div>
                 {docs.length === 0 ? (
-                  <p className="text-[12px] text-eproc-texto-secundario">Nenhum documento anexado. Documentos são opcionais.</p>
+                  <p className="text-[12px] text-destructive">É obrigatório anexar ao menos um documento (PDF ou DOCX) para peticionar.</p>
                 ) : (
                   <ul className="border border-eproc-borda divide-y divide-eproc-borda">
                     {docs.map((d, i) => (

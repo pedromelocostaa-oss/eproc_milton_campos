@@ -52,25 +52,25 @@ export default function MeusProcessosPage() {
         .eq('aluno_id', user.id)
         .order('created_at', { ascending: false });
 
-      // Habilitados: busca eventos de deferimento cujo corpo referencia este aluno
-      const habs = await supabase!
+      // Processos onde o aluno já peticionou (mesmo sendo de outro grupo)
+      const meusEventos = await supabase!
         .from('eventos')
-        .select('processo_id, corpo')
-        .eq('subtipo', 'despacho')
-        .ilike('corpo', `%HABILITACAO_DEFERIDA:aluno_id=${user.id}%`);
+        .select('processo_id')
+        .eq('autor_id', user.id);
 
-      let habilitadosProcessos: Processo[] = [];
+      let atuandoProcessos: Processo[] = [];
       const ownIds = new Set((own.data ?? []).map(p => p.id));
-      const habIds = Array.from(new Set((habs.data ?? []).map(e => e.processo_id))).filter(id => !ownIds.has(id));
-      if (habIds.length > 0) {
+      const atuandoIds = Array.from(new Set((meusEventos.data ?? []).map(e => e.processo_id as string)))
+        .filter(id => !ownIds.has(id));
+      if (atuandoIds.length > 0) {
         const alheios = await supabase!
           .from('processos')
           .select('*')
-          .in('id', habIds);
-        habilitadosProcessos = (alheios.data ?? []).map(p => ({ ...p, _habilitado: true } as Processo & { _habilitado?: boolean }));
+          .in('id', atuandoIds);
+        atuandoProcessos = (alheios.data ?? []).map(p => ({ ...p, _habilitado: true } as Processo & { _habilitado?: boolean }));
       }
 
-      const todos = [...(own.data ?? []), ...habilitadosProcessos]
+      const todos = [...(own.data ?? []), ...atuandoProcessos]
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
       setProcessos(todos);
       setLoading(false);
@@ -188,7 +188,7 @@ export default function MeusProcessosPage() {
                             {p.numero_processo}
                             {(p as Processo & { _habilitado?: boolean })._habilitado && (
                               <span className="ml-1 text-[9px] font-normal align-middle inline-flex items-center gap-0.5 px-1 py-0.5 border border-success text-success bg-sucesso-bg rounded-sm">
-                                habilitado
+                                atuando
                               </span>
                             )}
                           </td>
