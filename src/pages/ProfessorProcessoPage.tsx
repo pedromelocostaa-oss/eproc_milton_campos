@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, Eye, Feather, Scale, Gavel, ClipboardCheck, Loader2, RefreshCw, UserCheck } from 'lucide-react';
 import { fetchEventosUnificados, type EventoUnificado } from '@/lib/eventos/adapter';
 import { pedidosPendentes, textoDeferimento } from '@/lib/eventos/habilitacao';
+import { garantirProfileParaAutor } from '@/lib/eventos/autor';
 import { toast } from 'sonner';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
@@ -72,6 +73,7 @@ export default function ProfessorProcessoPage() {
     if (!user || !processo) return;
     setDeferindo(eventoPedidoId);
     try {
+      await garantirProfileParaAutor({ ...user, perfil: 'professor' });
       const corpo = textoDeferimento(nomeAluno, polo, alunoId);
       const { error } = await supabase.from('eventos').insert({
         processo_id: processo.id,

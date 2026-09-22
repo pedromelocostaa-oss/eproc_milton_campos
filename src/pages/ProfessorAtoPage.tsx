@@ -15,6 +15,7 @@ import {
 import { ChevronLeft, ChevronRight, Loader2, Upload, X, AlertTriangle, Send, Check } from 'lucide-react';
 import { SUBTIPO_CONFIG } from '@/lib/eventos/subtipoConfig';
 import { sanitizeStorageSegment } from '@/lib/downloadDoc';
+import { garantirProfileParaAutor } from '@/lib/eventos/autor';
 import type { EventoSubtipo, Processo } from '@/integrations/supabase/types';
 
 type SubtipoJuiz = 'despacho' | 'decisao' | 'sentenca';
@@ -94,6 +95,7 @@ export default function ProfessorAtoPage() {
     }
     setEnviando(true);
     try {
+      await garantirProfileParaAutor({ ...user, perfil: 'professor' });
       const { data: ev, error: evErr } = await supabase
         .from('eventos')
         .insert({

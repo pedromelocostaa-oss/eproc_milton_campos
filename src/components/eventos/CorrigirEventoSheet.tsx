@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { EventoUnificado } from '@/lib/eventos/adapter';
 import { SUBTIPO_CONFIG } from '@/lib/eventos/subtipoConfig';
+import { garantirProfileParaAutor } from '@/lib/eventos/autor';
 
 interface Props {
   evento: EventoUnificado | null;
@@ -50,6 +51,7 @@ export function CorrigirEventoSheet({ evento, aberto, onFechar, onSalvou }: Prop
         setSalvando(false);
         return;
       }
+      await garantirProfileParaAutor({ ...user, perfil: 'professor' });
       const { error } = await supabase
         .from('evento_correcoes')
         .upsert({

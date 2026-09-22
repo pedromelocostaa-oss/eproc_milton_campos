@@ -15,6 +15,7 @@ import {
 import { ChevronLeft, ChevronRight, Loader2, Upload, X, Send, Check } from 'lucide-react';
 import { SUBTIPO_CONFIG, SUBTIPOS_ALUNO } from '@/lib/eventos/subtipoConfig';
 import { sanitizeStorageSegment } from '@/lib/downloadDoc';
+import { garantirProfileParaAutor } from '@/lib/eventos/autor';
 import type { EventoSubtipo, Processo } from '@/integrations/supabase/types';
 
 type EtapaId = 1 | 2 | 3 | 4 | 5;
@@ -112,6 +113,7 @@ export default function AlunoPeticionarPage() {
     if (!processoId || !subtipo || !user) return;
     setEnviando(true);
     try {
+      await garantirProfileParaAutor(user);
       const nomeAutor = (user as { nome_completo?: string; nome?: string }).nome_completo
         ?? (user as { nome?: string }).nome
         ?? 'Requerente';

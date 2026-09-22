@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { textoRequerimento, type PoloHabilitacao } from '@/lib/eventos/habilitacao';
+import { garantirProfileParaAutor } from '@/lib/eventos/autor';
 
 interface Props {
   processoId: string;
@@ -24,6 +25,7 @@ export function SolicitarHabilitacaoDialog({ processoId, numeroProcesso, aberto,
     if (!user) return;
     setEnviando(true);
     try {
+      await garantirProfileParaAutor(user);
       const corpo = textoRequerimento(user.nome_completo ?? 'Requerente', polo, user.id);
       const { error } = await supabase.from('eventos').insert({
         processo_id: processoId,
