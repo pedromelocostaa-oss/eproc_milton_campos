@@ -171,25 +171,48 @@ export default function AlunoPeticionarPage() {
     <EprocLayout>
       <div className="p-4 max-w-3xl mx-auto">
         {/* Progress */}
-        <div className="flex items-center gap-2 mb-4">
-          {ETAPAS.map((e, i) => (
-            <div key={e.id} className="flex items-center flex-1">
-              <div
-                className={`h-7 w-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 ${
-                  etapa > e.id
-                    ? 'bg-eproc-header text-white'
-                    : etapa === e.id
-                    ? 'bg-eproc-header text-white ring-4 ring-eproc-header/20'
-                    : 'bg-white border border-eproc-borda text-eproc-texto-secundario'
-                }`}
-              >
-                {etapa > e.id ? <Check className="h-3.5 w-3.5" /> : e.id}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
+          {ETAPAS.map((e, i) => {
+            const concluida = etapa > e.id;
+            const ativa = etapa === e.id;
+            const bg = concluida ? '#1a5276' : ativa ? '#1a5276' : '#fff';
+            const cor = (concluida || ativa) ? '#fff' : '#6b7280';
+            const borda = concluida || ativa ? '2px solid #1a5276' : '2px solid #d1d5db';
+            const linha = concluida ? '#1a5276' : '#d1d5db';
+            return (
+              <div key={e.id} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div
+                    style={{
+                      height: 32, width: 32, borderRadius: '50%',
+                      background: bg, color: cor,
+                      border: borda,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13, fontWeight: 700, flexShrink: 0,
+                      boxShadow: ativa ? '0 0 0 4px rgba(26,82,118,0.20)' : 'none',
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {concluida ? <Check size={16} /> : e.id}
+                  </div>
+                  <span style={{
+                    fontSize: 10, fontWeight: ativa ? 700 : 500,
+                    color: ativa || concluida ? '#1a5276' : '#9ca3af',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {e.label}
+                  </span>
+                </div>
+                {i < ETAPAS.length - 1 && (
+                  <div style={{
+                    height: 3, flex: 1, background: linha,
+                    margin: '0 8px', marginBottom: 18, borderRadius: 2,
+                    transition: 'background 0.2s ease',
+                  }} />
+                )}
               </div>
-              {i < ETAPAS.length - 1 && (
-                <div className={`h-0.5 flex-1 mx-2 ${etapa > e.id ? 'bg-eproc-header' : 'bg-eproc-borda'}`} />
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="border border-eproc-borda bg-white p-5 min-h-[420px] flex flex-col">
