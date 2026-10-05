@@ -12,6 +12,7 @@ import {
   getDemoTarefas, subscribeDemoStore,
 } from '@/data/demoStore';
 import { getAcervoParaAluno, subscribeAcervo } from '@/data/acervoStore';
+import { NotificacoesAluno } from '@/components/eventos/NotificacoesAluno';
 import { contar, proximaAudiencia } from '@/data/audiencias';
 import type { Processo, Tarefa, Intimacao } from '@/integrations/supabase/types';
 
@@ -93,6 +94,11 @@ export default function DashboardAlunoPage() {
             <button onClick={() => { setAprovadoBanner(false); searchParams.delete('aprovado'); setSearchParams(searchParams, { replace: true }); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#15803d' }}><X size={16} /></button>
           </div>
         )}
+
+        {/* Painel de notificações do aluno (atualizações nos processos) */}
+        <div className="mb-4">
+          <NotificacoesAluno />
+        </div>
 
         {/* Título + ações */}
         <div className="flex items-start justify-between mb-4 flex-wrap gap-3">

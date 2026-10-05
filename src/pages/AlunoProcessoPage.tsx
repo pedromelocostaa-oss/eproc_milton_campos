@@ -7,6 +7,7 @@ import { CabecalhoProcesso } from '@/components/eventos/CabecalhoProcesso';
 import { ArvoreDeEventos } from '@/components/eventos/ArvoreDeEventos';
 import { EventoDetalheDialog } from '@/components/eventos/EventoDetalheDialog';
 import type { EventoUnificado } from '@/lib/eventos/adapter';
+import { marcarVariosComoVistos } from '@/lib/eventos/notificacoes';
 import { ChevronLeft, Send } from 'lucide-react';
 import type { Processo, Parte } from '@/integrations/supabase/types';
 
@@ -33,6 +34,19 @@ export default function AlunoProcessoPage() {
       if (pRes.data) setProcesso(pRes.data as Processo);
       if (partRes.data) setPartes(partRes.data);
       setCarregando(false);
+
+      // Marca como vistas todas as notificações relacionadas a este processo
+      // (eventos de outros autores nele), já que o aluno acabou de abrir o processo.
+      if (pRes.data && user?.id) {
+        const evsRes = await supabase
+          .from('eventos')
+          .select('id, autor_id')
+          .eq('processo_id', id);
+        const idsParaVer = (evsRes.data ?? [])
+          .filter(e => e.autor_id !== user.id)
+          .map(e => e.id as string);
+        if (idsParaVer.length > 0) marcarVariosComoVistos(user.id, idsParaVer);
+      }
     })();
   }, [id, user]);
 
